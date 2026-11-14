@@ -1,14 +1,101 @@
 import 'package:flutter/material.dart';
+import 'card_detail_screen.dart';
+import 'discover_screen.dart';
+import 'chat_list_screen.dart';
+import 'profile_screen.dart';
+import 'my_cards_screen.dart';
+import 'models/category_model.dart';
+import 'models/live_work_card_model.dart';
+import 'models/user_model.dart';
+import 'services/auth_service.dart';
+import 'services/live_work_service.dart';
+import 'services/profile_service.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 0;
+  UserModel? _currentUser;
+  List<LiveWorkCardModel> _liveWorks = [];
+  List<CategoryModel> _categories = [];
+  CategoryModel? _selectedCategory;
+  bool _isLoading = true;
+
+  final TextEditingController _homeSearchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _homeSearchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    _currentUser = AuthService.getStoredUser();
+
+    final homeData = await LiveWorkService.fetchHomeData();
+    final profile = await ProfileService.fetchUserProfile();
+
+    if (!mounted) return;
+
+    setState(() {
+      _currentUser = profile ?? _currentUser;
+      _liveWorks = homeData['live_works'] as List<LiveWorkCardModel>? ?? [];
+      _categories = homeData['categories'] as List<CategoryModel>? ?? [];
+      _isLoading = false;
+    });
+  }
+
+  List<LiveWorkCardModel> get _displayedLiveWorks {
+    List<LiveWorkCardModel> list = _liveWorks;
+    if (_selectedCategory != null) {
+      list = list.where((c) => c.category?.id == _selectedCategory!.id).toList();
+    }
+    return list.take(6).toList(); // Show only nearest 6 cards max
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: SafeArea(
+      backgroundColor: const Color(0xFFF7F9F8),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          _buildOriginalHomeView(),
+          DiscoverScreen(initialCategory: _selectedCategory),
+          const MyCardsScreen(),
+          const ChatListScreen(),
+          const ProfileScreen(),
+        ],
+      ),
+      bottomNavigationBar: _buildBottomNavBar(),
+    );
+  }
+
+  Widget _buildOriginalHomeView() {
+    final userName = _currentUser?.name ?? 'Welcome Guest';
+    final avatarUrl = _currentUser?.avatarUrl;
+
+    return SafeArea(
+      child: RefreshIndicator(
+        onRefresh: _loadData,
+        color: const Color(0xFF094943),
         child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -17,28 +104,32 @@ class HomeScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Sarah J. Miller',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF333333),
-                        ),
-                      ),
-                      Row(
-                        children: const [
-                          Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
-                          SizedBox(width: 4),
-                          Text(
-                            'San Antinoe, Tx',
-                            style: TextStyle(color: Colors.grey),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          userName,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF333333),
                           ),
-                        ],
-                      ),
-                    ],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Row(
+                          children: const [
+                            Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
+                            SizedBox(width: 4),
+                            Text(
+                              'Nearby Live Works',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                   Row(
                     children: [
@@ -49,7 +140,7 @@ class HomeScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withValues(alpha: 0.05),
                               blurRadius: 10,
                             ),
                           ],
@@ -75,12 +166,25 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(width: 12),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          'https://randomuser.me/api/portraits/women/44.jpg',
-                          width: 45,
-                          height: 45,
-                          fit: BoxFit.cover,
-                        ),
+                        child: avatarUrl != null && avatarUrl.isNotEmpty
+                            ? Image.network(
+                                avatarUrl,
+                                width: 45,
+                                height: 45,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  width: 45,
+                                  height: 45,
+                                  color: const Color(0xFF094943),
+                                  child: const Icon(Icons.person, color: Colors.white),
+                                ),
+                              )
+                            : Container(
+                                width: 45,
+                                height: 45,
+                                color: const Color(0xFF094943),
+                                child: const Icon(Icons.person, color: Colors.white),
+                              ),
                       ),
                     ],
                   ),
@@ -88,7 +192,7 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 25),
 
-              // Search Bar
+              // Search Bar (Workable)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
@@ -96,28 +200,43 @@ class HomeScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(25),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                     ),
                   ],
                 ),
-                child: const TextField(
+                child: TextField(
+                  controller: _homeSearchController,
+                  onSubmitted: (_) {
+                    setState(() {
+                      _selectedIndex = 1; // Switch to Discover tab for search results
+                    });
+                  },
                   decoration: InputDecoration(
-                    icon: Icon(Icons.search, color: Colors.grey),
-                    hintText: 'Search for a service...',
-                    hintStyle: TextStyle(color: Colors.grey),
+                    icon: const Icon(Icons.search, color: Colors.grey),
+                    hintText: 'Search Live Work cards...',
+                    hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
                     border: InputBorder.none,
+                    suffixIcon: _homeSearchController.text.isNotEmpty
+                        ? GestureDetector(
+                            onTap: () {
+                              _homeSearchController.clear();
+                              setState(() {});
+                            },
+                            child: const Icon(Icons.clear, color: Colors.grey, size: 20),
+                          )
+                        : null,
                   ),
                 ),
               ),
               const SizedBox(height: 25),
 
-              // Special Offer Banner
+              // Banner
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1B4332),
+                  color: const Color(0xFF094943),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -127,7 +246,7 @@ class HomeScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'SPECIAL OFFER!',
+                            'LIVE WORK MARKET',
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 12,
@@ -136,16 +255,20 @@ class HomeScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            'Get 20% off your next Home Cleaning!',
+                            'Explore real-time active services & work around you!',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 18,
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 15),
                           ElevatedButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              setState(() {
+                                _selectedIndex = 1;
+                              });
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: Colors.black,
@@ -154,18 +277,18 @@ class HomeScreen extends StatelessWidget {
                               ),
                               padding: const EdgeInsets.symmetric(horizontal: 20),
                             ),
-                            child: const Text('Explore'),
+                            child: const Text('Discover'),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.home_work_outlined, size: 80, color: Colors.white24),
+                    const Icon(Icons.business_center_outlined, size: 70, color: Colors.white24),
                   ],
                 ),
               ),
               const SizedBox(height: 30),
 
-              // Popular Categories Header
+              // Categories Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -177,7 +300,11 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      setState(() {
+                        _selectedIndex = 1;
+                      });
+                    },
                     child: Row(
                       children: const [
                         Text('View All', style: TextStyle(color: Colors.grey)),
@@ -189,78 +316,167 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
 
-              // Filter and Sort Buttons
-              Row(
-                children: [
-                  _buildActionButton(Icons.filter_list, 'FILTER'),
-                  const SizedBox(width: 12),
-                  _buildActionButton(Icons.swap_vert, 'SORT'),
-                ],
-              ),
+              // Horizontal Scrollable Workable Categories
+              if (_categories.isNotEmpty)
+                SizedBox(
+                  height: 38,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: _categories.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        final bool isAllSelected = _selectedCategory == null;
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedCategory = null;
+                            });
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isAllSelected ? const Color(0xFF094943) : Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: isAllSelected ? const Color(0xFF094943) : Colors.black12,
+                              ),
+                            ),
+                            child: Text(
+                              'All',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: isAllSelected ? Colors.white : const Color(0xFF094943),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+
+                      final cat = _categories[index - 1];
+                      final bool isSelected = _selectedCategory?.id == cat.id;
+
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedCategory = isSelected ? null : cat;
+                          });
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected ? const Color(0xFF094943) : Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: isSelected ? const Color(0xFF094943) : Colors.black12,
+                            ),
+                          ),
+                          child: Text(
+                            cat.name,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              color: isSelected ? Colors.white : const Color(0xFF094943),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               const SizedBox(height: 25),
 
-              // Service Grid
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                childAspectRatio: 0.75,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
+              // Live Work Grid Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildServiceCard(
-                    'Eco-Shine Cleaning',
-                    '4.8 (110 Reviews)',
-                    'INR 3,000 - 5,000',
-                    'Cleaning',
-                    '1.2 km away',
-                    'https://images.unsplash.com/photo-1581578731548-c64695cc6958?q=80&w=2070&auto=format&fit=crop',
-                  ),
-                  _buildServiceCard(
-                    'Master Painter Art',
-                    '4.8 (110 Reviews)',
-                    'INR 2,000 - 4,500',
-                    'Painting',
-                    '0.8 km away',
-                    'https://images.unsplash.com/photo-1562259949-e8e7689d7828?q=80&w=2031&auto=format&fit=crop',
+                  Text(
+                    _selectedCategory != null
+                        ? 'Nearest ${_selectedCategory!.name} Cards'
+                        : 'Nearest Live Works (6)',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 80), // Space for bottom nav
+              const SizedBox(height: 14),
+
+              // Service Cards Grid (Only 6 Cards)
+              if (_isLoading)
+                const Padding(
+                  padding: EdgeInsets.all(40),
+                  child: Center(
+                    child: CircularProgressIndicator(color: Color(0xFF094943)),
+                  ),
+                )
+              else if (_displayedLiveWorks.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(30),
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    children: const [
+                      Icon(Icons.business_center_outlined, size: 48, color: Colors.grey),
+                      SizedBox(height: 12),
+                      Text(
+                        'No Live Work cards available.',
+                        style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _displayedLiveWorks.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.72,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                  ),
+                  itemBuilder: (context, index) {
+                    final item = _displayedLiveWorks[index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CardDetailScreen(card: item),
+                          ),
+                        );
+                      },
+                      child: _buildLiveWorkCard(item),
+                    );
+                  },
+                ),
+              const SizedBox(height: 80),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 
-  Widget _buildActionButton(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black12),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: Colors.black54),
-          const SizedBox(width: 8),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-        ],
-      ),
-    );
-  }
+  Widget _buildLiveWorkCard(LiveWorkCardModel item) {
+    final image = item.thumbnailUrl ?? (item.images.isNotEmpty ? item.images.first : null);
 
-  Widget _buildServiceCard(String title, String rating, String price, String category, String distance, String imageUrl) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -270,45 +486,88 @@ class HomeScreen extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: Image.network(imageUrl, height: 120, width: double.infinity, fit: BoxFit.cover),
+            child: image != null && image.isNotEmpty
+                ? Image.network(
+                    image,
+                    height: 115,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 115,
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.work_outline, color: Colors.grey),
+                    ),
+                  )
+                : Container(
+                    height: 115,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.work_outline, color: Colors.grey),
+                  ),
           ),
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  item.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
                     const Icon(Icons.star, size: 14, color: Colors.amber),
                     const SizedBox(width: 4),
-                    Text(rating, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                    Text(
+                      '${item.rating} (${item.reviewsCount})',
+                      style: const TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text(price, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                const SizedBox(height: 8),
+                Text(
+                  item.formattedPrice,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Color(0xFF094943),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(8),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD0F2E5),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          item.category?.name ?? 'Live Work',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF094943),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      child: Text(category, style: const TextStyle(fontSize: 10)),
                     ),
+                    const SizedBox(width: 4),
                     Row(
                       children: [
-                        const Icon(Icons.location_on, size: 12, color: Colors.grey),
-                        Text(distance, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                        const Icon(Icons.location_on, size: 11, color: Colors.grey),
+                        Text(
+                          item.formattedDistance,
+                          style: const TextStyle(fontSize: 9, color: Colors.grey),
+                        ),
                       ],
                     ),
                   ],
@@ -323,45 +582,85 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildBottomNavBar() {
     return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 20,
-            offset: const Offset(0, 10),
+            offset: const Offset(0, -4),
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(Icons.home, 'Home', true),
-          _buildNavItem(Icons.calendar_month_outlined, 'Calendar', false),
-          _buildNavItem(Icons.chat_bubble_outline, 'Chat', false),
-          _buildNavItem(Icons.person_outline, 'Profile', false),
-        ],
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(0, Icons.home_rounded, 'Home'),
+              _buildNavItem(1, Icons.explore_rounded, 'Discover', filledIcon: Icons.explore),
+              _buildNavItem(2, Icons.grid_view_outlined, 'My Cards', filledIcon: Icons.grid_view_rounded),
+              _buildNavItem(3, Icons.chat_bubble_outline_rounded, 'Chat', filledIcon: Icons.chat_bubble_rounded),
+              _buildNavItem(4, Icons.person_outline_rounded, 'Profile', filledIcon: Icons.person_rounded),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, bool isActive) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: isActive ? const Color(0xFF1B4332) : Colors.grey),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: isActive ? const Color(0xFF1B4332) : Colors.grey,
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-          ),
+  Widget _buildNavItem(int index, IconData icon, String label, {IconData? filledIcon}) {
+    final bool isActive = _selectedIndex == index;
+    const activeColor = Color(0xFF094943);
+    const inactiveColor = Color(0xFF64748B);
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedIndex = index;
+        });
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isActive && filledIcon != null)
+              Container(
+                width: 34,
+                height: 34,
+                decoration: const BoxDecoration(
+                  color: activeColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  filledIcon,
+                  size: 20,
+                  color: Colors.white,
+                ),
+              )
+            else
+              Icon(
+                icon,
+                size: 24,
+                color: isActive ? activeColor : inactiveColor,
+              ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: isActive ? activeColor : inactiveColor,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

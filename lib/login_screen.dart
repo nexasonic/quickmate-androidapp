@@ -1,20 +1,217 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
+import 'services/auth_service.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter both email and password.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final response = await AuthService.login(
+      email: email,
+      password: password,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (response.success) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response.message.isNotEmpty ? response.message : 'Login failed.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+      final googleAccount = await googleSignIn.signIn();
+
+      if (googleAccount != null) {
+        final response = await AuthService.socialLogin(
+          providerName: 'google',
+          providerId: googleAccount.id,
+          email: googleAccount.email,
+          name: googleAccount.displayName ?? googleAccount.email.split('@').first,
+          avatarUrl: googleAccount.photoUrl,
+        );
+
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (response.success) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message.isNotEmpty ? response.message : 'Google sign in failed.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+      _showGoogleSignInEmailDialog();
+    }
+  }
+
+  void _showGoogleSignInEmailDialog() {
+    final googleEmailController = TextEditingController();
+    final googleNameController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Sign in with Google'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Enter your Google account details to proceed:',
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: googleNameController,
+              decoration: const InputDecoration(
+                labelText: 'Full Name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: googleEmailController,
+              decoration: const InputDecoration(
+                labelText: 'Google Email',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF094943),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () async {
+              final email = googleEmailController.text.trim();
+              final name = googleNameController.text.trim();
+
+              if (email.isEmpty || name.isEmpty) return;
+
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.pop(dialogContext);
+
+              setState(() {
+                _isLoading = true;
+              });
+
+              final response = await AuthService.socialLogin(
+                providerName: 'google',
+                providerId: 'google_${email.hashCode}',
+                email: email,
+                name: name,
+              );
+
+              if (!mounted) return;
+              setState(() {
+                _isLoading = false;
+              });
+
+              if (response.success) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                );
+              } else {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(response.message.isNotEmpty ? response.message : 'Google sign in failed.'),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+              }
+            },
+            child: const Text('Continue', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Prevents the layout from resizing when the keyboard appears, 
-      // which avoids the need for scrolling and keeps background static.
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // Background Image with 100% visibility (Full Opacity) - Clear view outside glass
           Positioned.fill(
             child: Image.asset(
               'assets/images/background_login.png',
@@ -22,16 +219,15 @@ class LoginScreen extends StatelessWidget {
             ),
           ),
           
-          // Additional soft shapes for background effect
           Positioned(
             top: 100,
             right: -50,
-            child: _buildBackgroundCircle(200, Colors.white.withOpacity(0.1)),
+            child: _buildBackgroundCircle(200, Colors.white.withValues(alpha: 0.1)),
           ),
           Positioned(
             bottom: 50,
             left: -30,
-            child: _buildBackgroundCircle(150, Colors.white.withOpacity(0.1)),
+            child: _buildBackgroundCircle(150, Colors.white.withValues(alpha: 0.1)),
           ),
 
           SafeArea(
@@ -41,23 +237,20 @@ class LoginScreen extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(30),
                   child: BackdropFilter(
-                    // Maintains a subtle glass blur while keeping the background clear
                     filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
                       decoration: BoxDecoration(
-                        // Very low opacity to ensure the full background is seen clearly
-                        color: Colors.white.withOpacity(0.01),
+                        color: Colors.white.withValues(alpha: 0.01),
                         borderRadius: BorderRadius.circular(30),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           width: 1.5,
                         ),
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Logo
                           _buildLogo(),
                           const SizedBox(height: 15),
                           const Text(
@@ -77,41 +270,30 @@ class LoginScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 30),
-                          // Email Field
                           _buildTextField(
+                            controller: _emailController,
                             hintText: 'Email or Phone',
                             icon: Icons.phone_outlined,
                           ),
                           const SizedBox(height: 12),
-                          // Password Field
                           _buildTextField(
+                            controller: _passwordController,
                             hintText: 'Password',
                             icon: Icons.lock_outline,
                             isPassword: true,
                           ),
                           const SizedBox(height: 20),
-                          // Sign In Button
                           _buildPrimaryButton(
                             text: 'Sign In',
-                            onPressed: () {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(builder: (context) => const HomeScreen()),
-                              );
-                            },
+                            isLoading: _isLoading,
+                            onPressed: _handleLogin,
                           ),
                           const SizedBox(height: 20),
-                          // Social Buttons
+                          // Sign in with Google button
                           _buildSocialButton(
                             text: 'Sign in with Google',
                             icon: Icons.g_mobiledata,
-                            onPressed: () {},
-                          ),
-                          const SizedBox(height: 10),
-                          _buildSocialButton(
-                            text: 'Sign in with Facebook',
-                            icon: Icons.facebook,
-                            onPressed: () {},
+                            onPressed: _handleGoogleSignIn,
                           ),
                           const SizedBox(height: 15),
                           TextButton(
@@ -177,8 +359,8 @@ class LoginScreen extends StatelessWidget {
         shape: BoxShape.circle,
         gradient: LinearGradient(
           colors: [
-            Colors.purple.withOpacity(0.5),
-            Colors.blue.withOpacity(0.5),
+            Colors.purple.withValues(alpha: 0.5),
+            Colors.blue.withValues(alpha: 0.5),
           ],
         ),
       ),
@@ -207,6 +389,7 @@ class LoginScreen extends StatelessWidget {
   }
 
   Widget _buildTextField({
+    required TextEditingController controller,
     required String hintText,
     required IconData icon,
     bool isPassword = false,
@@ -214,17 +397,29 @@ class LoginScreen extends StatelessWidget {
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       ),
       child: TextField(
-        obscureText: isPassword,
+        controller: controller,
+        obscureText: isPassword && _obscurePassword,
         style: const TextStyle(color: Colors.white, fontSize: 15),
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.white70, size: 20),
           suffixIcon: isPassword
-              ? const Icon(Icons.visibility_off, color: Colors.white70, size: 20)
+              ? GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                  child: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.white70,
+                    size: 20,
+                  ),
+                )
               : null,
           hintText: hintText,
           hintStyle: const TextStyle(color: Colors.white54, fontSize: 14),
@@ -235,29 +430,42 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPrimaryButton({required String text, required VoidCallback onPressed}) {
+  Widget _buildPrimaryButton({
+    required String text,
+    required bool isLoading,
+    required VoidCallback onPressed,
+  }) {
     return Container(
       width: double.infinity,
       height: 48,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(25),
-        color: Colors.white.withOpacity(0.2),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
+        color: Colors.white.withValues(alpha: 0.2),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(25),
-          onTap: onPressed,
+          onTap: isLoading ? null : onPressed,
           child: Center(
-            child: Text(
-              text,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: isLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                : Text(
+                    text,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
           ),
         ),
       ),
@@ -274,8 +482,8 @@ class LoginScreen extends StatelessWidget {
       height: 48,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(25),
-        color: Colors.black.withOpacity(0.2),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        color: Colors.black.withValues(alpha: 0.2),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Material(
         color: Colors.transparent,

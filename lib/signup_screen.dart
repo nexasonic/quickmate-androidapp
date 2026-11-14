@@ -1,8 +1,77 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'home_screen.dart';
+import 'services/auth_service.dart';
 
-class SignupScreen extends StatelessWidget {
+class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
+
+  @override
+  State<SignupScreen> createState() => _SignupScreenState();
+}
+
+class _SignupScreenState extends State<SignupScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSignup() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all required fields.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final response = await AuthService.register(
+      name: name,
+      email: email,
+      phone: phone.isNotEmpty ? phone : null,
+      password: password,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (response.success) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response.message.isNotEmpty ? response.message : 'Registration failed.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10,7 +79,6 @@ class SignupScreen extends StatelessWidget {
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // Background Image (100% visibility)
           Positioned.fill(
             child: Image.asset(
               'assets/images/background_login.png',
@@ -18,16 +86,15 @@ class SignupScreen extends StatelessWidget {
             ),
           ),
           
-          // Background soft shapes
           Positioned(
             top: 100,
             right: -50,
-            child: _buildBackgroundCircle(200, Colors.white.withOpacity(0.1)),
+            child: _buildBackgroundCircle(200, Colors.white.withValues(alpha: 0.1)),
           ),
           Positioned(
             bottom: 50,
             left: -30,
-            child: _buildBackgroundCircle(150, Colors.white.withOpacity(0.1)),
+            child: _buildBackgroundCircle(150, Colors.white.withValues(alpha: 0.1)),
           ),
 
           SafeArea(
@@ -41,10 +108,10 @@ class SignupScreen extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.01),
+                        color: Colors.white.withValues(alpha: 0.01),
                         borderRadius: BorderRadius.circular(30),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           width: 1.5,
                         ),
                       ),
@@ -69,32 +136,38 @@ class SignupScreen extends StatelessWidget {
                               fontSize: 16,
                             ),
                           ),
-                          const SizedBox(height: 30),
-                          // Full Name Field
+                          const SizedBox(height: 25),
                           _buildTextField(
+                            controller: _nameController,
                             hintText: 'Full Name',
                             icon: Icons.person_outline,
                           ),
-                          const SizedBox(height: 12),
-                          // Email or Phone Field
+                          const SizedBox(height: 10),
                           _buildTextField(
-                            hintText: 'Email or Phone',
+                            controller: _emailController,
+                            hintText: 'Email Address',
+                            icon: Icons.email_outlined,
+                          ),
+                          const SizedBox(height: 10),
+                          _buildTextField(
+                            controller: _phoneController,
+                            hintText: 'Phone Number (Optional)',
                             icon: Icons.phone_outlined,
                           ),
-                          const SizedBox(height: 12),
-                          // Password Field
+                          const SizedBox(height: 10),
                           _buildTextField(
+                            controller: _passwordController,
                             hintText: 'Password',
                             icon: Icons.lock_outline,
                             isPassword: true,
                           ),
                           const SizedBox(height: 20),
-                          // Sign Up Button
                           _buildPrimaryButton(
                             text: 'Sign Up',
-                            onPressed: () {},
+                            isLoading: _isLoading,
+                            onPressed: _handleSignup,
                           ),
-                          const SizedBox(height: 25),
+                          const SizedBox(height: 20),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -148,8 +221,8 @@ class SignupScreen extends StatelessWidget {
         shape: BoxShape.circle,
         gradient: LinearGradient(
           colors: [
-            Colors.purple.withOpacity(0.5),
-            Colors.blue.withOpacity(0.5),
+            Colors.purple.withValues(alpha: 0.5),
+            Colors.blue.withValues(alpha: 0.5),
           ],
         ),
       ),
@@ -178,27 +251,40 @@ class SignupScreen extends StatelessWidget {
   }
 
   Widget _buildTextField({
+    required TextEditingController controller,
     required String hintText,
     required IconData icon,
     bool isPassword = false,
   }) {
     return Container(
-      height: 50,
+      height: 48,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       ),
       child: TextField(
-        obscureText: isPassword,
-        style: const TextStyle(color: Colors.white, fontSize: 15),
+        controller: controller,
+        obscureText: isPassword && _obscurePassword,
+        style: const TextStyle(color: Colors.white, fontSize: 14),
         decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: Colors.white70, size: 20),
+          prefixIcon: Icon(icon, color: Colors.white70, size: 18),
           suffixIcon: isPassword
-              ? const Icon(Icons.visibility_off, color: Colors.white70, size: 20)
+              ? GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                  child: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.white70,
+                    size: 18,
+                  ),
+                )
               : null,
           hintText: hintText,
-          hintStyle: const TextStyle(color: Colors.white54, fontSize: 14),
+          hintStyle: const TextStyle(color: Colors.white54, fontSize: 13),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
@@ -206,29 +292,42 @@ class SignupScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPrimaryButton({required String text, required VoidCallback onPressed}) {
+  Widget _buildPrimaryButton({
+    required String text,
+    required bool isLoading,
+    required VoidCallback onPressed,
+  }) {
     return Container(
       width: double.infinity,
       height: 48,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(25),
-        color: Colors.white.withOpacity(0.2),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
+        color: Colors.white.withValues(alpha: 0.2),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(25),
-          onTap: onPressed,
+          onTap: isLoading ? null : onPressed,
           child: Center(
-            child: Text(
-              text,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: isLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                : Text(
+                    text,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
           ),
         ),
       ),
