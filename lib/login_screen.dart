@@ -72,7 +72,9 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+      final googleSignIn = GoogleSignIn();
+      await googleSignIn.signOut().catchError((_) => null);
+
       final googleAccount = await googleSignIn.signIn();
 
       if (googleAccount != null) {
@@ -103,107 +105,33 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
       } else {
+        if (!mounted) return;
         setState(() {
           _isLoading = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Google Sign In Error: $e');
       if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
-      _showGoogleSignInEmailDialog();
-    }
-  }
 
-  void _showGoogleSignInEmailDialog() {
-    final googleEmailController = TextEditingController();
-    final googleNameController = TextEditingController();
+      final String errStr = e.toString();
+      String userMsg = 'Google Sign-In failed.';
+      if (errStr.contains('10')) {
+        userMsg = 'Developer Error (ApiException 10): Please add Android Client ID with package com.nexasonic.quickmate & SHA-1 in Google Cloud Console.';
+      } else {
+        userMsg = 'Google Sign-In error: $errStr';
+      }
 
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Sign in with Google'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Enter your Google account details to proceed:',
-              style: TextStyle(fontSize: 13, color: Colors.grey),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: googleNameController,
-              decoration: const InputDecoration(
-                labelText: 'Full Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: googleEmailController,
-              decoration: const InputDecoration(
-                labelText: 'Google Email',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(userMsg),
+          backgroundColor: Colors.redAccent,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF094943),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () async {
-              final email = googleEmailController.text.trim();
-              final name = googleNameController.text.trim();
-
-              if (email.isEmpty || name.isEmpty) return;
-
-              final messenger = ScaffoldMessenger.of(context);
-              Navigator.pop(dialogContext);
-
-              setState(() {
-                _isLoading = true;
-              });
-
-              final response = await AuthService.socialLogin(
-                providerName: 'google',
-                providerId: 'google_${email.hashCode}',
-                email: email,
-                name: name,
-              );
-
-              if (!mounted) return;
-              setState(() {
-                _isLoading = false;
-              });
-
-              if (response.success) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const HomeScreen()),
-                );
-              } else {
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(response.message.isNotEmpty ? response.message : 'Google sign in failed.'),
-                    backgroundColor: Colors.redAccent,
-                  ),
-                );
-              }
-            },
-            child: const Text('Continue', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
+      );
+    }
   }
 
   @override

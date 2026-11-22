@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'card_detail_screen.dart';
+import 'core/app_dialogs.dart';
 import 'discover_screen.dart';
 import 'chat_list_screen.dart';
+import 'map_view_screen.dart';
 import 'profile_screen.dart';
 import 'my_cards_screen.dart';
 import 'models/category_model.dart';
@@ -9,17 +11,23 @@ import 'models/live_work_card_model.dart';
 import 'models/user_model.dart';
 import 'services/auth_service.dart';
 import 'services/live_work_service.dart';
+import 'services/presence_service.dart';
 import 'services/profile_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final int initialIndex;
+
+  const HomeScreen({
+    super.key,
+    this.initialIndex = 0,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   UserModel? _currentUser;
   List<LiveWorkCardModel> _liveWorks = [];
   List<CategoryModel> _categories = [];
@@ -31,7 +39,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialIndex;
     _loadData();
+    PresenceService.startPeriodicPing();
   }
 
   @override
@@ -78,12 +88,55 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildOriginalHomeView(),
           DiscoverScreen(initialCategory: _selectedCategory),
           const MyCardsScreen(),
-          const ChatListScreen(),
+          const MapViewScreen(),
           const ProfileScreen(),
         ],
       ),
       bottomNavigationBar: _buildBottomNavBar(),
     );
+  }
+
+  Future<void> _toggleBookmark(LiveWorkCardModel card) async {
+    if (!AuthService.isLoggedIn()) {
+      AppDialogs.showLoginRequiredModal(
+        context,
+        message: 'Please sign in to save cards to favorites.',
+      );
+      return;
+    }
+
+    final bool newFavoriteState = !card.isFavorite;
+
+    setState(() {
+      card.isFavorite = newFavoriteState;
+    });
+
+    final response = await LiveWorkService.toggleSavedCard(card.id);
+
+    if (!mounted) return;
+
+    if (response.success) {
+      AppDialogs.showSuccessModal(
+        context,
+        title: newFavoriteState ? 'Saved to Favorites' : 'Removed from Favorites',
+        message: newFavoriteState
+            ? 'This card has been added to your Saved Cards.'
+            : 'This card was removed from your Saved Cards.',
+        icon: newFavoriteState ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+        iconColor: newFavoriteState ? Colors.redAccent : Colors.grey,
+      );
+    } else {
+      setState(() {
+        card.isFavorite = !newFavoriteState;
+      });
+      AppDialogs.showSuccessModal(
+        context,
+        title: 'Error',
+        message: response.message.isNotEmpty ? response.message : 'Failed to update favorites.',
+        icon: Icons.error_outline_rounded,
+        iconColor: Colors.redAccent,
+      );
+    }
   }
 
   Widget _buildOriginalHomeView() {
@@ -133,6 +186,33 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   Row(
                     children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ChatListScreen()),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 10,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            color: Color(0xFF094943),
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -396,7 +476,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     _selectedCategory != null
                         ? 'Nearest ${_selectedCategory!.name} Cards'
-                        : 'Nearest Live Works (6)',
+                        : 'Nearest Live Works',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -440,20 +520,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemCount: _displayedLiveWorks.length,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.72,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
+                    childAspectRatio: 0.65,
+                    crossAxisSpacing: 14,
+                    mainAxisSpacing: 14,
                   ),
                   itemBuilder: (context, index) {
                     final item = _displayedLiveWorks[index];
                     return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => CardDetailScreen(card: item),
                           ),
                         );
+                        _loadData();
                       },
                       child: _buildLiveWorkCard(item),
                     );
@@ -468,7 +549,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildLiveWorkCard(LiveWorkCardModel item) {
+    const primaryDark = Color(0xFF094943);
     final image = item.thumbnailUrl ?? (item.images.isNotEmpty ? item.images.first : null);
+    final isOnline = item.user?.isOnline ?? item.isActive;
+    final userName = item.user?.name ?? item.title;
+    final distStr = item.getFormattedDistance(PresenceService.currentLatitude, PresenceService.currentLongitude);
 
     return Container(
       decoration: BoxDecoration(
@@ -478,101 +563,289 @@ class _HomeScreenState extends State<HomeScreen> {
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: image != null && image.isNotEmpty
-                ? Image.network(
-                    image,
-                    height: 115,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      height: 115,
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.work_outline, color: Colors.grey),
-                    ),
-                  )
-                : Container(
-                    height: 115,
-                    color: Colors.grey[200],
-                    child: const Icon(Icons.work_outline, color: Colors.grey),
-                  ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.star, size: 14, color: Colors.amber),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${item.rating} (${item.reviewsCount})',
-                      style: const TextStyle(fontSize: 10, color: Colors.grey),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.formattedPrice,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    color: Color(0xFF094943),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD0F2E5),
-                          borderRadius: BorderRadius.circular(8),
+          // Header Image with Online / Offline Badge
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                child: image != null && image.isNotEmpty
+                    ? Image.network(
+                        image,
+                        height: 100,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 100,
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.work_outline, color: Colors.grey),
                         ),
-                        child: Text(
-                          item.category?.name ?? 'Live Work',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF094943),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      )
+                    : Container(
+                        height: 100,
+                        color: Colors.grey[200],
+                        child: const Icon(Icons.work_outline, color: Colors.grey),
+                      ),
+              ),
+
+              // Top Left Online / Offline Tag
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isOnline ? const Color(0xFF10B981) : const Color(0xFF334155).withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, size: 11, color: Colors.grey),
-                        Text(
-                          item.formattedDistance,
-                          style: const TextStyle(fontSize: 9, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(
+                        isOnline ? 'Online' : item.formattedLastSeen,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Bookmark Heart on Top Right of Image
+              Positioned(
+                top: 8,
+                right: 8,
+                child: GestureDetector(
+                  onTap: () => _toggleBookmark(item),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 6,
                         ),
                       ],
                     ),
-                  ],
+                    child: Icon(
+                      item.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                      size: 16,
+                      color: item.isFavorite ? Colors.red : const Color(0xFF1E293B),
+                    ),
+                  ),
                 ),
-              ],
+              ),
+            ],
+          ),
+
+          // Body Content
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Worker Name + Verified Badge
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              userName.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 12,
+                                color: Color(0xFF0F172A),
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                          if (item.user?.isVerified == true) ...[
+                            const SizedBox(width: 4),
+                            const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 14),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+
+                      // Category Subtitle
+                      Text(
+                        item.category?.name ?? 'Driving',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Task Title Pill Box
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE6F4F1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFC7F3E2)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.bolt_rounded, size: 12, color: primaryDark),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                item.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryDark,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Rating & Reviews + Card Updated Time
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.star_rounded, size: 14, color: Color(0xFFFFB800)),
+                              const SizedBox(width: 2),
+                              Text(
+                                '${item.rating}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                ' (${item.reviewsCount})',
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              const Icon(Icons.access_time_rounded, size: 10, color: Color(0xFF64748B)),
+                              const SizedBox(width: 2),
+                              Text(
+                                item.formattedTimeAgo,
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Location & Calculated Distance
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF64748B)),
+                          const SizedBox(width: 3),
+                          Expanded(
+                            child: Text(
+                              '${item.location ?? "Thodupuzha"} • $distStr',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 9,
+                                color: Color(0xFF64748B),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Price Tag Pill Badge under Location
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: (item.price == null || item.price == 0)
+                              ? const Color(0xFFFEF3C7)
+                              : const Color(0xFFDCFCE7),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: (item.price == null || item.price == 0)
+                                ? const Color(0xFFFDE68A)
+                                : const Color(0xFFBBF7D0),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              (item.price == null || item.price == 0)
+                                  ? Icons.handshake_outlined
+                                  : Icons.payments_outlined,
+                              size: 11,
+                              color: (item.price == null || item.price == 0)
+                                  ? const Color(0xFF92400E)
+                                  : const Color(0xFF166534),
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                item.formattedPrice,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                  color: (item.price == null || item.price == 0)
+                                      ? const Color(0xFF92400E)
+                                      : const Color(0xFF166534),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -603,7 +876,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildNavItem(0, Icons.home_rounded, 'Home'),
               _buildNavItem(1, Icons.explore_rounded, 'Discover', filledIcon: Icons.explore),
               _buildNavItem(2, Icons.grid_view_outlined, 'My Cards', filledIcon: Icons.grid_view_rounded),
-              _buildNavItem(3, Icons.chat_bubble_outline_rounded, 'Chat', filledIcon: Icons.chat_bubble_rounded),
+              _buildNavItem(3, Icons.map_outlined, 'Map', filledIcon: Icons.map_rounded),
               _buildNavItem(4, Icons.person_outline_rounded, 'Profile', filledIcon: Icons.person_rounded),
             ],
           ),
