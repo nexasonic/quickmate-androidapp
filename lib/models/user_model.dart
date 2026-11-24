@@ -10,6 +10,8 @@ class UserModel {
   final String? avatarUrl;
   final bool isOnline;
   final String? lastSeenHuman;
+  final double rating;
+  final int reviewsCount;
 
   UserModel({
     required this.id,
@@ -21,6 +23,8 @@ class UserModel {
     this.avatarUrl,
     this.isOnline = false,
     this.lastSeenHuman,
+    this.rating = 5.0,
+    this.reviewsCount = 1,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -36,6 +40,8 @@ class UserModel {
       avatarUrl: rawAvatar != null ? ApiConfig.fixImageUrl(rawAvatar) : null,
       isOnline: json['is_online'] == true || json['is_online'] == 1,
       lastSeenHuman: json['last_seen_human']?.toString(),
+      rating: json['rating'] != null ? (json['rating'] as num).toDouble() : 5.0,
+      reviewsCount: json['reviews_count'] != null ? (json['reviews_count'] as num).toInt() : 1,
     );
   }
 
@@ -49,6 +55,8 @@ class UserModel {
       'is_verified': isVerified,
       'avatar_url': avatarUrl,
       'is_online': isOnline,
+      'rating': rating,
+      'reviews_count': reviewsCount,
     };
   }
 }

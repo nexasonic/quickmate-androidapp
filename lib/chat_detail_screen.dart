@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/app_dialogs.dart';
 import 'models/chat_model.dart';
 import 'services/chat_service.dart';
 
@@ -88,8 +89,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final text = _messageController.text.trim();
     if (text.isEmpty || _isSending) return;
 
-    final messenger = ScaffoldMessenger.of(context);
-
     if (_conversationId == null && widget.targetUserId != null) {
       _conversationId = await ChatService.startConversation(widget.targetUserId!);
     }
@@ -97,8 +96,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     if (!mounted) return;
 
     if (_conversationId == null) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Unable to start conversation.')),
+      AppDialogs.showToastModal(
+        context,
+        message: 'Unable to start conversation.',
+        icon: Icons.error_outline_rounded,
+        iconColor: Colors.redAccent,
+        iconBgColor: const Color(0xFFFEE2E2),
       );
       return;
     }

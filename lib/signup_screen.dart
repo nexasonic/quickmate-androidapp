@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'core/app_dialogs.dart';
 import 'home_screen.dart';
 import 'services/auth_service.dart';
 
@@ -34,8 +35,12 @@ class _SignupScreenState extends State<SignupScreen> {
     final password = _passwordController.text.trim();
 
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all required fields.')),
+      AppDialogs.showToastModal(
+        context,
+        message: 'Please fill in all required fields.',
+        icon: Icons.warning_amber_rounded,
+        iconColor: Colors.orange,
+        iconBgColor: const Color(0xFFFEF3C7),
       );
       return;
     }
@@ -64,11 +69,12 @@ class _SignupScreenState extends State<SignupScreen> {
         (route) => false,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response.message.isNotEmpty ? response.message : 'Registration failed.'),
-          backgroundColor: Colors.redAccent,
-        ),
+      AppDialogs.showToastModal(
+        context,
+        message: response.message.isNotEmpty ? response.message : 'Registration failed.',
+        icon: Icons.error_outline_rounded,
+        iconColor: Colors.redAccent,
+        iconBgColor: const Color(0xFFFEE2E2),
       );
     }
   }

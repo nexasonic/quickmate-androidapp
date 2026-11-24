@@ -64,74 +64,14 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
 
   bool get _hasUserReviewed => _existingUserReview != null;
 
-  int _resolveCardTypeInt(String type) {
-    switch (type.replaceAll('_', '-').toLowerCase()) {
-      case 'service':
-        return 2;
-      case 'job':
-        return 3;
-      case 'freelancer':
-        return 4;
-      case 'business':
-        return 5;
-      case 'live-work':
-      case 'livework':
-      default:
-        return 1;
-    }
-  }
-
-  Future<void> _toggleFavorite() async {
-    if (!AuthService.isLoggedIn()) {
-      AppDialogs.showLoginRequiredModal(
-        context,
-        message: 'Please sign in to save cards to favorites.',
-      );
-      return;
-    }
-
-    final bool newFavoriteState = !_card.isFavorite;
-
-    setState(() {
-      _card.isFavorite = newFavoriteState;
-    });
-
-    final int cardTypeInt = _resolveCardTypeInt(widget.cardType);
-    final response = await LiveWorkService.toggleSavedCard(_card.id, cardType: cardTypeInt);
-
-    if (!mounted) return;
-
-    if (response.success) {
-      AppDialogs.showSuccessModal(
-        context,
-        title: newFavoriteState ? 'Saved to Favorites' : 'Removed from Favorites',
-        message: newFavoriteState
-            ? 'This card has been added to your Saved Cards.'
-            : 'This card was removed from your Saved Cards.',
-        icon: newFavoriteState ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-        iconColor: newFavoriteState ? Colors.redAccent : Colors.grey,
-      );
-    } else {
-      setState(() {
-        _card.isFavorite = !newFavoriteState;
-      });
-      AppDialogs.showSuccessModal(
-        context,
-        title: 'Error',
-        message: response.message.isNotEmpty ? response.message : 'Failed to update favorites.',
-        icon: Icons.error_outline_rounded,
-        iconColor: Colors.redAccent,
-      );
-    }
-  }
-
   void _showAddReviewDialog() {
     if (!AuthService.isLoggedIn()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please sign in to add or edit a review.'),
-          backgroundColor: Colors.orange,
-        ),
+      AppDialogs.showToastModal(
+        context,
+        message: 'Please sign in to add or edit a review.',
+        icon: Icons.lock_outline_rounded,
+        iconColor: Colors.orange,
+        iconBgColor: const Color(0xFFFEF3C7),
       );
       Navigator.push(
         context,
@@ -201,16 +141,24 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                     : () async {
                         final text = reviewController.text.trim();
                         if (text.isEmpty) {
-                          ScaffoldMessenger.of(dialogContext).showSnackBar(
-                            const SnackBar(content: Text('Please enter a review text.')),
+                          AppDialogs.showToastModal(
+                            dialogContext,
+                            message: 'Please enter a review text.',
+                            icon: Icons.warning_amber_rounded,
+                            iconColor: Colors.orange,
+                            iconBgColor: const Color(0xFFFEF3C7),
                           );
                           return;
                         }
 
                         final ownerId = _card.user?.id;
                         if (ownerId == null) {
-                          ScaffoldMessenger.of(dialogContext).showSnackBar(
-                            const SnackBar(content: Text('Card owner information unavailable.')),
+                          AppDialogs.showToastModal(
+                            dialogContext,
+                            message: 'Card owner information unavailable.',
+                            icon: Icons.warning_amber_rounded,
+                            iconColor: Colors.orange,
+                            iconBgColor: const Color(0xFFFEF3C7),
                           );
                           return;
                         }
@@ -222,6 +170,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                         final response = await LiveWorkService.addReview(
                           ownerUserId: ownerId,
                           cardId: _card.id,
+                          cardTypeInt: _resolveCardTypeInt(widget.cardType),
                           rating: selectedRating,
                           review: text,
                         );
@@ -247,21 +196,25 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                             _card.reviews.insert(0, newReviewModel);
                           });
 
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(existingReview != null
+                          if (mounted) {
+                            AppDialogs.showToastModal(
+                              context,
+                              message: existingReview != null
                                   ? 'Review updated successfully!'
-                                  : 'Review submitted! Thank you.'),
-                            ),
-                          );
+                                  : 'Review submitted! Thank you.',
+                            );
+                          }
                           _fetchFullDetails();
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(response.message.isNotEmpty ? response.message : 'Failed to save review.'),
-                              backgroundColor: Colors.redAccent,
-                            ),
-                          );
+                          if (mounted) {
+                            AppDialogs.showToastModal(
+                              context,
+                              message: response.message.isNotEmpty ? response.message : 'Failed to save review.',
+                              icon: Icons.error_outline_rounded,
+                              iconColor: Colors.redAccent,
+                              iconBgColor: const Color(0xFFFEE2E2),
+                            );
+                          }
                         }
                       },
                 child: isSubmitting
@@ -278,6 +231,67 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
         },
       ),
     );
+  }
+
+  int _resolveCardTypeInt(String type) {
+    switch (type.replaceAll('_', '-').toLowerCase()) {
+      case 'service':
+        return 2;
+      case 'job':
+        return 3;
+      case 'freelancer':
+        return 4;
+      case 'business':
+        return 5;
+      case 'live-work':
+      case 'livework':
+      default:
+        return 1;
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (!AuthService.isLoggedIn()) {
+      AppDialogs.showLoginRequiredModal(
+        context,
+        message: 'Please sign in to save cards to favorites.',
+      );
+      return;
+    }
+
+    final bool newFavoriteState = !_card.isFavorite;
+
+    setState(() {
+      _card.isFavorite = newFavoriteState;
+    });
+
+    final int cardTypeInt = _resolveCardTypeInt(widget.cardType);
+    final response = await LiveWorkService.toggleSavedCard(_card.id, cardType: cardTypeInt);
+
+    if (!mounted) return;
+
+    if (response.success) {
+      AppDialogs.showSuccessModal(
+        context,
+        title: newFavoriteState ? 'Saved to Favorites' : 'Removed from Favorites',
+        message: newFavoriteState
+            ? 'This card has been added to your Saved Cards.'
+            : 'This card was removed from your Saved Cards.',
+        icon: newFavoriteState ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+        iconColor: newFavoriteState ? Colors.redAccent : Colors.grey,
+      );
+    } else {
+      setState(() {
+        _card.isFavorite = !newFavoriteState;
+      });
+      AppDialogs.showSuccessModal(
+        context,
+        title: 'Error',
+        message: response.message.isNotEmpty ? response.message : 'Failed to update favorites.',
+        icon: Icons.error_outline_rounded,
+        iconColor: Colors.redAccent,
+      );
+    }
   }
 
   Future<void> _openDirections() async {
@@ -298,8 +312,9 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
       }
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Opening directions to ${_card.location ?? "Thodupuzha"}...')),
+      AppDialogs.showToastModal(
+        context,
+        message: 'Opening directions to ${_card.location ?? "Thodupuzha"}...',
       );
     }
   }
@@ -356,8 +371,9 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
           IconButton(
             icon: const Icon(Icons.share_outlined, color: Colors.white),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Link copied to clipboard!')),
+              AppDialogs.showToastModal(
+                context,
+                message: 'Link copied to clipboard!',
               );
             },
           ),
@@ -501,7 +517,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
 
             const SizedBox(height: 20),
 
-            // Reviews Section
+            // Card Reviews Section
             _buildReviewsSection(),
 
             const SizedBox(height: 20),
@@ -786,68 +802,6 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
     );
   }
 
-  Widget _buildReviewAndFavoriteRow() {
-    const primaryDark = Color(0xFF094943);
-    final isEditing = _hasUserReviewed;
-
-    return Row(
-      children: [
-        Expanded(
-          child: SizedBox(
-            height: 46,
-            child: OutlinedButton.icon(
-              onPressed: _showAddReviewDialog,
-              icon: Icon(
-                isEditing ? Icons.edit_note_rounded : Icons.edit_outlined,
-                color: primaryDark,
-                size: 18,
-              ),
-              label: Text(
-                isEditing ? 'Edit Review' : 'Add Review',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: primaryDark,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: primaryDark, width: 1.5),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: SizedBox(
-            height: 46,
-            child: ElevatedButton.icon(
-              onPressed: _toggleFavorite,
-              icon: Icon(
-                _card.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                color: Colors.white,
-                size: 18,
-              ),
-              label: Text(
-                _card.isFavorite ? 'Saved' : 'Save to Favorites',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _card.isFavorite ? const Color(0xFFEF4444) : primaryDark,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildChatAndDirectionsBar(BuildContext context, dynamic owner) {
     const primaryDark = Color(0xFF094943);
 
@@ -865,11 +819,12 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
               child: ElevatedButton.icon(
                 onPressed: () {
                   if (!AuthService.isLoggedIn()) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please sign in to start a chat.'),
-                        backgroundColor: Colors.orange,
-                      ),
+                    AppDialogs.showToastModal(
+                      context,
+                      message: 'Please sign in to start a chat.',
+                      icon: Icons.lock_outline_rounded,
+                      iconColor: Colors.orange,
+                      iconBgColor: const Color(0xFFFEF3C7),
                     );
                     Navigator.push(
                       context,
@@ -879,8 +834,12 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                   }
 
                   if (owner == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Owner details unavailable.')),
+                    AppDialogs.showToastModal(
+                      context,
+                      message: 'Owner details unavailable.',
+                      icon: Icons.warning_amber_rounded,
+                      iconColor: Colors.orange,
+                      iconBgColor: const Color(0xFFFEF3C7),
                     );
                     return;
                   }
@@ -1011,6 +970,12 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
 
   Widget _buildProviderCard(BuildContext context, dynamic owner) {
     const primaryDark = Color(0xFF094943);
+    final double userRating = (owner != null && owner.rating != null && owner.rating > 0)
+        ? (owner.rating as num).toDouble()
+        : (_card.rating > 0 ? _card.rating : 5.0);
+    final int userReviewsCount = (owner != null && owner.reviewsCount != null && owner.reviewsCount > 0)
+        ? (owner.reviewsCount as num).toInt()
+        : (_card.reviewsCount > 0 ? _card.reviewsCount : 1);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1021,7 +986,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
         ),
         const SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: const Color(0xFFE6F4F1).withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(20),
@@ -1030,16 +995,16 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
           child: Row(
             children: [
               CircleAvatar(
-                radius: 26,
+                radius: 24,
                 backgroundColor: primaryDark,
                 backgroundImage: owner.avatarUrl != null && owner.avatarUrl!.isNotEmpty
                     ? NetworkImage(owner.avatarUrl!)
                     : null,
                 child: owner.avatarUrl == null || owner.avatarUrl!.isEmpty
-                    ? const Icon(Icons.person, color: Colors.white, size: 26)
+                    ? const Icon(Icons.person, color: Colors.white, size: 24)
                     : null,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1050,7 +1015,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                           child: Text(
                             owner.name,
                             style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF0F172A),
                             ),
@@ -1060,24 +1025,44 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                         ),
                         if (owner.isVerified == true) ...[
                           const SizedBox(width: 4),
-                          const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
+                          const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 16),
                         ],
                       ],
                     ),
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        const Icon(Icons.storefront_outlined, size: 14, color: Color(0xFF64748B)),
-                        const SizedBox(width: 4),
+                        const Icon(Icons.star_rounded, size: 13, color: Color(0xFFFFB800)),
+                        const SizedBox(width: 3),
                         Text(
-                          owner.accountType != null ? owner.accountType!.toUpperCase() : 'BUSINESS',
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          '${userRating.toStringAsFixed(1)} ($userReviewsCount ${userReviewsCount == 1 ? 'review' : 'reviews'})',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(Icons.storefront_outlined, size: 12, color: Color(0xFF64748B)),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            owner.accountType != null ? owner.accountType!.toUpperCase() : 'MEMBER',
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 6),
               ElevatedButton.icon(
                 onPressed: () {
                   Navigator.push(
@@ -1087,17 +1072,17 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                     ),
                   );
                 },
-                icon: const Icon(Icons.person_outline_rounded, color: primaryDark, size: 16),
+                icon: const Icon(Icons.person_outline_rounded, color: primaryDark, size: 15),
                 label: const Text(
                   'View Profile',
-                  style: TextStyle(color: primaryDark, fontSize: 12, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: primaryDark, fontSize: 11, fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   elevation: 0,
                   side: const BorderSide(color: primaryDark, width: 1.5),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 ),
               ),
             ],
@@ -1282,6 +1267,68 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
     );
   }
 
+  Widget _buildReviewAndFavoriteRow() {
+    const primaryDark = Color(0xFF094943);
+    final isEditing = _hasUserReviewed;
+
+    return Row(
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 46,
+            child: OutlinedButton.icon(
+              onPressed: _showAddReviewDialog,
+              icon: Icon(
+                isEditing ? Icons.edit_note_rounded : Icons.edit_outlined,
+                color: primaryDark,
+                size: 18,
+              ),
+              label: Text(
+                isEditing ? 'Edit Review' : 'Add Review',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: primaryDark,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: primaryDark, width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: SizedBox(
+            height: 46,
+            child: ElevatedButton.icon(
+              onPressed: _toggleFavorite,
+              icon: Icon(
+                _card.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              label: Text(
+                _card.isFavorite ? 'Saved' : 'Save to Favorites',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _card.isFavorite ? const Color(0xFFEF4444) : primaryDark,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildReviewsSection() {
     const primaryDark = Color(0xFF094943);
     final reviews = _card.reviews;
@@ -1298,7 +1345,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 const Icon(Icons.star_rounded, color: Color(0xFFFFB800), size: 22),
                 const SizedBox(width: 4),
                 Text(
-                  'Reviews (${_card.reviewsCount > reviews.length ? _card.reviewsCount : reviews.length})',
+                  'Card Reviews (${_card.reviewsCount > reviews.length ? _card.reviewsCount : reviews.length})',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -1348,17 +1395,27 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Column(
-              children: const [
-                Icon(Icons.rate_review_outlined, color: Colors.grey, size: 36),
-                SizedBox(height: 8),
-                Text(
+              children: [
+                const Icon(Icons.rate_review_outlined, color: Colors.grey, size: 36),
+                const SizedBox(height: 8),
+                const Text(
                   'No reviews yet for this card.',
                   style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 4),
-                Text(
+                const SizedBox(height: 4),
+                const Text(
                   'Be the first to share your experience!',
                   style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: _showAddReviewDialog,
+                  icon: const Icon(Icons.edit_outlined, color: Colors.white, size: 16),
+                  label: const Text('Add Review for Card', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryDark,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  ),
                 ),
               ],
             ),
@@ -1422,7 +1479,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                                   }),
                                   const SizedBox(width: 6),
                                   Text(
-                                    '${r.rating}',
+                                    '${r.rating.toStringAsFixed(1)} ★',
                                     style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                                   ),
                                 ],
@@ -1430,22 +1487,24 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                             ],
                           ),
                         ),
-                        if (r.createdAt != null)
+                        if (r.createdAt != null && r.createdAt!.isNotEmpty)
                           Text(
                             r.createdAt!,
                             style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                           ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      r.review,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF334155),
-                        height: 1.4,
+                    if (r.review.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        r.review,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF334155),
+                          height: 1.4,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               );

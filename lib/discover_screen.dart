@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'card_detail_screen.dart';
 import 'chat_list_screen.dart';
@@ -11,10 +12,12 @@ import 'services/presence_service.dart';
 
 class DiscoverScreen extends StatefulWidget {
   final CategoryModel? initialCategory;
+  final String? initialSearch;
 
   const DiscoverScreen({
     super.key,
     this.initialCategory,
+    this.initialSearch,
   });
 
   @override
@@ -23,6 +26,7 @@ class DiscoverScreen extends StatefulWidget {
 
 class _DiscoverScreenState extends State<DiscoverScreen> {
   final TextEditingController _searchController = TextEditingController();
+  Timer? _debounceTimer;
 
   CategoryModel? _selectedCategory;
   String _selectedSort = 'Nearest';
@@ -44,12 +48,51 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   void initState() {
     super.initState();
     _selectedCategory = widget.initialCategory;
+    if (widget.initialSearch != null && widget.initialSearch!.isNotEmpty) {
+      _searchController.text = widget.initialSearch!;
+    }
     _currentUser = AuthService.getStoredUser();
     _loadInitialData();
   }
 
   @override
+  void didUpdateWidget(DiscoverScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    bool shouldFetch = false;
+
+    if (widget.initialCategory != oldWidget.initialCategory) {
+      _selectedCategory = widget.initialCategory;
+      shouldFetch = true;
+    }
+
+    if (widget.initialSearch != oldWidget.initialSearch) {
+      final newSearch = widget.initialSearch ?? '';
+      if (_searchController.text != newSearch) {
+        _searchController.text = newSearch;
+        _searchController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _searchController.text.length),
+        );
+        shouldFetch = true;
+      }
+    }
+
+    if (shouldFetch) {
+      _fetchCards();
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) {
+        _fetchCards();
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -436,9 +479,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           Expanded(
             child: TextField(
               controller: _searchController,
-              onSubmitted: (_) => _fetchCards(),
+              onSubmitted: (_) {
+                _debounceTimer?.cancel();
+                _fetchCards();
+              },
               onChanged: (val) {
-                if (val.isEmpty) _fetchCards();
+                _onSearchChanged(val);
               },
               decoration: const InputDecoration(
                 hintText: 'Search Live Work cards...',
@@ -455,6 +501,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           if (_searchController.text.isNotEmpty)
             GestureDetector(
               onTap: () {
+                _debounceTimer?.cancel();
                 _searchController.clear();
                 _fetchCards();
               },
@@ -767,13 +814,40 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                       ),
                       const SizedBox(height: 2),
 
-                      // Category Subtitle
-                      Text(
-                        item.category?.name ?? 'Driving',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF64748B),
-                        ),
+                      // Rating & Reviews directly under User Name + Category Subtitle
+                      Row(
+                        children: [
+                          const Icon(Icons.star_rounded, size: 13, color: Color(0xFFFFB800)),
+                          const SizedBox(width: 2),
+                          Text(
+                            '${item.rating}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            ' (${item.reviewsCount})',
+                            style: const TextStyle(
+                              fontSize: 9,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              '• ${item.category?.name ?? "Driving"}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Color(0xFF64748B),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 6),
 
@@ -806,45 +880,18 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                       ),
                       const SizedBox(height: 6),
 
-                      // Rating & Reviews + Card Updated Time
+                      // Card Updated Time Subtitle
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.star_rounded, size: 14, color: Color(0xFFFFB800)),
-                              const SizedBox(width: 2),
-                              Text(
-                                '${item.rating}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 10,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                              const SizedBox(width: 2),
-                              Text(
-                                ' (${item.reviewsCount})',
-                                style: const TextStyle(
-                                  fontSize: 9,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Row(
-                            children: [
-                              const Icon(Icons.access_time_rounded, size: 10, color: Color(0xFF64748B)),
-                              const SizedBox(width: 2),
-                              Text(
-                                item.formattedTimeAgo,
-                                style: const TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
+                          const Icon(Icons.access_time_rounded, size: 10, color: Color(0xFF64748B)),
+                          const SizedBox(width: 3),
+                          Text(
+                            item.formattedTimeAgo,
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
                           ),
                         ],
                       ),

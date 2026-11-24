@@ -116,7 +116,8 @@ class LiveWorkService {
   /// Add a review for a user/card in the database.
   static Future<ApiResponse> addReview({
     required int ownerUserId,
-    required int cardId,
+    int cardId = 0,
+    int cardTypeInt = 1,
     required double rating,
     required String review,
   }) async {
@@ -125,8 +126,8 @@ class LiveWorkService {
       body: {
         'rating': rating.round(),
         'review': review,
-        'card_type': 2,
-        'card_id': cardId,
+        'card_type': cardId > 0 ? cardTypeInt : 0,
+        if (cardId > 0) 'card_id': cardId,
       },
     );
     return response;

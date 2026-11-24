@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/app_dialogs.dart';
 import '../login_screen.dart';
 import '../models/live_work_card_model.dart';
 import '../services/auth_service.dart';
@@ -85,13 +86,14 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
     return widget.averageRating;
   }
 
-  void _showAddOrEditReviewDialog() {
+  void _showAddOrEditReviewDialog([CardReviewModel? targetReview]) {
     if (!AuthService.isLoggedIn()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please sign in to add or edit a review.'),
-          backgroundColor: Colors.orange,
-        ),
+      AppDialogs.showToastModal(
+        context,
+        message: 'Please sign in to add or edit a review.',
+        icon: Icons.lock_outline_rounded,
+        iconColor: Colors.orange,
+        iconBgColor: const Color(0xFFFEF3C7),
       );
       Navigator.push(
         context,
@@ -100,7 +102,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
       return;
     }
 
-    final existing = _existingUserReview;
+    final existing = targetReview ?? _existingUserReview;
     double selectedRating = existing?.rating ?? 5.0;
     final reviewController = TextEditingController(text: existing?.review ?? '');
     bool isSubmitting = false;
@@ -161,8 +163,12 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
                     : () async {
                         final text = reviewController.text.trim();
                         if (text.isEmpty) {
-                          ScaffoldMessenger.of(dialogContext).showSnackBar(
-                            const SnackBar(content: Text('Please enter a review text.')),
+                          AppDialogs.showToastModal(
+                            dialogContext,
+                            message: 'Please enter a review text.',
+                            icon: Icons.warning_amber_rounded,
+                            iconColor: Colors.orange,
+                            iconBgColor: const Color(0xFFFEF3C7),
                           );
                           return;
                         }
@@ -173,7 +179,8 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
 
                         final response = await LiveWorkService.addReview(
                           ownerUserId: widget.ownerUserId,
-                          cardId: widget.cardId,
+                          cardId: existing?.cardId ?? widget.cardId,
+                          cardTypeInt: existing?.cardType ?? 0,
                           rating: selectedRating,
                           review: text,
                         );
@@ -185,34 +192,42 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
                           final currentUser = AuthService.getStoredUser();
                           final newReviewModel = CardReviewModel(
                             id: existing?.id ?? DateTime.now().millisecondsSinceEpoch,
+                            reviewerId: currentUser?.id,
                             rating: selectedRating,
                             review: text,
                             createdAt: 'Just now',
                             reviewerName: currentUser?.name ?? 'You',
                             reviewerAvatar: currentUser?.avatarUrl,
+                            cardId: existing?.cardId ?? widget.cardId,
+                            cardType: existing?.cardType,
+                            cardTitle: existing?.cardTitle ?? widget.cardTitle,
                           );
 
                           setState(() {
                             _localReviews.removeWhere((r) =>
-                                r.reviewerName.toLowerCase() == (currentUser?.name ?? '').toLowerCase() ||
-                                (existing != null && r.id == existing.id));
+                                (existing != null && r.id == existing.id) ||
+                                (r.cardId != null && existing?.cardId != null && r.cardId == existing?.cardId && r.reviewerName.toLowerCase() == (currentUser?.name ?? '').toLowerCase()));
                             _localReviews.insert(0, newReviewModel);
                           });
 
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(existing != null
+                          if (mounted) {
+                            AppDialogs.showToastModal(
+                              context,
+                              message: existing != null
                                   ? 'Review updated successfully!'
-                                  : 'Review submitted! Thank you.'),
-                            ),
-                          );
+                                  : 'Review submitted! Thank you.',
+                            );
+                          }
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(response.message.isNotEmpty ? response.message : 'Failed to save review.'),
-                              backgroundColor: Colors.redAccent,
-                            ),
-                          );
+                          if (mounted) {
+                            AppDialogs.showToastModal(
+                              context,
+                              message: response.message.isNotEmpty ? response.message : 'Failed to save review.',
+                              icon: Icons.error_outline_rounded,
+                              iconColor: Colors.redAccent,
+                              iconBgColor: const Color(0xFFFEE2E2),
+                            );
+                          }
                         }
                       },
                 child: isSubmitting
@@ -572,6 +587,11 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
   Widget _buildReviewCardItem(CardReviewModel r) {
     const primaryDark = Color(0xFF094943);
     final avatar = r.reviewerAvatar;
+    final currentUser = AuthService.getStoredUser();
+    final bool isMyReview = currentUser != null &&
+        (r.reviewerId == currentUser.id ||
+         r.reviewerName.toLowerCase() == currentUser.name.toLowerCase() ||
+         (r.reviewerAvatar != null && r.reviewerAvatar == currentUser.avatarUrl));
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -625,7 +645,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
                         }),
                         const SizedBox(width: 6),
                         Text(
-                          '${r.rating}',
+                          '${r.rating.toStringAsFixed(1)} ★',
                           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -633,22 +653,44 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
                   ],
                 ),
               ),
-              if (r.createdAt != null)
+              if (isMyReview)
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 18, color: primaryDark),
+                  tooltip: 'Edit Review',
+                  onPressed: () => _showAddOrEditReviewDialog(r),
+                )
+              else if (r.createdAt != null)
                 Text(
                   r.createdAt!,
                   style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                 ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            r.review,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF334155),
-              height: 1.4,
+          if (r.cardTitle != null && r.cardTitle!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'For: ${r.cardTitle}',
+                style: const TextStyle(fontSize: 11, color: Color(0xFF475569), fontWeight: FontWeight.w500),
+              ),
             ),
-          ),
+          ],
+          if (r.review.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              r.review,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF334155),
+                height: 1.4,
+              ),
+            ),
+          ],
         ],
       ),
     );

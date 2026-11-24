@@ -35,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
 
   final TextEditingController _homeSearchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -48,6 +49,13 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _homeSearchController.dispose();
     super.dispose();
+  }
+
+  void _performSearch() {
+    setState(() {
+      _searchQuery = _homeSearchController.text;
+      _selectedIndex = 1; // Switch to Discover tab for search results
+    });
   }
 
   Future<void> _loadData() async {
@@ -86,7 +94,10 @@ class _HomeScreenState extends State<HomeScreen> {
         index: _selectedIndex,
         children: [
           _buildOriginalHomeView(),
-          DiscoverScreen(initialCategory: _selectedCategory),
+          DiscoverScreen(
+            initialCategory: _selectedCategory,
+            initialSearch: _searchQuery,
+          ),
           const MyCardsScreen(),
           const MapViewScreen(),
           const ProfileScreen(),
@@ -274,7 +285,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Search Bar (Workable)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.only(left: 16, right: 6, top: 4, bottom: 4),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(25),
@@ -285,28 +296,65 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                child: TextField(
-                  controller: _homeSearchController,
-                  onSubmitted: (_) {
-                    setState(() {
-                      _selectedIndex = 1; // Switch to Discover tab for search results
-                    });
-                  },
-                  decoration: InputDecoration(
-                    icon: const Icon(Icons.search, color: Colors.grey),
-                    hintText: 'Search Live Work cards...',
-                    hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-                    border: InputBorder.none,
-                    suffixIcon: _homeSearchController.text.isNotEmpty
-                        ? GestureDetector(
-                            onTap: () {
-                              _homeSearchController.clear();
-                              setState(() {});
-                            },
-                            child: const Icon(Icons.clear, color: Colors.grey, size: 20),
-                          )
-                        : null,
-                  ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: Colors.grey),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _homeSearchController,
+                        onChanged: (text) {
+                          setState(() {});
+                        },
+                        onSubmitted: (_) => _performSearch(),
+                        decoration: const InputDecoration(
+                          hintText: 'Search Live Work cards...',
+                          hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                          border: InputBorder.none,
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    if (_homeSearchController.text.isNotEmpty)
+                      GestureDetector(
+                        onTap: () {
+                          _homeSearchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                          });
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6),
+                          child: Icon(Icons.clear, color: Colors.grey, size: 20),
+                        ),
+                      ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: _performSearch,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF094943),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.search, color: Colors.white, size: 16),
+                            SizedBox(width: 4),
+                            Text(
+                              'Search',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 25),
@@ -694,13 +742,40 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 2),
 
-                      // Category Subtitle
-                      Text(
-                        item.category?.name ?? 'Driving',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF64748B),
-                        ),
+                      // Rating & Reviews directly under User Name + Category Subtitle
+                      Row(
+                        children: [
+                          const Icon(Icons.star_rounded, size: 13, color: Color(0xFFFFB800)),
+                          const SizedBox(width: 2),
+                          Text(
+                            '${item.rating}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            ' (${item.reviewsCount})',
+                            style: const TextStyle(
+                              fontSize: 9,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              '• ${item.category?.name ?? "Driving"}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Color(0xFF64748B),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 6),
 
@@ -733,45 +808,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 6),
 
-                      // Rating & Reviews + Card Updated Time
+                      // Card Updated Time Subtitle
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.star_rounded, size: 14, color: Color(0xFFFFB800)),
-                              const SizedBox(width: 2),
-                              Text(
-                                '${item.rating}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 10,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                              const SizedBox(width: 2),
-                              Text(
-                                ' (${item.reviewsCount})',
-                                style: const TextStyle(
-                                  fontSize: 9,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Row(
-                            children: [
-                              const Icon(Icons.access_time_rounded, size: 10, color: Color(0xFF64748B)),
-                              const SizedBox(width: 2),
-                              Text(
-                                item.formattedTimeAgo,
-                                style: const TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
+                          const Icon(Icons.access_time_rounded, size: 10, color: Color(0xFF64748B)),
+                          const SizedBox(width: 3),
+                          Text(
+                            item.formattedTimeAgo,
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
                           ),
                         ],
                       ),

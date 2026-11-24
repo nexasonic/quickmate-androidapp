@@ -48,12 +48,20 @@ class ApiConfig {
   // Helper to replace 127.0.0.1 / localhost with 10.0.2.2 for Android Emulator image URLs
   static String fixImageUrl(String? url) {
     if (url == null || url.isEmpty) return '';
-    if (url.contains('127.0.0.1:8000')) {
-      return url.replaceAll('127.0.0.1:8000', '10.0.2.2:8000');
+    var formatted = url.trim();
+    if (formatted.contains('127.0.0.1:8000')) {
+      formatted = formatted.replaceAll('127.0.0.1:8000', '10.0.2.2:8000');
     }
-    if (url.contains('localhost:8000')) {
-      return url.replaceAll('localhost:8000', '10.0.2.2:8000');
+    if (formatted.contains('localhost:8000')) {
+      formatted = formatted.replaceAll('localhost:8000', '10.0.2.2:8000');
     }
-    return url;
+    if (!formatted.startsWith('http://') && !formatted.startsWith('https://')) {
+      if (formatted.startsWith('/')) {
+        formatted = 'http://10.0.2.2:8000$formatted';
+      } else {
+        formatted = '$storageUrl$formatted';
+      }
+    }
+    return formatted;
   }
 }

@@ -50,33 +50,46 @@ String formatTimeAgoString(String? dateStr) {
 
 class CardReviewModel {
   final int id;
+  final int? reviewerId;
   final double rating;
   final String review;
   final String? createdAt;
   final String reviewerName;
   final String? reviewerAvatar;
+  final int? cardId;
+  final int? cardType;
+  final String? cardTitle;
 
   CardReviewModel({
     required this.id,
+    this.reviewerId,
     required this.rating,
     required this.review,
     this.createdAt,
     required this.reviewerName,
     this.reviewerAvatar,
+    this.cardId,
+    this.cardType,
+    this.cardTitle,
   });
 
   factory CardReviewModel.fromJson(Map<String, dynamic> json) {
     final reviewer = json['reviewer'] as Map<String, dynamic>? ?? {};
     final rawName = reviewer['name']?.toString() ?? json['name']?.toString() ?? json['reviewer_name']?.toString() ?? 'Reviewer';
     final rawAvatar = reviewer['avatar_url']?.toString() ?? json['avatar']?.toString() ?? json['reviewer_avatar']?.toString();
+    final rawReviewerId = json['reviewer_id'] is int ? json['reviewer_id'] : (reviewer['id'] is int ? reviewer['id'] : null);
 
     return CardReviewModel(
       id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      reviewerId: rawReviewerId,
       rating: json['rating'] != null ? (json['rating'] as num).toDouble() : 5.0,
       review: json['review']?.toString() ?? json['comment']?.toString() ?? '',
       createdAt: json['created_at']?.toString() ?? json['date']?.toString(),
       reviewerName: rawName,
       reviewerAvatar: rawAvatar != null ? ApiConfig.fixImageUrl(rawAvatar) : null,
+      cardId: json['card_id'] is int ? json['card_id'] : int.tryParse(json['card_id']?.toString() ?? '0'),
+      cardType: json['card_type'] is int ? json['card_type'] : int.tryParse(json['card_type']?.toString() ?? '0'),
+      cardTitle: json['card_title']?.toString(),
     );
   }
 }
@@ -100,6 +113,8 @@ class LiveWorkCardModel {
   final String? thumbnailUrl;
   final List<String> images;
   final List<CardReviewModel> reviews;
+  final List<String> tags;
+  final String? expiresAt;
   final CategoryModel? category;
   final UserModel? user;
   bool isFavorite;
@@ -125,6 +140,8 @@ class LiveWorkCardModel {
     this.thumbnailUrl,
     this.images = const [],
     this.reviews = const [],
+    this.tags = const [],
+    this.expiresAt,
     this.category,
     this.user,
     this.isFavorite = false,
@@ -133,7 +150,50 @@ class LiveWorkCardModel {
   });
 
   bool get isActive => status == 1;
-  String get statusLabel => isActive ? 'Active' : 'Paused';
+  bool get isPaused => status == 2;
+  bool get isExpired {
+    if (status == 3) return true;
+    if (status == 1 || status == 2) return false;
+    if (expiresAt != null) {
+      final dt = DateTime.tryParse(expiresAt!);
+      if (dt != null && DateTime.now().isAfter(dt)) return true;
+    }
+    return false;
+  }
+
+  String get statusLabel {
+    if (isExpired) return 'Expired';
+    if (isPaused) return 'Paused';
+    return 'Active';
+  }
+
+  String get formattedExpiresIn {
+    if (isExpired) return 'Expired';
+    DateTime? expDate;
+    if (expiresAt != null) {
+      expDate = DateTime.tryParse(expiresAt!);
+    }
+    if (expDate == null || expDate.isBefore(DateTime.now())) {
+      if (updatedAt != null || createdAt != null) {
+        final base = DateTime.tryParse(updatedAt ?? createdAt!);
+        if (base != null) {
+          expDate = base.add(const Duration(hours: 24));
+        }
+      }
+    }
+    if (expDate != null) {
+      final diff = expDate.difference(DateTime.now());
+      if (diff.isNegative) return 'Expires in < 1m';
+      if (diff.inHours > 0) {
+        return 'Expires in ${diff.inHours}h ${diff.inMinutes % 60}m';
+      } else if (diff.inMinutes > 0) {
+        return 'Expires in ${diff.inMinutes}m';
+      } else {
+        return 'Expires in < 1m';
+      }
+    }
+    return 'Expires in 24h';
+  }
 
   String get formattedTimeAgo => formatTimeAgoString(updatedAt ?? createdAt);
 
@@ -191,15 +251,79 @@ class LiveWorkCardModel {
   factory LiveWorkCardModel.fromJson(Map<String, dynamic> json) {
     // Extract media URLs
     List<String> mediaUrls = [];
-    if (json['medias'] is List) {
-      for (final m in json['medias']) {
-        if (m is Map && m['file_url'] != null) {
-          mediaUrls.add(ApiConfig.fixImageUrl(m['file_url'].toString()));
+    dynamic rawMedia = json['medias'] ??
+        json['media'] ??
+        json['images'] ??
+        json['photos'] ??
+        json['user_media'] ??
+        json['card_media'] ??
+        json['card_images'] ??
+        json['media_urls'] ??
+        json['gallery'] ??
+        json['attachments'];
+
+    if (rawMedia is List) {
+      for (final m in rawMedia) {
+        if (m is Map) {
+          final url = m['file_url'] ??
+              m['original_url'] ??
+              m['full_url'] ??
+              m['url'] ??
+              m['preview_url'] ??
+              m['media_url'] ??
+              m['path'] ??
+              m['image_url'] ??
+              m['file_path'] ??
+              m['src'] ??
+              m['file'];
+          if (url != null && url.toString().isNotEmpty) {
+            final fixed = ApiConfig.fixImageUrl(url.toString());
+            if (!mediaUrls.contains(fixed)) mediaUrls.add(fixed);
+          }
+        } else if (m != null && m.toString().isNotEmpty) {
+          final fixed = ApiConfig.fixImageUrl(m.toString());
+          if (!mediaUrls.contains(fixed)) mediaUrls.add(fixed);
         }
       }
+    } else if (rawMedia is Map) {
+      final url = rawMedia['file_url'] ??
+          rawMedia['original_url'] ??
+          rawMedia['full_url'] ??
+          rawMedia['url'] ??
+          rawMedia['media_url'] ??
+          rawMedia['path'] ??
+          rawMedia['image_url'] ??
+          rawMedia['file_path'] ??
+          rawMedia['src'];
+      if (url != null && url.toString().isNotEmpty) {
+        final fixed = ApiConfig.fixImageUrl(url.toString());
+        if (!mediaUrls.contains(fixed)) mediaUrls.add(fixed);
+      }
     }
-    if (mediaUrls.isEmpty && json['thumbnail_url'] != null) {
-      mediaUrls.add(ApiConfig.fixImageUrl(json['thumbnail_url'].toString()));
+
+    dynamic rawThumb = json['thumbnail_url'] ??
+        json['thumbnail'] ??
+        json['image_url'] ??
+        json['image'] ??
+        json['cover_image'] ??
+        json['cover'] ??
+        json['file_path'] ??
+        json['file_url'];
+
+    if (rawThumb is Map) {
+      rawThumb = rawThumb['file_url'] ??
+          rawThumb['original_url'] ??
+          rawThumb['url'] ??
+          rawThumb['media_url'] ??
+          rawThumb['path'] ??
+          rawThumb['image_url'];
+    }
+
+    if (rawThumb != null && rawThumb.toString().isNotEmpty) {
+      final fixedThumb = ApiConfig.fixImageUrl(rawThumb.toString());
+      if (!mediaUrls.contains(fixedThumb)) {
+        mediaUrls.insert(0, fixedThumb);
+      }
     }
 
     // Extract reviews from card or card owner user
@@ -235,7 +359,25 @@ class LiveWorkCardModel {
       }
     }
 
-    final rawThumb = json['thumbnail_url']?.toString();
+    List<String> parsedTags = [];
+    if (json['tags'] is List) {
+      parsedTags = (json['tags'] as List).map((e) => e.toString()).toList();
+    } else if (json['tags'] is String && (json['tags'] as String).isNotEmpty) {
+      parsedTags = (json['tags'] as String).split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    }
+
+    final String? rawExpiresAt = json['expires_at']?.toString() ?? json['expiry_time']?.toString();
+
+    int parseStatus(dynamic rawStatus) {
+      if (rawStatus is int) return rawStatus;
+      if (rawStatus == null) return 1;
+      final str = rawStatus.toString().trim().toLowerCase();
+      if (str == '1' || str == 'active' || str == 'published') return 1;
+      if (str == '2' || str == 'paused' || str == 'inactive') return 2;
+      if (str == '3' || str == 'expired') return 3;
+      if (str == '0' || str == 'draft') return 0;
+      return int.tryParse(str) ?? 1;
+    }
 
     return LiveWorkCardModel(
       id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
@@ -249,13 +391,15 @@ class LiveWorkCardModel {
       latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,
       longitude: json['longitude'] != null ? (json['longitude'] as num).toDouble() : null,
       distanceKm: json['distance_km'] != null ? (json['distance_km'] as num).toDouble() : null,
-      status: json['status'] is int ? json['status'] : int.tryParse(json['status'].toString()) ?? 1,
+      status: parseStatus(json['status'] ?? json['status_code'] ?? json['status_name']),
       viewsCount: json['views_count'] is int ? json['views_count'] : int.tryParse(json['views_count'].toString()) ?? 0,
       rating: computedRating,
       reviewsCount: computedReviewsCount,
       thumbnailUrl: rawThumb != null ? ApiConfig.fixImageUrl(rawThumb) : null,
       images: mediaUrls,
       reviews: reviewList,
+      tags: parsedTags,
+      expiresAt: rawExpiresAt,
       category: json['category'] != null && json['category'] is Map<String, dynamic>
           ? CategoryModel.fromJson(json['category'])
           : null,

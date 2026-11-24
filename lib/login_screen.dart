@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'core/app_dialogs.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
 import 'services/auth_service.dart';
@@ -30,8 +31,12 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter both email and password.')),
+      AppDialogs.showToastModal(
+        context,
+        message: 'Please enter both email and password.',
+        icon: Icons.warning_amber_rounded,
+        iconColor: Colors.orange,
+        iconBgColor: const Color(0xFFFEF3C7),
       );
       return;
     }
@@ -57,11 +62,12 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response.message.isNotEmpty ? response.message : 'Login failed.'),
-          backgroundColor: Colors.redAccent,
-        ),
+      AppDialogs.showToastModal(
+        context,
+        message: response.message.isNotEmpty ? response.message : 'Login failed.',
+        icon: Icons.error_outline_rounded,
+        iconColor: Colors.redAccent,
+        iconBgColor: const Color(0xFFFEE2E2),
       );
     }
   }
@@ -97,11 +103,12 @@ class _LoginScreenState extends State<LoginScreen> {
             MaterialPageRoute(builder: (context) => const HomeScreen()),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.message.isNotEmpty ? response.message : 'Google sign in failed.'),
-              backgroundColor: Colors.redAccent,
-            ),
+          AppDialogs.showToastModal(
+            context,
+            message: response.message.isNotEmpty ? response.message : 'Google sign in failed.',
+            icon: Icons.error_outline_rounded,
+            iconColor: Colors.redAccent,
+            iconBgColor: const Color(0xFFFEE2E2),
           );
         }
       } else {
@@ -125,11 +132,12 @@ class _LoginScreenState extends State<LoginScreen> {
         userMsg = 'Google Sign-In error: $errStr';
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(userMsg),
-          backgroundColor: Colors.redAccent,
-        ),
+      AppDialogs.showToastModal(
+        context,
+        message: userMsg,
+        icon: Icons.error_outline_rounded,
+        iconColor: Colors.redAccent,
+        iconBgColor: const Color(0xFFFEE2E2),
       );
     }
   }

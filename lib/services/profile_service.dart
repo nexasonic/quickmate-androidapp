@@ -1,3 +1,4 @@
+import 'dart:io';
 import '../core/api_config.dart';
 import '../core/api_service.dart';
 import '../core/storage_service.dart';
@@ -38,6 +39,7 @@ class ProfileService {
     String? location,
     String? gender,
     String? dateOfBirth,
+    String? languages,
     String? whatsapp,
     String? website,
     String? linkedin,
@@ -54,6 +56,7 @@ class ProfileService {
     if (location != null) body['location'] = location;
     if (gender != null) body['gender'] = gender;
     if (dateOfBirth != null) body['date_of_birth'] = dateOfBirth;
+    if (languages != null) body['languages'] = languages;
     if (whatsapp != null) body['whatsapp'] = whatsapp;
     if (website != null) body['website'] = website;
     if (linkedin != null) body['linkedin'] = linkedin;
@@ -152,5 +155,128 @@ class ProfileService {
   /// Delete education
   static Future<ApiResponse> destroyEducation(int id) async {
     return await ApiService.delete('${ApiConfig.baseUrl}/user/education/$id');
+  }
+
+  /// Upload gallery media / photo
+  static Future<ApiResponse> uploadGalleryMedia(File file) async {
+    final response = await ApiService.multipartPost(
+      '${ApiConfig.baseUrl}/user/media',
+      files: [file],
+      fileParamName: 'image',
+    );
+    if (!response.success) {
+      return await ApiService.multipartPost(
+        '${ApiConfig.baseUrl}/user/gallery',
+        files: [file],
+        fileParamName: 'image',
+      );
+    }
+    return response;
+  }
+
+  /// Delete gallery media / photo
+  static Future<ApiResponse> destroyGalleryMedia(int id) async {
+    return await ApiService.delete('${ApiConfig.baseUrl}/user/media/$id');
+  }
+
+  /// Update user avatar photo
+  static Future<ApiResponse> updateAvatarPhoto(File file) async {
+    // 1. Try POST /user/avatar with fileParamName 'avatar'
+    var response = await ApiService.multipartPost(
+      ApiConfig.updateAvatar,
+      files: [file],
+      fileParamName: 'avatar',
+    );
+
+    // 2. Try POST /user/profile with fileParamName 'avatar'
+    if (!response.success) {
+      response = await ApiService.multipartPost(
+        ApiConfig.profile,
+        files: [file],
+        fileParamName: 'avatar',
+      );
+    }
+
+    // 3. Try POST /user/avatar with fileParamName 'image'
+    if (!response.success) {
+      response = await ApiService.multipartPost(
+        ApiConfig.updateAvatar,
+        files: [file],
+        fileParamName: 'image',
+      );
+    }
+
+    if (response.success && response.data != null) {
+      final userMap = response.data['user'] as Map<String, dynamic>? ?? response.data;
+      if (userMap is Map<String, dynamic>) {
+        await StorageService.saveUser(userMap);
+      }
+    }
+    return response;
+  }
+
+  /// Update user cover photo / banner
+  static Future<ApiResponse> updateCoverPhoto(File file) async {
+    // 1. Try POST /user/cover with fileParamName 'cover'
+    var response = await ApiService.multipartPost(
+      '${ApiConfig.baseUrl}/user/cover',
+      files: [file],
+      fileParamName: 'cover',
+    );
+
+    // 2. Try POST /user/cover-photo with fileParamName 'cover_photo'
+    if (!response.success) {
+      response = await ApiService.multipartPost(
+        '${ApiConfig.baseUrl}/user/cover-photo',
+        files: [file],
+        fileParamName: 'cover_photo',
+      );
+    }
+
+    if (response.success) {
+      await fetchUserProfile();
+    }
+
+    return response;
+  }
+
+  /// Submit profile verification request with ID card documents and Razorpay payment details.
+  static Future<ApiResponse> submitVerificationRequest({
+    required String idType,
+    required String idNumber,
+    required File frontPhoto,
+    File? backPhoto,
+    String? paymentId,
+    double feeAmount = 2.00,
+  }) async {
+    final fields = <String, String>{
+      'id_type': idType,
+      'id_number': idNumber,
+      'fee_amount': feeAmount.toStringAsFixed(2),
+      'payment_status': 'paid',
+    };
+    if (paymentId != null) {
+      fields['payment_id'] = paymentId;
+    }
+
+    final files = <File>[frontPhoto];
+    if (backPhoto != null) files.add(backPhoto);
+
+    final response = await ApiService.multipartPost(
+      '${ApiConfig.baseUrl}/user/verification-request',
+      fields: fields,
+      files: files,
+      fileParamName: 'documents[]',
+    );
+
+    if (!response.success) {
+      return await ApiService.multipartPost(
+        '${ApiConfig.baseUrl}/user/verify',
+        fields: fields,
+        files: files,
+        fileParamName: 'documents[]',
+      );
+    }
+    return response;
   }
 }

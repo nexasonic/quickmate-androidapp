@@ -17,6 +17,8 @@ dependencies:
   url_launcher: ^6.3.0
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
+  image_picker: ^1.1.2
+  image_cropper: ^8.0.2
 
 dev_dependencies:
   flutter_test:

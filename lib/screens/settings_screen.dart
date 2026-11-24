@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/app_dialogs.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -59,8 +60,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     setState(() {
                       _selectedTheme = val;
                     });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Theme set to $val')),
+                    AppDialogs.showToastModal(
+                      context,
+                      message: 'Theme set to $val',
                     );
                   },
                 ),
@@ -81,8 +83,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     setState(() {
                       _selectedLanguage = val;
                     });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Language set to $val')),
+                    AppDialogs.showToastModal(
+                      context,
+                      message: 'Language set to $val',
                     );
                   },
                 ),

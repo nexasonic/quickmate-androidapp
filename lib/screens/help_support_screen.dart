@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/app_dialogs.dart';
 
 class HelpSupportScreen extends StatefulWidget {
   const HelpSupportScreen({super.key});
@@ -43,8 +44,12 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   void _sendSupportMessage() {
     final text = _supportMsgController.text.trim();
     if (text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your query or message.')),
+      AppDialogs.showToastModal(
+        context,
+        message: 'Please enter your query or message.',
+        icon: Icons.warning_amber_rounded,
+        iconColor: Colors.orange,
+        iconBgColor: const Color(0xFFFEF3C7),
       );
       return;
     }
@@ -59,8 +64,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         _isSending = false;
         _supportMsgController.clear();
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Support query submitted! Our team will get back to you shortly.')),
+      AppDialogs.showToastModal(
+        context,
+        message: 'Support query submitted! Our team will get back to you shortly.',
       );
     });
   }

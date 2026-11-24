@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/api_config.dart';
 import 'login_screen.dart';
 import 'my_cards_screen.dart';
 import 'models/user_model.dart';
@@ -246,7 +247,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     const primaryDark = Color(0xFF094943);
     final userName = _user?.name ?? 'User Profile';
     final userEmail = _user?.email ?? (_user?.phone ?? 'QuickMate User');
-    final avatarUrl = _user?.avatarUrl;
+    String? avatarUrl = _user?.avatarUrl;
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
+      avatarUrl = ApiConfig.fixImageUrl(avatarUrl);
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
