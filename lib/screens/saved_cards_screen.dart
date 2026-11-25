@@ -37,7 +37,10 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
 
     if (response.success && response.data != null) {
       final List list = response.data is List ? response.data : (response.data['data'] ?? []);
-      final parsedCards = list.map((item) => LiveWorkCardModel.fromJson(item as Map<String, dynamic>)).toList();
+      final parsedCards = list
+          .map((item) => LiveWorkCardModel.fromJson(item as Map<String, dynamic>))
+          .where((card) => card.isActive && !card.isExpired && !card.isPaused)
+          .toList();
 
       setState(() {
         _savedCards = parsedCards;
@@ -72,8 +75,80 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
     }
   }
 
+  Widget _buildGuestPromptScreen() {
+    const primaryDark = Color(0xFF094943);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F9F8),
+      appBar: AppBar(
+        backgroundColor: primaryDark,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 26),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text('Saved Cards', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(22),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE6F4F1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.lock_outline_rounded, size: 54, color: primaryDark),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Sign In Required',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Please sign in to view and access your bookmarked live work cards.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    );
+                    if (result == true) {
+                      _fetchSavedCards();
+                    }
+                  },
+                  icon: const Icon(Icons.login_rounded, color: Colors.white),
+                  label: const Text('Sign In / Register', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryDark,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (!AuthService.isLoggedIn()) {
+      return _buildGuestPromptScreen();
+    }
+
     const primaryDark = Color(0xFF094943);
 
     return Scaffold(
@@ -449,6 +524,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                               'avatarUrl': providerAvatar,
                             },
                             targetUserId: owner?.id,
+                            card: card,
                           ),
                         ),
                       );

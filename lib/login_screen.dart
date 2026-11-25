@@ -57,10 +57,14 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     if (response.success) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context, true);
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
     } else {
       AppDialogs.showToastModal(
         context,
@@ -98,10 +102,14 @@ class _LoginScreenState extends State<LoginScreen> {
         });
 
         if (response.success) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-          );
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context, true);
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+            );
+          }
         } else {
           AppDialogs.showToastModal(
             context,

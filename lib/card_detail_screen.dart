@@ -849,6 +849,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                     MaterialPageRoute(
                       builder: (context) => ChatDetailScreen(
                         targetUserId: owner.id,
+                        card: _card,
                         chatData: {
                           'id': owner.id.toString(),
                           'name': owner.name,

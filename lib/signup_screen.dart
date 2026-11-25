@@ -63,11 +63,15 @@ class _SignupScreenState extends State<SignupScreen> {
     });
 
     if (response.success) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-        (route) => false,
-      );
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context, true);
+      } else {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (route) => false,
+        );
+      }
     } else {
       AppDialogs.showToastModal(
         context,

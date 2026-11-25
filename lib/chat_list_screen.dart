@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'chat_detail_screen.dart';
 import 'login_screen.dart';
@@ -16,11 +17,36 @@ class _ChatListScreenState extends State<ChatListScreen> {
   bool _isLoading = true;
   List<ConversationModel> _conversations = [];
   bool _isLoggedIn = false;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadConversations();
+
+    // Start 3-second periodic polling timer for real-time conversation list updates
+    _refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      _pollConversations();
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _pollConversations() async {
+    if (!AuthService.isLoggedIn() || !mounted) return;
+
+    final convos = await ChatService.fetchConversations();
+    if (!mounted) return;
+
+    if (convos.isNotEmpty) {
+      setState(() {
+        _conversations = convos;
+      });
+    }
   }
 
   Future<void> _loadConversations() async {

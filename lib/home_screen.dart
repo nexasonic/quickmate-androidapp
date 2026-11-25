@@ -10,6 +10,7 @@ import 'models/category_model.dart';
 import 'models/live_work_card_model.dart';
 import 'models/user_model.dart';
 import 'services/auth_service.dart';
+import 'services/chat_notification_service.dart';
 import 'services/live_work_service.dart';
 import 'services/presence_service.dart';
 import 'services/profile_service.dart';
@@ -43,6 +44,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _selectedIndex = widget.initialIndex;
     _loadData();
     PresenceService.startPeriodicPing();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ChatNotificationService.startListening(context);
+      }
+    });
   }
 
   @override

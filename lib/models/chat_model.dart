@@ -54,6 +54,8 @@ class ChatMessageModel {
   final String body;
   final String type;
   final String? attachmentUrl;
+  final Map<String, dynamic>? meta;
+  final String? readAt;
   final String? createdAtHuman;
 
   ChatMessageModel({
@@ -64,11 +66,16 @@ class ChatMessageModel {
     required this.body,
     this.type = 'text',
     this.attachmentUrl,
+    this.meta,
+    this.readAt,
     this.createdAtHuman,
   });
 
+  bool get isRead => readAt != null && readAt!.isNotEmpty;
+
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
     final rawAttachment = json['attachment_url']?.toString();
+    final rawMeta = json['meta'] is Map<String, dynamic> ? json['meta'] as Map<String, dynamic> : null;
 
     return ChatMessageModel(
       id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
@@ -78,6 +85,8 @@ class ChatMessageModel {
       body: json['body'] ?? '',
       type: json['type'] ?? 'text',
       attachmentUrl: rawAttachment != null ? ApiConfig.fixImageUrl(rawAttachment) : null,
+      meta: rawMeta,
+      readAt: json['read_at']?.toString(),
       createdAtHuman: json['created_at_human'] ?? json['created_at'],
     );
   }

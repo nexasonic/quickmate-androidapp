@@ -14,13 +14,17 @@ class ChatService {
     return [];
   }
 
-  /// Start or retrieve an existing conversation with a target user ID.
-  static Future<int?> startConversation(int targetUserId) async {
+  /// Start or retrieve an existing conversation with a target user ID and optional referenced card.
+  static Future<int?> startConversation(int targetUserId, {String? cardType, int? cardId}) async {
+    final Map<String, dynamic> body = {
+      'user_id': targetUserId,
+    };
+    if (cardType != null) body['card_type'] = cardType;
+    if (cardId != null) body['card_id'] = cardId;
+
     final response = await ApiService.post(
       ApiConfig.conversations,
-      body: {
-        'user_id': targetUserId,
-      },
+      body: body,
     );
 
     if (response.success && response.data != null) {

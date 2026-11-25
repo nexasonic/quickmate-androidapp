@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/api_config.dart';
 import '../core/api_service.dart';
 import '../core/app_dialogs.dart';
+import '../login_screen.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
@@ -1977,8 +1978,83 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     );
   }
 
+  Widget _buildGuestPromptScreen(String title, String subtitle) {
+    const primaryDark = Color(0xFF094943);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F9F8),
+      appBar: AppBar(
+        backgroundColor: primaryDark,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 26),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(22),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE6F4F1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.lock_outline_rounded, size: 54, color: primaryDark),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Sign In Required',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    );
+                    if (result == true) {
+                      _loadProfileData();
+                    }
+                  },
+                  icon: const Icon(Icons.login_rounded, color: Colors.white),
+                  label: const Text('Sign In / Register', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryDark,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (!AuthService.isLoggedIn()) {
+      return _buildGuestPromptScreen(
+        'My Profile',
+        'Please sign in to view and manage your personal profile details.',
+      );
+    }
+
     const primaryDark = Color(0xFF094943);
     final profileData = _fullProfile?['profile'] as Map<String, dynamic>? ?? {};
 

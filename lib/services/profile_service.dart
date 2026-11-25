@@ -11,9 +11,12 @@ class ProfileService {
     final response = await ApiService.get(ApiConfig.profile);
 
     if (response.success && response.data != null) {
-      final userMap = response.data['user'] as Map<String, dynamic>? ?? response.data;
-      await StorageService.saveUser(userMap);
-      return UserModel.fromJson(userMap);
+      final Map<String, dynamic> dataMap = response.data is Map<String, dynamic>
+          ? response.data as Map<String, dynamic>
+          : {};
+      final userModel = UserModel.fromJson(dataMap);
+      await StorageService.saveUser(userModel.toJson());
+      return userModel;
     }
     return AuthService.getStoredUser();
   }

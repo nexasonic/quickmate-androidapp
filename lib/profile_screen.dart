@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/api_config.dart';
+import 'core/app_dialogs.dart';
 import 'login_screen.dart';
 import 'my_cards_screen.dart';
 import 'models/user_model.dart';
@@ -20,6 +21,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   UserModel? _user;
+  int _imageTimestamp = DateTime.now().millisecondsSinceEpoch;
 
   @override
   void initState() {
@@ -33,6 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
     setState(() {
       _user = profile ?? _user;
+      _imageTimestamp = DateTime.now().millisecondsSinceEpoch;
     });
   }
 
@@ -73,10 +76,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _user = null;
               });
 
-              Navigator.pushAndRemoveUntil(
+              AppDialogs.showToastModal(
                 context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                (route) => false,
+                message: 'Logged out successfully.',
               );
             },
             child: const Text('Log Out', style: TextStyle(color: Colors.white)),
@@ -249,7 +251,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final userEmail = _user?.email ?? (_user?.phone ?? 'QuickMate User');
     String? avatarUrl = _user?.avatarUrl;
     if (avatarUrl != null && avatarUrl.isNotEmpty) {
-      avatarUrl = ApiConfig.fixImageUrl(avatarUrl);
+      avatarUrl = "${ApiConfig.fixImageUrl(avatarUrl)}?t=$_imageTimestamp";
     }
 
     return Container(
