@@ -32,6 +32,16 @@ class DiscoverScreenState extends State<DiscoverScreen> {
 
   Future<void> refresh() => _fetchCards();
 
+  void setSearchQuery(String query) {
+    if (_searchController.text != query) {
+      _searchController.text = query;
+      _searchController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _searchController.text.length),
+      );
+    }
+    _fetchCards();
+  }
+
   CategoryModel? _selectedCategory;
   String _selectedSort = 'Nearest';
   bool _showSortBottomSheet = false;

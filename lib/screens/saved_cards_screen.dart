@@ -33,13 +33,14 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
       _isLoading = true;
     });
 
-    final response = await ApiService.get(ApiConfig.savedCards);
+    final response = await ApiService.get('${ApiConfig.savedCards}?card_type=1');
 
     if (!mounted) return;
 
     if (response.success && response.data != null) {
       final List list = response.data is List ? response.data : (response.data['data'] ?? []);
       final parsedCards = list
+          .where((item) => item is Map<String, dynamic> && (item['card_type'] == 'live_work' || item['card_type_id'] == 1 || item['card_type'] == null || item['card_type_id'] == null))
           .map((item) => LiveWorkCardModel.fromJson(item as Map<String, dynamic>))
           .where((card) => card.isActive && !card.isExpired && !card.isPaused)
           .toList();
@@ -57,7 +58,14 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
   }
 
   Future<void> _removeBookmark(LiveWorkCardModel card) async {
-    final response = await LiveWorkService.toggleSavedCard(card.id);
+    final int originalIndex = _savedCards.indexWhere((c) => c.id == card.id);
+    if (originalIndex != -1) {
+      setState(() {
+        _savedCards.removeAt(originalIndex);
+      });
+    }
+
+    final response = await LiveWorkService.toggleSavedCard(card.id, cardType: 1);
     if (!mounted) return;
 
     if (response.success) {
@@ -67,6 +75,11 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
       );
       _fetchSavedCards();
     } else {
+      if (originalIndex != -1 && originalIndex <= _savedCards.length) {
+        setState(() {
+          _savedCards.insert(originalIndex, card);
+        });
+      }
       AppDialogs.showToastModal(
         context,
         message: response.message.isNotEmpty ? response.message : context.tr('unable_remove_card'),
@@ -373,6 +386,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                         ),
                         // Remove Bookmark Button
                         GestureDetector(
+                          behavior: HitTestBehavior.opaque,
                           onTap: () => _removeBookmark(card),
                           child: Container(
                             padding: const EdgeInsets.all(5),

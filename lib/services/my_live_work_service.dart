@@ -26,6 +26,7 @@ class MyLiveWorkService {
     String? expiryTime,
     List<String>? tags,
     List<File>? images,
+    int? mainImageIdx,
   }) async {
     final Map<String, dynamic> jsonBody = {
       'title': title,
@@ -36,6 +37,7 @@ class MyLiveWorkService {
       if (location != null) 'location': location,
       if (expiryTime != null) 'expiry_time': expiryTime,
       if (tags != null && tags.isNotEmpty) 'tags': tags.join(','),
+      if (mainImageIdx != null) 'main_image_idx': mainImageIdx,
     };
 
     if (images != null && images.isNotEmpty) {
@@ -69,6 +71,9 @@ class MyLiveWorkService {
     String? expiryTime,
     List<String>? tags,
     List<File>? images,
+    int? mainImageIdx,
+    int? mainImageId,
+    List<int>? removeImageIds,
   }) async {
     final Map<String, dynamic> jsonBody = {
       'title': title,
@@ -79,16 +84,19 @@ class MyLiveWorkService {
       if (location != null) 'location': location,
       if (expiryTime != null) 'expiry_time': expiryTime,
       if (tags != null && tags.isNotEmpty) 'tags': tags.join(','),
+      if (mainImageIdx != null) 'main_image_idx': mainImageIdx,
+      if (mainImageId != null) 'main_image_id': mainImageId,
+      if (removeImageIds != null && removeImageIds.isNotEmpty) 'remove_image_ids': removeImageIds.join(','),
     };
 
-    if (images != null && images.isNotEmpty) {
-      final stringFields = <String, String>{
-        '_method': 'PUT',
-      };
-      jsonBody.forEach((key, value) {
-        if (value != null) stringFields[key] = value.toString();
-      });
+    final stringFields = <String, String>{
+      '_method': 'PUT',
+    };
+    jsonBody.forEach((key, value) {
+      if (value != null) stringFields[key] = value.toString();
+    });
 
+    if (images != null && images.isNotEmpty) {
       return await ApiService.multipartPost(
         ApiConfig.updateLiveWork(id),
         fields: stringFields,
@@ -96,21 +104,15 @@ class MyLiveWorkService {
         fileParamName: 'images[]',
       );
     } else {
-      var response = await ApiService.put(
+      var response = await ApiService.post(
         ApiConfig.updateLiveWork(id),
-        body: jsonBody,
+        body: stringFields,
       );
 
       if (!response.success) {
-        final stringBody = <String, dynamic>{
-          '_method': 'PUT',
-        };
-        jsonBody.forEach((key, value) {
-          if (value != null) stringBody[key] = value;
-        });
-        response = await ApiService.post(
+        response = await ApiService.put(
           ApiConfig.updateLiveWork(id),
-          body: stringBody,
+          body: jsonBody,
         );
       }
       return response;

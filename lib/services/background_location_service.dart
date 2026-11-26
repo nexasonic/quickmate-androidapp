@@ -127,7 +127,6 @@ class BackgroundLocationManager {
     try {
       await Workmanager().initialize(
         backgroundLocationCallbackDispatcher,
-        isInDebugMode: kDebugMode,
       );
       _initialized = true;
       debugPrint('[BackgroundLocationManager] WorkManager initialized');
@@ -154,7 +153,7 @@ class BackgroundLocationManager {
         constraints: Constraints(
           networkType: NetworkType.connected,
         ),
-        existingWorkPolicy: ExistingWorkPolicy.keep,
+        existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
       );
 
       debugPrint('[BackgroundLocationManager] Periodic background location task registered (every 15m)');

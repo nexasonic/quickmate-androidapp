@@ -127,18 +127,46 @@ class ProfileService {
   }
 
   /// Store skill
+  /// Store skill
   static Future<ApiResponse> storeSkill({
     required String name,
-    String proficiency = 'intermediate',
+    String proficiency = 'Intermediate',
     int experienceYears = 1,
+    String? description,
   }) async {
+    final body = <String, dynamic>{
+      'name': name,
+      'proficiency': proficiency,
+      'experience_years': experienceYears,
+    };
+    if (description != null && description.trim().isNotEmpty) {
+      body['description'] = description.trim();
+    }
     return await ApiService.post(
       '${ApiConfig.baseUrl}/user/skills',
-      body: {
-        'name': name,
-        'proficiency': proficiency,
-        'experience_years': experienceYears,
-      },
+      body: body,
+    );
+  }
+
+  /// Update skill
+  static Future<ApiResponse> updateSkill(
+    int id, {
+    required String name,
+    String proficiency = 'Intermediate',
+    int experienceYears = 1,
+    String? description,
+  }) async {
+    final body = <String, dynamic>{
+      'name': name,
+      'proficiency': proficiency,
+      'experience_years': experienceYears,
+    };
+    if (description != null && description.trim().isNotEmpty) {
+      body['description'] = description.trim();
+    }
+    return await ApiService.put(
+      '${ApiConfig.baseUrl}/user/skills/$id',
+      body: body,
     );
   }
 
@@ -160,6 +188,33 @@ class ProfileService {
   }) async {
     return await ApiService.post(
       '${ApiConfig.baseUrl}/user/experience',
+      body: {
+        'job_title': jobTitle,
+        'company': company,
+        'employment_type': employmentType ?? 'Full-time',
+        'start_date': startDate,
+        'end_date': isCurrent ? null : endDate,
+        'is_current': isCurrent,
+        'location': location,
+        'description': description,
+      },
+    );
+  }
+
+  /// Update work experience
+  static Future<ApiResponse> updateExperience(
+    int id, {
+    required String jobTitle,
+    required String company,
+    String? employmentType,
+    required String startDate,
+    String? endDate,
+    bool isCurrent = false,
+    String? location,
+    String? description,
+  }) async {
+    return await ApiService.put(
+      '${ApiConfig.baseUrl}/user/experience/$id',
       body: {
         'job_title': jobTitle,
         'company': company,
@@ -202,6 +257,31 @@ class ProfileService {
     );
   }
 
+  /// Update education
+  static Future<ApiResponse> updateEducation(
+    int id, {
+    required String institution,
+    required String degree,
+    String? fieldOfStudy,
+    required String startYear,
+    String? endYear,
+    bool isCurrent = false,
+    String? description,
+  }) async {
+    return await ApiService.put(
+      '${ApiConfig.baseUrl}/user/education/$id',
+      body: {
+        'institution': institution,
+        'degree': degree,
+        'field_of_study': fieldOfStudy,
+        'start_year': startYear,
+        'end_year': endYear,
+        'is_current': isCurrent,
+        'description': description,
+      },
+    );
+  }
+
   /// Delete education
   static Future<ApiResponse> destroyEducation(int id) async {
     return await ApiService.delete('${ApiConfig.baseUrl}/user/education/$id');
@@ -209,16 +289,26 @@ class ProfileService {
 
   /// Upload gallery media / photo
   static Future<ApiResponse> uploadGalleryMedia(File file) async {
-    final response = await ApiService.multipartPost(
+    // 1. Try POST /user/media with fileParamName 'media_file'
+    var response = await ApiService.multipartPost(
       '${ApiConfig.baseUrl}/user/media',
       files: [file],
-      fileParamName: 'image',
+      fileParamName: 'media_file',
     );
+    // 2. Try POST /user/media with fileParamName 'image'
     if (!response.success) {
-      return await ApiService.multipartPost(
-        '${ApiConfig.baseUrl}/user/gallery',
+      response = await ApiService.multipartPost(
+        '${ApiConfig.baseUrl}/user/media',
         files: [file],
         fileParamName: 'image',
+      );
+    }
+    // 3. Try POST /user/gallery with fileParamName 'media_file'
+    if (!response.success) {
+      response = await ApiService.multipartPost(
+        '${ApiConfig.baseUrl}/user/gallery',
+        files: [file],
+        fileParamName: 'media_file',
       );
     }
     return response;

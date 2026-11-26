@@ -146,6 +146,7 @@ class LiveWorkCardModel {
   final int reviewsCount;
   final String? thumbnailUrl;
   final List<String> images;
+  final List<Map<String, dynamic>> rawMedias;
   final List<CardReviewModel> reviews;
   final List<String> tags;
   final String? expiresAt;
@@ -173,6 +174,7 @@ class LiveWorkCardModel {
     this.reviewsCount = 0,
     this.thumbnailUrl,
     this.images = const [],
+    this.rawMedias = const [],
     this.reviews = const [],
     this.tags = const [],
     this.expiresAt,
@@ -432,6 +434,7 @@ class LiveWorkCardModel {
   factory LiveWorkCardModel.fromJson(Map<String, dynamic> json) {
     // Extract media URLs
     List<String> mediaUrls = [];
+    List<Map<String, dynamic>> parsedRawMedias = [];
     dynamic rawMedia = json['medias'] ??
         json['media'] ??
         json['images'] ??
@@ -446,6 +449,7 @@ class LiveWorkCardModel {
     if (rawMedia is List) {
       for (final m in rawMedia) {
         if (m is Map) {
+          final id = m['id'];
           final url = m['file_url'] ??
               m['original_url'] ??
               m['full_url'] ??
@@ -460,13 +464,16 @@ class LiveWorkCardModel {
           if (url != null && url.toString().isNotEmpty) {
             final fixed = ApiConfig.fixImageUrl(url.toString());
             if (!mediaUrls.contains(fixed)) mediaUrls.add(fixed);
+            parsedRawMedias.add({'id': id, 'url': fixed});
           }
         } else if (m != null && m.toString().isNotEmpty) {
           final fixed = ApiConfig.fixImageUrl(m.toString());
           if (!mediaUrls.contains(fixed)) mediaUrls.add(fixed);
+          parsedRawMedias.add({'id': null, 'url': fixed});
         }
       }
     } else if (rawMedia is Map) {
+      final id = rawMedia['id'];
       final url = rawMedia['file_url'] ??
           rawMedia['original_url'] ??
           rawMedia['full_url'] ??
@@ -479,6 +486,7 @@ class LiveWorkCardModel {
       if (url != null && url.toString().isNotEmpty) {
         final fixed = ApiConfig.fixImageUrl(url.toString());
         if (!mediaUrls.contains(fixed)) mediaUrls.add(fixed);
+        parsedRawMedias.add({'id': id, 'url': fixed});
       }
     }
 
@@ -596,6 +604,7 @@ class LiveWorkCardModel {
       reviewsCount: computedReviewsCount,
       thumbnailUrl: rawThumb != null ? ApiConfig.fixImageUrl(rawThumb) : null,
       images: mediaUrls,
+      rawMedias: parsedRawMedias,
       reviews: reviewList,
       tags: parsedTags,
       expiresAt: rawExpiresAt,

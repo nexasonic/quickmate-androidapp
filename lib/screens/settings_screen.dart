@@ -91,75 +91,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Appearance & Theme
               _buildSectionHeader(context.tr('appearance_theme'), context),
               _buildCardGroup(context, [
-                ListTile(
-                  leading: Icon(Icons.palette_outlined, color: primaryDark),
-                  title: Text(context.tr('app_theme'), style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
-                  subtitle: Text(_getTranslatedTheme(_selectedTheme), style: TextStyle(color: AppTheme.textSecondary(context))),
-                  trailing: DropdownButton<String>(
-                    value: _selectedTheme,
-                    dropdownColor: AppTheme.surface(context),
-                    underline: const SizedBox(),
-                    items: _themes.map((t) {
-                      return DropdownMenuItem(
-                        value: t,
-                        child: Text(_getTranslatedTheme(t), style: TextStyle(color: AppTheme.textPrimary(context))),
-                      );
-                    }).toList(),
-                    onChanged: (val) async {
-                      if (val == null) return;
-                      setState(() {
-                        _selectedTheme = val;
-                      });
-                      final msgPrefix = context.tr('theme_set_to');
-                      final translatedTheme = _getTranslatedTheme(val);
-                      await updateAppTheme(val);
-                      if (AuthService.isLoggedIn()) {
-                        await ProfileService.updateProfile(prefTheme: themeModeToInt(val));
-                      }
-                      if (!context.mounted) return;
-                      AppDialogs.showToastModal(
-                        context,
-                        message: '$msgPrefix $translatedTheme',
-                      );
-                    },
-                  ),
+                _buildDropdownSettingTile(
+                  icon: Icons.palette_outlined,
+                  title: context.tr('app_theme'),
+                  subtitle: _getTranslatedTheme(_selectedTheme),
+                  value: _selectedTheme,
+                  items: _themes.map((t) {
+                    return DropdownMenuItem(
+                      value: t,
+                      child: Text(_getTranslatedTheme(t), style: TextStyle(color: AppTheme.textPrimary(context), fontSize: 13)),
+                    );
+                  }).toList(),
+                  onChanged: (val) async {
+                    if (val == null) return;
+                    setState(() {
+                      _selectedTheme = val;
+                    });
+                    final msgPrefix = context.tr('theme_set_to');
+                    final translatedTheme = _getTranslatedTheme(val);
+                    await updateAppTheme(val);
+                    if (AuthService.isLoggedIn()) {
+                      await ProfileService.updateProfile(prefTheme: themeModeToInt(val));
+                    }
+                    if (!context.mounted) return;
+                    AppDialogs.showToastModal(
+                      context,
+                      message: '$msgPrefix $translatedTheme',
+                    );
+                  },
+                  primaryDark: primaryDark,
                 ),
                 Divider(height: 1, indent: 56, color: AppTheme.divider(context)),
-                ListTile(
-                  leading: Icon(Icons.language_outlined, color: primaryDark),
-                  title: Text(context.tr('app_language'), style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
-                  subtitle: Text(
-                    AppLanguage.getLanguageName(_selectedLanguageCode),
-                    style: TextStyle(color: AppTheme.textSecondary(context)),
-                  ),
-                  trailing: DropdownButton<String>(
-                    value: _selectedLanguageCode,
-                    dropdownColor: AppTheme.surface(context),
-                    underline: const SizedBox(),
-                    items: AppLanguage.supportedLanguages.entries.map((entry) {
-                      return DropdownMenuItem(
-                        value: entry.key,
-                        child: Text(entry.value, style: TextStyle(color: AppTheme.textPrimary(context))),
-                      );
-                    }).toList(),
-                    onChanged: (val) async {
-                      if (val == null) return;
-                      setState(() {
-                        _selectedLanguageCode = val;
-                      });
-                      final msgPrefix = context.tr('language_set_to');
-                      final langName = AppLanguage.getLanguageName(val);
-                      await AppLanguage.setLanguage(val);
-                      if (AuthService.isLoggedIn()) {
-                        await ProfileService.updateProfile(prefLanguage: AppLanguage.languageCodeToInt(val));
-                      }
-                      if (!context.mounted) return;
-                      AppDialogs.showToastModal(
-                        context,
-                        message: '$msgPrefix $langName',
-                      );
-                    },
-                  ),
+                _buildDropdownSettingTile(
+                  icon: Icons.language_outlined,
+                  title: context.tr('app_language'),
+                  subtitle: AppLanguage.getLanguageName(_selectedLanguageCode),
+                  value: _selectedLanguageCode,
+                  items: AppLanguage.supportedLanguages.entries.map((entry) {
+                    return DropdownMenuItem(
+                      value: entry.key,
+                      child: Text(entry.value, style: TextStyle(color: AppTheme.textPrimary(context), fontSize: 13)),
+                    );
+                  }).toList(),
+                  onChanged: (val) async {
+                    if (val == null) return;
+                    setState(() {
+                      _selectedLanguageCode = val;
+                    });
+                    final msgPrefix = context.tr('language_set_to');
+                    final langName = AppLanguage.getLanguageName(val);
+                    await AppLanguage.setLanguage(val);
+                    if (AuthService.isLoggedIn()) {
+                      await ProfileService.updateProfile(prefLanguage: AppLanguage.languageCodeToInt(val));
+                    }
+                    if (!context.mounted) return;
+                    AppDialogs.showToastModal(
+                      context,
+                      message: '$msgPrefix $langName',
+                    );
+                  },
+                  primaryDark: primaryDark,
                 ),
               ]),
               const SizedBox(height: 20),
@@ -252,6 +243,82 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDropdownSettingTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String value,
+    required List<DropdownMenuItem<String>> items,
+    required ValueChanged<String?> onChanged,
+    required Color primaryDark,
+  }) {
+    final isDark = AppTheme.isDark(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDark ? primaryDark.withValues(alpha: 0.2) : primaryDark.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: primaryDark, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: AppTheme.textPrimary(context),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary(context),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.border(context)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: value,
+                dropdownColor: AppTheme.surface(context),
+                isDense: true,
+                icon: Icon(Icons.arrow_drop_down_rounded, color: AppTheme.textSecondary(context)),
+                items: items,
+                onChanged: onChanged,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

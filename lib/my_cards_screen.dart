@@ -14,11 +14,13 @@ import 'services/my_live_work_service.dart';
 import 'services/presence_service.dart';
 
 class CardPhotoItem {
+  final int? mediaId;
   final String? networkUrl;
   final File? localFile;
   bool isMain;
 
   CardPhotoItem({
+    this.mediaId,
     this.networkUrl,
     this.localFile,
     this.isMain = false,
@@ -225,22 +227,37 @@ class MyCardsScreenState extends State<MyCardsScreen> {
     final List<String> currentTags = List<String>.from(cardToEdit?.tags ?? []);
     final List<CardPhotoItem> modalPhotos = [];
 
-    if (isEditing && cardToEdit != null) {
-      final existingUrls = <String>[];
-      if (cardToEdit.thumbnailUrl != null && cardToEdit.thumbnailUrl!.isNotEmpty) {
-        existingUrls.add(cardToEdit.thumbnailUrl!);
-      }
-      for (final imgUrl in cardToEdit.images) {
-        if (imgUrl.isNotEmpty && !existingUrls.contains(imgUrl)) {
-          existingUrls.add(imgUrl);
-        }
-      }
+    final List<int> removeImageIds = [];
 
-      for (int i = 0; i < existingUrls.length && modalPhotos.length < 3; i++) {
-        modalPhotos.add(CardPhotoItem(
-          networkUrl: existingUrls[i],
-          isMain: i == 0,
-        ));
+    if (isEditing) {
+      if (cardToEdit.rawMedias.isNotEmpty) {
+        for (int i = 0; i < cardToEdit.rawMedias.length && modalPhotos.length < 3; i++) {
+          final m = cardToEdit.rawMedias[i];
+          final rawId = m['id'];
+          final int? mediaId = rawId is int ? rawId : (rawId != null ? int.tryParse(rawId.toString()) : null);
+          modalPhotos.add(CardPhotoItem(
+            mediaId: mediaId,
+            networkUrl: m['url']?.toString(),
+            isMain: i == 0,
+          ));
+        }
+      } else {
+        final existingUrls = <String>[];
+        if (cardToEdit.thumbnailUrl != null && cardToEdit.thumbnailUrl!.isNotEmpty) {
+          existingUrls.add(cardToEdit.thumbnailUrl!);
+        }
+        for (final imgUrl in cardToEdit.images) {
+          if (imgUrl.isNotEmpty && !existingUrls.contains(imgUrl)) {
+            existingUrls.add(imgUrl);
+          }
+        }
+
+        for (int i = 0; i < existingUrls.length && modalPhotos.length < 3; i++) {
+          modalPhotos.add(CardPhotoItem(
+            networkUrl: existingUrls[i],
+            isMain: i == 0,
+          ));
+        }
       }
     }
 
@@ -271,15 +288,29 @@ class MyCardsScreenState extends State<MyCardsScreen> {
             }
             try {
               final ImagePicker picker = ImagePicker();
-              final XFile? picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
-              if (picked != null) {
+              final List<XFile> pickedList = await picker.pickMultiImage(imageQuality: 85);
+              if (pickedList.isNotEmpty) {
                 setModalState(() {
-                  final isFirst = modalPhotos.isEmpty;
-                  modalPhotos.add(CardPhotoItem(
-                    localFile: File(picked.path),
-                    isMain: isFirst,
-                  ));
+                  for (final file in pickedList) {
+                    if (modalPhotos.length >= 3) break;
+                    final isFirst = modalPhotos.isEmpty;
+                    modalPhotos.add(CardPhotoItem(
+                      localFile: File(file.path),
+                      isMain: isFirst,
+                    ));
+                  }
                 });
+              } else {
+                final XFile? picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+                if (picked != null) {
+                  setModalState(() {
+                    final isFirst = modalPhotos.isEmpty;
+                    modalPhotos.add(CardPhotoItem(
+                      localFile: File(picked.path),
+                      isMain: isFirst,
+                    ));
+                  });
+                }
               }
             } catch (e) {
               debugPrint('Image pick error: $e');
@@ -608,9 +639,11 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                                   child: GestureDetector(
                                     onTap: () {
                                       setModalState(() {
-                                        final wasMain = modalPhotos[idx].isMain;
-                                        modalPhotos.removeAt(idx);
-                                        if (wasMain && modalPhotos.isNotEmpty) {
+                                        final removed = modalPhotos.removeAt(idx);
+                                        if (removed.mediaId != null) {
+                                          removeImageIds.add(removed.mediaId!);
+                                        }
+                                        if (removed.isMain && modalPhotos.isNotEmpty) {
                                           modalPhotos[0].isMain = true;
                                         }
                                       });
@@ -710,14 +743,22 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                                 final priceVal = double.tryParse(priceController.text.trim());
 
                                 final List<File> filesToSend = [];
-                                final mainLocal = modalPhotos.where((p) => p.isMain && p.isLocal);
-                                if (mainLocal.isNotEmpty) {
-                                  filesToSend.add(mainLocal.first.localFile!);
-                                }
+                                int? mainImageIdx;
+                                int? mainImageId;
+
                                 for (final p in modalPhotos) {
-                                  if (p.isLocal && !p.isMain) {
+                                  if (p.isLocal) {
                                     filesToSend.add(p.localFile!);
+                                    if (p.isMain) {
+                                      mainImageIdx = filesToSend.length - 1;
+                                    }
+                                  } else if (p.isNetwork && p.isMain && p.mediaId != null) {
+                                    mainImageId = p.mediaId;
                                   }
+                                }
+
+                                if (mainImageId == null && mainImageIdx == null && filesToSend.isNotEmpty) {
+                                  mainImageIdx = 0;
                                 }
 
                                 ApiResponse response;
@@ -735,6 +776,9 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                                     expiryTime: selectedExpiry,
                                     tags: currentTags,
                                     images: filesToSend.isNotEmpty ? filesToSend : null,
+                                    mainImageIdx: mainImageIdx,
+                                    mainImageId: mainImageId,
+                                    removeImageIds: removeImageIds.isNotEmpty ? removeImageIds : null,
                                   );
                                 } else {
                                   response = await MyLiveWorkService.createLiveWorkCard(
@@ -747,6 +791,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                                     expiryTime: selectedExpiry,
                                     tags: currentTags,
                                     images: filesToSend.isNotEmpty ? filesToSend : null,
+                                    mainImageIdx: mainImageIdx,
                                   );
                                 }
 

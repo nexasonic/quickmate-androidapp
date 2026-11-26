@@ -1,6 +1,6 @@
 class ApiConfig {
   // Toggle between Local Server (10.0.2.2:8000) and Production (quickmate.nexasonic.com)
-  static const bool useLocalServer = false;
+  static const bool useLocalServer = true;
 
   // Local Server Endpoints (10.0.2.2 loopback for Android Emulator)
   static const String localBaseUrl = 'http://10.0.2.2:8000/api/v1';

@@ -78,6 +78,14 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
     }
   }
 
+  String _getTrProficiency(BuildContext context, String? prof) {
+    if (prof == null || prof.isEmpty) return '';
+    final key = 'prof_${prof.toLowerCase().trim()}';
+    final trVal = context.tr(key);
+    if (trVal != key && trVal.isNotEmpty) return trVal;
+    return prof;
+  }
+
   @override
   Widget build(BuildContext context) {
     const primaryDark = Color(0xFF094943);
@@ -1472,27 +1480,101 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('${context.tr('experience')} (${_experiences.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           ..._experiences.map((exp) {
+            final jobTitle = exp['job_title']?.toString() ?? context.tr('role_fallback');
+            final company = exp['company']?.toString() ?? context.tr('company_fallback');
+            final empType = exp['employment_type']?.toString();
+            final startDate = exp['start_date']?.toString();
+            final endDate = exp['end_date']?.toString();
+            final bool isCurrent = exp['is_current'] == true || exp['is_current'] == 1;
+            final location = exp['location']?.toString();
+            final desc = exp['description']?.toString();
+
+            String periodStr = '';
+            if (startDate != null && startDate.isNotEmpty) {
+              periodStr = startDate;
+              if (isCurrent) {
+                periodStr += ' – ${context.tr('present')}';
+              } else if (endDate != null && endDate.isNotEmpty) {
+                periodStr += ' – $endDate';
+              }
+            }
+
             return Container(
-              margin: const EdgeInsets.only(top: 8),
-              padding: const EdgeInsets.all(10),
+              margin: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: AppTheme.subtleBackground(context),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppTheme.border(context)),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          jobTitle,
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary(context)),
+                        ),
+                      ),
+                      if (empType != null && empType.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: primaryDark.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            empType,
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primaryDark),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    company,
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary(context)),
+                  ),
+                  if (periodStr.isNotEmpty || (location != null && location.isNotEmpty)) ...[
+                    const SizedBox(height: 8),
+                    Row(
                       children: [
-                        Text(exp['job_title']?.toString() ?? context.tr('role_fallback'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
-                        Text(exp['company']?.toString() ?? context.tr('company_fallback'), style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
+                        if (periodStr.isNotEmpty) ...[
+                          Icon(Icons.calendar_today_rounded, size: 12, color: AppTheme.textSecondary(context)),
+                          const SizedBox(width: 4),
+                          Text(periodStr, style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
+                        ],
+                        if (periodStr.isNotEmpty && location != null && location.isNotEmpty) ...[
+                          const SizedBox(width: 12),
+                        ],
+                        if (location != null && location.isNotEmpty) ...[
+                          Icon(Icons.location_on_outlined, size: 12, color: AppTheme.textSecondary(context)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              location,
+                              style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context)),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
-                  ),
+                  ],
+                  if (desc != null && desc.trim().isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      desc.trim(),
+                      style: TextStyle(fontSize: 12, color: AppTheme.textPrimary(context), height: 1.35),
+                    ),
+                  ],
                 ],
               ),
             );
@@ -1514,27 +1596,68 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('${context.tr('education')} (${_educations.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           ..._educations.map((edu) {
+            final degree = edu['degree']?.toString() ?? context.tr('degree_fallback');
+            final fieldOfStudy = edu['field_of_study']?.toString();
+            final institution = edu['institution']?.toString() ?? context.tr('institution_fallback');
+            final startYear = edu['start_year']?.toString();
+            final endYear = edu['end_year']?.toString();
+            final bool isCurrent = edu['is_current'] == true || edu['is_current'] == 1;
+            final desc = edu['description']?.toString();
+
+            String titleStr = degree;
+            if (fieldOfStudy != null && fieldOfStudy.isNotEmpty) {
+              titleStr += ' in $fieldOfStudy';
+            }
+
+            String periodStr = '';
+            if (startYear != null && startYear.isNotEmpty) {
+              periodStr = startYear;
+              if (isCurrent) {
+                periodStr += ' – ${context.tr('present')}';
+              } else if (endYear != null && endYear.isNotEmpty) {
+                periodStr += ' – $endYear';
+              }
+            }
+
             return Container(
-              margin: const EdgeInsets.only(top: 8),
-              padding: const EdgeInsets.all(10),
+              margin: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: AppTheme.subtleBackground(context),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppTheme.border(context)),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  Text(
+                    titleStr,
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary(context)),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    institution,
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary(context)),
+                  ),
+                  if (periodStr.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
                       children: [
-                        Text(edu['degree']?.toString() ?? context.tr('degree_fallback'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
-                        Text(edu['institution']?.toString() ?? context.tr('institution_fallback'), style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
+                        Icon(Icons.school_outlined, size: 13, color: AppTheme.textSecondary(context)),
+                        const SizedBox(width: 4),
+                        Text(periodStr, style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
                       ],
                     ),
-                  ),
+                  ],
+                  if (desc != null && desc.trim().isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      desc.trim(),
+                      style: TextStyle(fontSize: 12, color: AppTheme.textPrimary(context), height: 1.35),
+                    ),
+                  ],
                 ],
               ),
             );
@@ -1558,25 +1681,71 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('${context.tr('skills_expertise')} (${_skills.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _skills.map((s) {
-              return Chip(
-                label: Text(
-                  s['name']?.toString() ?? context.tr('skill_fallback'),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? const Color(0xFF2DD4BF) : primaryDark,
+          const SizedBox(height: 6),
+          ..._skills.map((s) {
+            final skillName = s['name']?.toString() ?? context.tr('skill_fallback');
+            final prof = s['proficiency']?.toString();
+            final expYears = s['experience_years']?.toString();
+            final desc = s['description']?.toString();
+
+            return Container(
+              margin: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.subtleBackground(context),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.border(context)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      Text(
+                        skillName,
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary(context)),
+                      ),
+                      if (prof != null && prof.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: isDark ? const Color(0xFF115E59) : const Color(0xFFC7F3E2)),
+                          ),
+                          child: Text(
+                            _getTrProficiency(context, prof),
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF2DD4BF) : primaryDark),
+                          ),
+                        ),
+                      if (expYears != null && expYears.isNotEmpty && expYears != '0')
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '$expYears ${int.tryParse(expYears) == 1 ? context.tr('yr_exp') : context.tr('yrs_exp')}',
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textSecondary(context)),
+                          ),
+                        ),
+                    ],
                   ),
-                ),
-                backgroundColor: isDark ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
-                side: BorderSide(color: isDark ? const Color(0xFF115E59) : const Color(0xFFC7F3E2)),
-              );
-            }).toList(),
-          ),
+                  if (desc != null && desc.trim().isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      desc.trim(),
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context), height: 1.3),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );

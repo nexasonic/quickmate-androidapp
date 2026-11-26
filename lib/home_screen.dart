@@ -74,11 +74,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _performSearch() {
+    final query = _homeSearchController.text.trim();
     setState(() {
-      _searchQuery = _homeSearchController.text;
+      _searchQuery = query;
       _selectedIndex = 1; // Switch to Discover tab for search results
     });
-    _discoverKey.currentState?.refresh();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _discoverKey.currentState?.setSearchQuery(query);
+    });
   }
 
   void _onTabSelected(int index) {
@@ -91,7 +95,11 @@ class _HomeScreenState extends State<HomeScreen> {
         _loadData();
         break;
       case 1:
-        _discoverKey.currentState?.refresh();
+        if (_searchQuery.isNotEmpty) {
+          _discoverKey.currentState?.setSearchQuery(_searchQuery);
+        } else {
+          _discoverKey.currentState?.refresh();
+        }
         break;
       case 2:
         _myCardsKey.currentState?.refresh();

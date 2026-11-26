@@ -165,6 +165,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     }
   }
 
+  String _getTrProficiency(BuildContext context, String? prof) {
+    if (prof == null || prof.isEmpty) return '';
+    final key = 'prof_${prof.toLowerCase().trim()}';
+    final trVal = context.tr(key);
+    if (trVal != key && trVal.isNotEmpty) return trVal;
+    return prof;
+  }
+
   Widget _buildFieldLabel(String label, {bool isRequired = false, String? optionalText}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -637,15 +645,20 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     );
   }
 
-  void _showAddExperienceModal() {
-    final titleCtrl = TextEditingController();
-    final companyCtrl = TextEditingController();
-    final locationCtrl = TextEditingController();
-    final startDateCtrl = TextEditingController();
-    final endDateCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-    String? selectedEmpType = 'Full-time';
-    bool isCurrent = false;
+  void _showAddExperienceModal({Map<String, dynamic>? experience}) {
+    final bool isEditing = experience != null;
+    final int? expId = experience != null
+        ? (experience['id'] is int ? experience['id'] : int.tryParse(experience['id']?.toString() ?? ''))
+        : null;
+
+    final titleCtrl = TextEditingController(text: experience?['job_title']?.toString() ?? '');
+    final companyCtrl = TextEditingController(text: experience?['company']?.toString() ?? '');
+    final locationCtrl = TextEditingController(text: experience?['location']?.toString() ?? '');
+    final startDateCtrl = TextEditingController(text: experience?['start_date']?.toString() ?? '');
+    final endDateCtrl = TextEditingController(text: experience?['end_date']?.toString() ?? '');
+    final descCtrl = TextEditingController(text: experience?['description']?.toString() ?? '');
+    String? selectedEmpType = experience?['employment_type']?.toString() ?? 'Full-time';
+    bool isCurrent = experience?['is_current'] == true || experience?['is_current'] == 1;
     bool isSubmitting = false;
 
     showModalBottomSheet(
@@ -675,7 +688,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     icon: Icons.work_outline_rounded,
                     iconBgColor: const Color(0xFFE0F2FE),
                     iconColor: const Color(0xFF0284C7),
-                    title: context.tr('add_experience'),
+                    title: isEditing ? context.tr('edit_experience') : context.tr('add_experience'),
                     subtitle: context.tr('share_work_history'),
                   ),
                   const SizedBox(height: 16),
@@ -751,7 +764,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                             _buildFieldLabel(context.tr('start_date'), isRequired: true),
                             _buildModalInput(
                               controller: startDateCtrl,
-                              hintText: '---------, ----',
+                              hintText: 'YYYY-MM-DD',
                               readOnly: true,
                               suffixIcon: const Icon(Icons.calendar_today_rounded, size: 18, color: Color(0xFF64748B)),
                               onTap: () => _selectDate(sheetContext, startDateCtrl),
@@ -767,7 +780,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                             _buildFieldLabel(context.tr('end_date')),
                             _buildModalInput(
                               controller: endDateCtrl,
-                              hintText: '---------, ----',
+                              hintText: 'YYYY-MM-DD',
                               readOnly: true,
                               suffixIcon: const Icon(Icons.calendar_today_rounded, size: 18, color: Color(0xFF64748B)),
                               onTap: isCurrent ? null : () => _selectDate(sheetContext, endDateCtrl),
@@ -801,7 +814,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   const SizedBox(height: 20),
                   _buildModalActions(
                     sheetContext,
-                    saveText: context.tr('save_experience'),
+                    saveText: isEditing ? context.tr('save_changes') : context.tr('save_experience'),
                     isSubmitting: isSubmitting,
                     onSave: () async {
                       final title = titleCtrl.text.trim();
@@ -810,24 +823,43 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
 
                       setModalState(() => isSubmitting = true);
 
-                      final response = await ProfileService.storeExperience(
-                        jobTitle: title,
-                        company: company,
-                        employmentType: selectedEmpType,
-                        startDate: startDateCtrl.text.trim().isNotEmpty ? startDateCtrl.text.trim() : '2026-01-01',
-                        endDate: endDateCtrl.text.trim(),
-                        isCurrent: isCurrent,
-                        location: locationCtrl.text.trim(),
-                        description: descCtrl.text.trim(),
-                      );
+                      final response = isEditing && expId != null
+                          ? await ProfileService.updateExperience(
+                              expId,
+                              jobTitle: title,
+                              company: company,
+                              employmentType: selectedEmpType,
+                              startDate: startDateCtrl.text.trim().isNotEmpty ? startDateCtrl.text.trim() : '2026-01-01',
+                              endDate: endDateCtrl.text.trim(),
+                              isCurrent: isCurrent,
+                              location: locationCtrl.text.trim(),
+                              description: descCtrl.text.trim(),
+                            )
+                          : await ProfileService.storeExperience(
+                              jobTitle: title,
+                              company: company,
+                              employmentType: selectedEmpType,
+                              startDate: startDateCtrl.text.trim().isNotEmpty ? startDateCtrl.text.trim() : '2026-01-01',
+                              endDate: endDateCtrl.text.trim(),
+                              isCurrent: isCurrent,
+                              location: locationCtrl.text.trim(),
+                              description: descCtrl.text.trim(),
+                            );
 
-                      if (sheetContext.mounted) Navigator.pop(sheetContext);
+                      if (!mounted) return;
 
                       if (response.success) {
-                        if (mounted) {
-                          AppDialogs.showToastModal(context, message: context.tr('work_experience_saved'));
-                        }
+                        if (sheetContext.mounted) Navigator.pop(sheetContext);
+                        AppDialogs.showToastModal(context, message: context.tr('work_experience_saved'));
                         _loadProfileData();
+                      } else {
+                        setModalState(() => isSubmitting = false);
+                        AppDialogs.showToastModal(
+                          context,
+                          message: response.message.isNotEmpty ? response.message : 'Failed to save experience',
+                          icon: Icons.error_outline_rounded,
+                          iconColor: Colors.redAccent,
+                        );
                       }
                     },
                   ),
@@ -840,15 +872,19 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     );
   }
 
-  void _showAddEducationModal() {
-    final instCtrl = TextEditingController();
-    final fieldCtrl = TextEditingController();
-    final startYearCtrl = TextEditingController();
-    final endYearCtrl = TextEditingController();
-    final gradeCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-    String? selectedDegree = "Bachelor's";
-    bool isCurrentStudy = false;
+  void _showAddEducationModal({Map<String, dynamic>? education}) {
+    final bool isEditing = education != null;
+    final int? eduId = education != null
+        ? (education['id'] is int ? education['id'] : int.tryParse(education['id']?.toString() ?? ''))
+        : null;
+
+    final instCtrl = TextEditingController(text: education?['institution']?.toString() ?? '');
+    final fieldCtrl = TextEditingController(text: education?['field_of_study']?.toString() ?? '');
+    final startYearCtrl = TextEditingController(text: education?['start_year']?.toString() ?? '');
+    final endYearCtrl = TextEditingController(text: education?['end_year']?.toString() ?? '');
+    final descCtrl = TextEditingController(text: education?['description']?.toString() ?? '');
+    String? selectedDegree = education?['degree']?.toString() ?? "Bachelor's";
+    bool isCurrentStudy = education?['is_current'] == true || education?['is_current'] == 1;
     bool isSubmitting = false;
 
     showModalBottomSheet(
@@ -878,7 +914,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     icon: Icons.school_outlined,
                     iconBgColor: const Color(0xFFDCFCE7),
                     iconColor: const Color(0xFF15803D),
-                    title: context.tr('add_education'),
+                    title: isEditing ? context.tr('edit_education') : context.tr('add_education'),
                     subtitle: context.tr('add_academic_bg'),
                   ),
                   const SizedBox(height: 16),
@@ -974,9 +1010,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  _buildFieldLabel(context.tr('grade_percentage'), optionalText: context.tr('optional')),
-                  _buildModalInput(controller: gradeCtrl, hintText: context.tr('grade_hint')),
-                  const SizedBox(height: 14),
                   _buildFieldLabel(context.tr('activities_description'), optionalText: context.tr('optional')),
                   _buildModalInput(
                     controller: descCtrl,
@@ -997,7 +1030,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   const SizedBox(height: 20),
                   _buildModalActions(
                     sheetContext,
-                    saveText: context.tr('save_education'),
+                    saveText: isEditing ? context.tr('save_changes') : context.tr('save_education'),
                     isSubmitting: isSubmitting,
                     onSave: () async {
                       final inst = instCtrl.text.trim();
@@ -1006,23 +1039,41 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
 
                       setModalState(() => isSubmitting = true);
 
-                      final response = await ProfileService.storeEducation(
-                        institution: inst,
-                        degree: degree,
-                        fieldOfStudy: fieldCtrl.text.trim(),
-                        startYear: startYearCtrl.text.trim().isNotEmpty ? startYearCtrl.text.trim() : '2022',
-                        endYear: isCurrentStudy ? null : endYearCtrl.text.trim(),
-                        isCurrent: isCurrentStudy,
-                        description: descCtrl.text.trim(),
-                      );
+                      final response = isEditing && eduId != null
+                          ? await ProfileService.updateEducation(
+                              eduId,
+                              institution: inst,
+                              degree: degree,
+                              fieldOfStudy: fieldCtrl.text.trim(),
+                              startYear: startYearCtrl.text.trim().isNotEmpty ? startYearCtrl.text.trim() : '2022',
+                              endYear: isCurrentStudy ? null : endYearCtrl.text.trim(),
+                              isCurrent: isCurrentStudy,
+                              description: descCtrl.text.trim(),
+                            )
+                          : await ProfileService.storeEducation(
+                              institution: inst,
+                              degree: degree,
+                              fieldOfStudy: fieldCtrl.text.trim(),
+                              startYear: startYearCtrl.text.trim().isNotEmpty ? startYearCtrl.text.trim() : '2022',
+                              endYear: isCurrentStudy ? null : endYearCtrl.text.trim(),
+                              isCurrent: isCurrentStudy,
+                              description: descCtrl.text.trim(),
+                            );
 
-                      if (sheetContext.mounted) Navigator.pop(sheetContext);
+                      if (!mounted) return;
 
                       if (response.success) {
-                        if (mounted) {
-                          AppDialogs.showToastModal(context, message: context.tr('education_saved'));
-                        }
+                        if (sheetContext.mounted) Navigator.pop(sheetContext);
+                        AppDialogs.showToastModal(context, message: context.tr('education_saved'));
                         _loadProfileData();
+                      } else {
+                        setModalState(() => isSubmitting = false);
+                        AppDialogs.showToastModal(
+                          context,
+                          message: response.message.isNotEmpty ? response.message : 'Failed to save education',
+                          icon: Icons.error_outline_rounded,
+                          iconColor: Colors.redAccent,
+                        );
                       }
                     },
                   ),
@@ -1035,11 +1086,16 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     );
   }
 
-  void _showAddSkillModal() {
-    final skillCtrl = TextEditingController();
-    final expYearsCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-    String? selectedProficiency = 'Intermediate';
+  void _showAddSkillModal({Map<String, dynamic>? skill}) {
+    final bool isEditing = skill != null;
+    final int? skillId = skill != null
+        ? (skill['id'] is int ? skill['id'] : int.tryParse(skill['id']?.toString() ?? ''))
+        : null;
+
+    final skillCtrl = TextEditingController(text: skill?['name']?.toString() ?? '');
+    final expYearsCtrl = TextEditingController(text: skill?['experience_years']?.toString() ?? '1');
+    final descCtrl = TextEditingController(text: skill?['description']?.toString() ?? '');
+    String? selectedProficiency = skill?['proficiency']?.toString() ?? 'Intermediate';
     bool isSubmitting = false;
 
     showModalBottomSheet(
@@ -1069,7 +1125,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     icon: Icons.bolt_outlined,
                     iconBgColor: const Color(0xFFFEF3C7),
                     iconColor: const Color(0xFFD97706),
-                    title: context.tr('add_skill'),
+                    title: isEditing ? context.tr('edit_skill') : context.tr('add_skill'),
                     subtitle: context.tr('showcase_skills'),
                   ),
                   const SizedBox(height: 16),
@@ -1127,7 +1183,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   const SizedBox(height: 20),
                   _buildModalActions(
                     sheetContext,
-                    saveText: context.tr('save_skill'),
+                    saveText: isEditing ? context.tr('save_changes') : context.tr('save_skill'),
                     isSubmitting: isSubmitting,
                     onSave: () async {
                       final name = skillCtrl.text.trim();
@@ -1137,19 +1193,35 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
 
                       final expYears = int.tryParse(expYearsCtrl.text.trim()) ?? 1;
 
-                      final response = await ProfileService.storeSkill(
-                        name: name,
-                        proficiency: selectedProficiency ?? 'Intermediate',
-                        experienceYears: expYears,
-                      );
+                      final response = isEditing && skillId != null
+                          ? await ProfileService.updateSkill(
+                              skillId,
+                              name: name,
+                              proficiency: selectedProficiency ?? 'Intermediate',
+                              experienceYears: expYears,
+                              description: descCtrl.text.trim(),
+                            )
+                          : await ProfileService.storeSkill(
+                              name: name,
+                              proficiency: selectedProficiency ?? 'Intermediate',
+                              experienceYears: expYears,
+                              description: descCtrl.text.trim(),
+                            );
 
-                      if (sheetContext.mounted) Navigator.pop(sheetContext);
+                      if (!mounted) return;
 
                       if (response.success) {
-                        if (mounted) {
-                          AppDialogs.showToastModal(context, message: context.tr('skill_saved'));
-                        }
+                        if (sheetContext.mounted) Navigator.pop(sheetContext);
+                        AppDialogs.showToastModal(context, message: context.tr('skill_saved'));
                         _loadProfileData();
+                      } else {
+                        setModalState(() => isSubmitting = false);
+                        AppDialogs.showToastModal(
+                          context,
+                          message: response.message.isNotEmpty ? response.message : 'Failed to save skill',
+                          icon: Icons.error_outline_rounded,
+                          iconColor: Colors.redAccent,
+                        );
                       }
                     },
                   ),
@@ -2629,31 +2701,86 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       }
 
       if (!mounted) return;
-      AppDialogs.showToastModal(
-        context,
-        message: context.tr('uploading_gallery_image'),
-        icon: Icons.cloud_upload_outlined,
-        iconColor: const Color(0xFF094943),
-        iconBgColor: const Color(0xFFE6F4F1),
-        durationSeconds: 1,
+
+      // Show proper non-auto-dismissing loading dialog while uploading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            decoration: BoxDecoration(
+              color: AppTheme.surface(context),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppTheme.border(context)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF094943),
+                    strokeWidth: 3,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  context.tr('uploading_gallery_image'),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary(context),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
       );
 
       final response = await ProfileService.uploadGalleryMedia(imageFile);
 
+      // Dismiss loading dialog safely
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
       if (!mounted) return;
+
+      // Clear image cache so newly uploaded image displays immediately
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
 
       if (response.success) {
         AppDialogs.showToastModal(
           context,
           message: context.tr('gallery_uploaded_success'),
         );
-        _loadProfileData();
+        await _loadProfileData();
+        await ProfileService.fetchUserProfile();
+        if (mounted) setState(() {});
       } else {
         AppDialogs.showToastModal(
           context,
           message: response.message.isNotEmpty ? response.message : context.tr('photo_added_gallery'),
+          icon: Icons.error_outline_rounded,
+          iconColor: Colors.redAccent,
+          iconBgColor: const Color(0xFFFEE2E2),
         );
-        _loadProfileData();
+        await _loadProfileData();
+        if (mounted) setState(() {});
       }
     } on PlatformException catch (e) {
       if (!mounted) return;
@@ -2881,7 +3008,11 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           onTap: () async {
                             if (imageId != null) {
                               await ProfileService.destroyGalleryMedia(imageId);
-                              _loadProfileData();
+                              PaintingBinding.instance.imageCache.clear();
+                              PaintingBinding.instance.imageCache.clearLiveImages();
+                              await _loadProfileData();
+                              await ProfileService.fetchUserProfile();
+                              if (mounted) setState(() {});
                             }
                           },
                           child: Container(
@@ -3176,45 +3307,143 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             children: [
               Text('${context.tr('experience')} (${_experiences.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
               TextButton.icon(
-                onPressed: _showAddExperienceModal,
+                onPressed: () => _showAddExperienceModal(),
                 icon: Icon(Icons.add, size: 16, color: primaryDark),
                 label: Text(context.tr('add'), style: TextStyle(fontSize: 12, color: primaryDark, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
+          const SizedBox(height: 6),
           if (_experiences.isEmpty)
             Text(context.tr('no_experience_added'), style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context)))
           else
             ..._experiences.map((exp) {
+              final id = exp['id'] is int ? exp['id'] : int.tryParse(exp['id']?.toString() ?? '');
+              final jobTitle = exp['job_title']?.toString() ?? context.tr('role_fallback');
+              final company = exp['company']?.toString() ?? context.tr('company_fallback');
+              final empType = exp['employment_type']?.toString();
+              final startDate = exp['start_date']?.toString();
+              final endDate = exp['end_date']?.toString();
+              final bool isCurrent = exp['is_current'] == true || exp['is_current'] == 1;
+              final location = exp['location']?.toString();
+              final desc = exp['description']?.toString();
+
+              String periodStr = '';
+              if (startDate != null && startDate.isNotEmpty) {
+                periodStr = startDate;
+                if (isCurrent) {
+                  periodStr += ' – ${context.tr('present')}';
+                } else if (endDate != null && endDate.isNotEmpty) {
+                  periodStr += ' – $endDate';
+                }
+              }
+
               return Container(
-                margin: const EdgeInsets.only(top: 8),
-                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.only(top: 10),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: AppTheme.subtleBackground(context),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppTheme.border(context)),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      jobTitle,
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary(context)),
+                                    ),
+                                  ),
+                                  if (empType != null && empType.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: primaryDark.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        empType,
+                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primaryDark),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                company,
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary(context)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Edit Button
+                        IconButton(
+                          icon: Icon(Icons.edit_outlined, size: 18, color: primaryDark),
+                          onPressed: () => _showAddExperienceModal(experience: exp),
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(4),
+                        ),
+                        const SizedBox(width: 4),
+                        // Delete Button
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                          onPressed: () async {
+                            if (id != null) {
+                              final res = await ProfileService.destroyExperience(id);
+                              if (res.success && mounted) _loadProfileData();
+                            }
+                          },
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(4),
+                        ),
+                      ],
+                    ),
+                    if (periodStr.isNotEmpty || (location != null && location.isNotEmpty)) ...[
+                      const SizedBox(height: 8),
+                      Row(
                         children: [
-                          Text(exp['job_title']?.toString() ?? context.tr('role_fallback'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
-                          Text(exp['company']?.toString() ?? context.tr('company_fallback'), style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
+                          if (periodStr.isNotEmpty) ...[
+                            Icon(Icons.calendar_today_rounded, size: 12, color: AppTheme.textSecondary(context)),
+                            const SizedBox(width: 4),
+                            Text(periodStr, style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
+                          ],
+                          if (periodStr.isNotEmpty && location != null && location.isNotEmpty) ...[
+                            const SizedBox(width: 12),
+                          ],
+                          if (location != null && location.isNotEmpty) ...[
+                            Icon(Icons.location_on_outlined, size: 12, color: AppTheme.textSecondary(context)),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                location,
+                                style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context)),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
-                      onPressed: () async {
-                        final id = exp['id'];
-                        if (id != null) {
-                          await ProfileService.destroyExperience(id);
-                          _loadProfileData();
-                        }
-                      },
-                    ),
+                    ],
+                    if (desc != null && desc.trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        desc.trim(),
+                        style: TextStyle(fontSize: 12, color: AppTheme.textPrimary(context), height: 1.35),
+                      ),
+                    ],
                   ],
                 ),
               );
@@ -3240,45 +3469,110 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             children: [
               Text('${context.tr('education')} (${_educations.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
               TextButton.icon(
-                onPressed: _showAddEducationModal,
+                onPressed: () => _showAddEducationModal(),
                 icon: Icon(Icons.add, size: 16, color: primaryDark),
                 label: Text(context.tr('add'), style: TextStyle(fontSize: 12, color: primaryDark, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
+          const SizedBox(height: 6),
           if (_educations.isEmpty)
             Text(context.tr('no_education_added'), style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context)))
           else
             ..._educations.map((edu) {
+              final id = edu['id'] is int ? edu['id'] : int.tryParse(edu['id']?.toString() ?? '');
+              final degree = edu['degree']?.toString() ?? context.tr('degree_fallback');
+              final fieldOfStudy = edu['field_of_study']?.toString();
+              final institution = edu['institution']?.toString() ?? context.tr('institution_fallback');
+              final startYear = edu['start_year']?.toString();
+              final endYear = edu['end_year']?.toString();
+              final bool isCurrent = edu['is_current'] == true || edu['is_current'] == 1;
+              final desc = edu['description']?.toString();
+
+              String titleStr = degree;
+              if (fieldOfStudy != null && fieldOfStudy.isNotEmpty) {
+                titleStr += ' in $fieldOfStudy';
+              }
+
+              String periodStr = '';
+              if (startYear != null && startYear.isNotEmpty) {
+                periodStr = startYear;
+                if (isCurrent) {
+                  periodStr += ' – ${context.tr('present')}';
+                } else if (endYear != null && endYear.isNotEmpty) {
+                  periodStr += ' – $endYear';
+                }
+              }
+
               return Container(
-                margin: const EdgeInsets.only(top: 8),
-                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.only(top: 10),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: AppTheme.subtleBackground(context),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppTheme.border(context)),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                titleStr,
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary(context)),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                institution,
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary(context)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Edit Button
+                        IconButton(
+                          icon: Icon(Icons.edit_outlined, size: 18, color: primaryDark),
+                          onPressed: () => _showAddEducationModal(education: edu),
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(4),
+                        ),
+                        const SizedBox(width: 4),
+                        // Delete Button
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                          onPressed: () async {
+                            if (id != null) {
+                              final res = await ProfileService.destroyEducation(id);
+                              if (res.success && mounted) _loadProfileData();
+                            }
+                          },
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(4),
+                        ),
+                      ],
+                    ),
+                    if (periodStr.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Row(
                         children: [
-                          Text(edu['degree']?.toString() ?? context.tr('degree_fallback'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
-                          Text(edu['institution']?.toString() ?? context.tr('institution_fallback'), style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
+                          Icon(Icons.school_outlined, size: 13, color: AppTheme.textSecondary(context)),
+                          const SizedBox(width: 4),
+                          Text(periodStr, style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
                         ],
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
-                      onPressed: () async {
-                        final id = edu['id'];
-                        if (id != null) {
-                          await ProfileService.destroyEducation(id);
-                          _loadProfileData();
-                        }
-                      },
-                    ),
+                    ],
+                    if (desc != null && desc.trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        desc.trim(),
+                        style: TextStyle(fontSize: 12, color: AppTheme.textPrimary(context), height: 1.35),
+                      ),
+                    ],
                   ],
                 ),
               );
@@ -3306,41 +3600,109 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             children: [
               Text('${context.tr('skills_expertise')} (${_skills.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
               TextButton.icon(
-                onPressed: _showAddSkillModal,
+                onPressed: () => _showAddSkillModal(),
                 icon: Icon(Icons.add, size: 16, color: primaryDark),
                 label: Text(context.tr('add'), style: TextStyle(fontSize: 12, color: primaryDark, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
+          const SizedBox(height: 6),
           if (_skills.isEmpty)
             Text(context.tr('no_skills_added'), style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context)))
           else
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _skills.map((s) {
-                return Chip(
-                  label: Text(
-                    s['name']?.toString() ?? context.tr('skill_fallback'),
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? const Color(0xFF2DD4BF) : primaryDark,
+            ..._skills.map((s) {
+              final rawId = s['id'];
+              final int? id = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
+              final skillName = s['name']?.toString() ?? context.tr('skill_fallback');
+              final prof = s['proficiency']?.toString();
+              final expYears = s['experience_years']?.toString();
+              final desc = s['description']?.toString();
+
+              return Container(
+                margin: const EdgeInsets.only(top: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.subtleBackground(context),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.border(context)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              Text(
+                                skillName,
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary(context)),
+                              ),
+                              if (prof != null && prof.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: isDark ? const Color(0xFF115E59) : const Color(0xFFC7F3E2)),
+                                  ),
+                                  child: Text(
+                                    _getTrProficiency(context, prof),
+                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF2DD4BF) : primaryDark),
+                                  ),
+                                ),
+                              if (expYears != null && expYears.isNotEmpty && expYears != '0')
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '$expYears ${int.tryParse(expYears) == 1 ? context.tr('yr_exp') : context.tr('yrs_exp')}',
+                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textSecondary(context)),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        // Edit Button
+                        IconButton(
+                          icon: Icon(Icons.edit_outlined, size: 18, color: primaryDark),
+                          onPressed: () => _showAddSkillModal(skill: s),
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(4),
+                        ),
+                        const SizedBox(width: 4),
+                        // Delete Button
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                          onPressed: () async {
+                            if (id != null) {
+                              final response = await ProfileService.destroySkill(id);
+                              if (response.success && mounted) _loadProfileData();
+                            }
+                          },
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(4),
+                        ),
+                      ],
                     ),
-                  ),
-                  backgroundColor: isDark ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
-                  side: BorderSide(color: isDark ? const Color(0xFF115E59) : const Color(0xFFC7F3E2)),
-                  deleteIcon: const Icon(Icons.close, size: 14, color: Colors.redAccent),
-                  onDeleted: () async {
-                    final id = s['id'];
-                    if (id != null) {
-                      await ProfileService.destroySkill(id);
-                      _loadProfileData();
-                    }
-                  },
-                );
-              }).toList(),
-            ),
+                    if (desc != null && desc.trim().isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        desc.trim(),
+                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context), height: 1.3),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }),
         ],
       ),
     );

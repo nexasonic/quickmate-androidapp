@@ -239,6 +239,52 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 
+  String _formatLastSeen(ConversationModel convo, BuildContext context) {
+    if (convo.isOnline) {
+      return context.tr('online');
+    }
+
+    final rawLastSeen = convo.lastSeen;
+    if (rawLastSeen == null || rawLastSeen.isEmpty) {
+      return context.tr('offline');
+    }
+
+    final lower = rawLastSeen.toLowerCase().trim();
+
+    if (lower == 'online' || lower == 'online now') {
+      return context.tr('online');
+    }
+
+    if (lower == 'offline') {
+      return context.tr('offline');
+    }
+
+    if (lower.contains('just now')) {
+      return context.tr('just_now');
+    }
+
+    // Match numbers in string (e.g., "25 seconds ago", "5 minutes ago", "2 hours ago", "3 days ago")
+    final match = RegExp(r'(\d+)\s*([a-zA-Z]+)').firstMatch(lower);
+    if (match != null) {
+      final numStr = match.group(1) ?? '';
+      final unitStr = match.group(2) ?? '';
+
+      if (unitStr.startsWith('sec')) {
+        return context.tr('just_now');
+      } else if (unitStr.startsWith('min')) {
+        return '$numStr ${context.tr('mins_ago')}';
+      } else if (unitStr.startsWith('hour') || unitStr == 'h') {
+        return '$numStr ${context.tr('hours_ago')}';
+      } else if (unitStr.startsWith('day') || unitStr == 'd') {
+        return '$numStr ${context.tr('days_ago')}';
+      } else if (unitStr.startsWith('month') || unitStr == 'mo') {
+        return '$numStr ${context.tr('months_ago')}';
+      }
+    }
+
+    return rawLastSeen;
+  }
+
   Widget _buildChatItem(ConversationModel convo) {
     final primaryDark = AppTheme.primary(context);
     final avatar = convo.otherUserAvatar;
@@ -336,24 +382,49 @@ class _ChatListScreenState extends State<ChatListScreen> {
             ),
             const SizedBox(width: 10),
 
-            // Time & Unread Badge
+            // Last Seen Badge & Unread Count Badge
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (convo.lastMessageTime != null)
-                  Text(
-                    convo.lastMessageTime!,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: AppTheme.textSecondary(context),
-                    ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: convo.isOnline
+                        ? (AppTheme.isDark(context) ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7))
+                        : (AppTheme.isDark(context) ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                const SizedBox(height: 8),
-                if (convo.unreadCount > 0)
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: convo.isOnline ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _formatLastSeen(convo, context),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: convo.isOnline
+                              ? (AppTheme.isDark(context) ? const Color(0xFF4ADE80) : const Color(0xFF166534))
+                              : AppTheme.textSecondary(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (convo.unreadCount > 0) ...[
+                  const SizedBox(height: 6),
                   Container(
-                    width: 22,
-                    height: 22,
+                    width: 20,
+                    height: 20,
                     decoration: BoxDecoration(
                       color: primaryDark,
                       shape: BoxShape.circle,
@@ -363,12 +434,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         '${convo.unreadCount}',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ),
+                ],
               ],
             ),
           ],
