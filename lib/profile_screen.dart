@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'core/api_config.dart';
 import 'core/app_dialogs.dart';
+import 'core/app_language.dart';
+import 'core/app_theme.dart';
 import 'login_screen.dart';
 import 'my_cards_screen.dart';
 import 'models/user_model.dart';
@@ -45,13 +47,20 @@ class ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Log Out'),
-        content: const Text('Are you sure you want to log out from your account?'),
+        backgroundColor: AppTheme.surface(dialogContext),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: AppTheme.border(dialogContext)),
+        ),
+        title: Text(context.tr('logout'), style: TextStyle(color: AppTheme.textPrimary(dialogContext))),
+        content: Text(
+          context.tr('logout_confirm'),
+          style: TextStyle(color: AppTheme.textSecondary(dialogContext)),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(context.tr('cancel'), style: TextStyle(color: AppTheme.textSecondary(dialogContext))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -64,8 +73,8 @@ class ProfileScreenState extends State<ProfileScreen> {
               showDialog(
                 context: context,
                 barrierDismissible: false,
-                builder: (loadingContext) => const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF094943)),
+                builder: (loadingContext) => Center(
+                  child: CircularProgressIndicator(color: AppTheme.primary(context)),
                 ),
               );
 
@@ -92,25 +101,32 @@ class ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
+    final isDark = AppTheme.isDark(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppTheme.background(context),
       body: Stack(
         children: [
           Container(
             height: 220,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF064E3B),
-                  Color(0xFF094943),
-                  Color(0xFF0D9488),
-                ],
+                colors: isDark
+                    ? [
+                        const Color(0xFF042F2E),
+                        const Color(0xFF0F172A),
+                        const Color(0xFF0F172A),
+                      ]
+                    : [
+                        const Color(0xFF064E3B),
+                        const Color(0xFF094943),
+                        const Color(0xFF0D9488),
+                      ],
               ),
-              borderRadius: BorderRadius.vertical(
+              borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(32),
               ),
             ),
@@ -124,160 +140,166 @@ class ProfileScreenState extends State<ProfileScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
                 child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Profile',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      height: 1.1,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('profile'),
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        height: 1.1,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Manage your account and preferences.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w400,
+                    const SizedBox(height: 4),
+                    Text(
+                      context.tr('manage_live_works_desc'),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  _buildUserInfoCard(context),
-                  const SizedBox(height: 20),
+                    _buildUserInfoCard(context),
+                    const SizedBox(height: 20),
 
-                  _buildStatCardsRow(context),
-                  const SizedBox(height: 20),
+                    _buildStatCardsRow(context),
+                    const SizedBox(height: 20),
 
-                  _buildMenuGroup([
-                    _buildMenuItem(
-                      icon: Icons.person_outline_rounded,
-                      iconBg: const Color(0xFFDCFCE7),
-                      iconColor: const Color(0xFF16A34A),
-                      title: 'My Profile',
-                      subtitle: 'View and update your personal details',
-                      onTap: () async {
-                        if (!AuthService.isLoggedIn()) {
-                          final result = await Navigator.push(
+                    _buildMenuGroup(context, [
+                      _buildMenuItem(
+                        context: context,
+                        icon: Icons.person_outline_rounded,
+                        iconBg: isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7),
+                        iconColor: isDark ? const Color(0xFF4ADE80) : const Color(0xFF16A34A),
+                        title: context.tr('my_profile'),
+                        subtitle: context.tr('view_update_personal_details'),
+                        onTap: () async {
+                          if (!AuthService.isLoggedIn()) {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const LoginScreen()),
+                            );
+                            if (result == true) _loadProfile();
+                            return;
+                          }
+                          await Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const LoginScreen()),
+                            MaterialPageRoute(builder: (context) => const MyProfileScreen()),
                           );
-                          if (result == true) _loadProfile();
-                          return;
-                        }
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const MyProfileScreen()),
-                        );
-                        _loadProfile();
-                      },
-                    ),
-                    _buildMenuItem(
-                      icon: Icons.business_center_outlined,
-                      iconBg: const Color(0xFFE0F2FE),
-                      iconColor: const Color(0xFF0284C7),
-                      title: 'My Live Work Cards',
-                      subtitle: 'Manage your active live work cards',
-                      onTap: () async {
-                        if (!AuthService.isLoggedIn()) {
-                          final result = await Navigator.push(
+                          _loadProfile();
+                        },
+                      ),
+                      _buildMenuItem(
+                        context: context,
+                        icon: Icons.business_center_outlined,
+                        iconBg: isDark ? const Color(0xFF075985) : const Color(0xFFE0F2FE),
+                        iconColor: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                        title: context.tr('my_cards'),
+                        subtitle: context.tr('manage_live_works_desc'),
+                        onTap: () async {
+                          if (!AuthService.isLoggedIn()) {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const LoginScreen()),
+                            );
+                            if (result == true) _loadProfile();
+                            return;
+                          }
+                          Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const LoginScreen()),
+                            MaterialPageRoute(builder: (context) => const MyCardsScreen()),
                           );
-                          if (result == true) _loadProfile();
-                          return;
-                        }
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const MyCardsScreen()),
-                        );
-                      },
-                    ),
-                    _buildMenuItem(
-                      icon: Icons.bookmark_border_rounded,
-                      iconBg: const Color(0xFFF3E8FF),
-                      iconColor: const Color(0xFF7C3AED),
-                      title: 'Saved Cards',
-                      subtitle: 'Quick access to bookmarked live work cards',
-                      onTap: () async {
-                        if (!AuthService.isLoggedIn()) {
-                          final result = await Navigator.push(
+                        },
+                      ),
+                      _buildMenuItem(
+                        context: context,
+                        icon: Icons.bookmark_border_rounded,
+                        iconBg: isDark ? const Color(0xFF581C87) : const Color(0xFFF3E8FF),
+                        iconColor: isDark ? const Color(0xFFC084FC) : const Color(0xFF7C3AED),
+                        title: context.tr('saved_cards'),
+                        subtitle: context.tr('quick_access_saved_cards'),
+                        onTap: () async {
+                          if (!AuthService.isLoggedIn()) {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const LoginScreen()),
+                            );
+                            if (result == true) _loadProfile();
+                            return;
+                          }
+                          Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const LoginScreen()),
+                            MaterialPageRoute(builder: (context) => const SavedCardsScreen()),
                           );
-                          if (result == true) _loadProfile();
-                          return;
-                        }
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const SavedCardsScreen()),
-                        );
-                      },
-                      showDivider: false,
-                    ),
-                  ]),
-                  const SizedBox(height: 16),
+                        },
+                        showDivider: false,
+                      ),
+                    ]),
+                    const SizedBox(height: 16),
 
-                  _buildMenuGroup([
-                    _buildMenuItem(
-                      icon: Icons.settings_outlined,
-                      iconBg: const Color(0xFFE6F4F1),
-                      iconColor: primaryDark,
-                      title: 'Settings',
-                      subtitle: 'App, privacy and account settings',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                        );
-                      },
-                    ),
-                    _buildMenuItem(
-                      icon: Icons.help_outline_rounded,
-                      iconBg: const Color(0xFFE0F2FE),
-                      iconColor: const Color(0xFF0284C7),
-                      title: 'Help & Support',
-                      subtitle: 'Get help, FAQs and contact support',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
-                        );
-                      },
-                    ),
-                    _buildMenuItem(
-                      icon: Icons.info_outline_rounded,
-                      iconBg: const Color(0xFFF3E8FF),
-                      iconColor: const Color(0xFF7C3AED),
-                      title: 'About Us',
-                      subtitle: 'App version v1.0.0, terms and privacy',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const AboutUsScreen()),
-                        );
-                      },
-                      showDivider: false,
-                    ),
-                  ]),
-                  const SizedBox(height: 20),
+                    _buildMenuGroup(context, [
+                      _buildMenuItem(
+                        context: context,
+                        icon: Icons.settings_outlined,
+                        iconBg: isDark ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
+                        iconColor: primaryDark,
+                        title: context.tr('settings'),
+                        subtitle: context.tr('app_privacy_account_settings'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                          );
+                        },
+                      ),
+                      _buildMenuItem(
+                        context: context,
+                        icon: Icons.help_outline_rounded,
+                        iconBg: isDark ? const Color(0xFF075985) : const Color(0xFFE0F2FE),
+                        iconColor: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                        title: context.tr('help_support'),
+                        subtitle: context.tr('get_help_faqs_contact'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
+                          );
+                        },
+                      ),
+                      _buildMenuItem(
+                        context: context,
+                        icon: Icons.info_outline_rounded,
+                        iconBg: isDark ? const Color(0xFF581C87) : const Color(0xFFF3E8FF),
+                        iconColor: isDark ? const Color(0xFFC084FC) : const Color(0xFF7C3AED),
+                        title: context.tr('about_us'),
+                        subtitle: context.tr('app_version_terms_privacy'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const AboutUsScreen()),
+                          );
+                        },
+                        showDivider: false,
+                      ),
+                    ]),
+                    const SizedBox(height: 20),
 
-                  _buildLogoutCard(context),
-                ],
+                    _buildLogoutCard(context),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
         ],
       ),
     );
   }
 
   Widget _buildUserInfoCard(BuildContext context) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
     final bool loggedIn = AuthService.isLoggedIn();
 
     final userName = loggedIn ? (_user?.name ?? 'User Profile') : 'Log In';
@@ -311,11 +333,12 @@ class ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.surface(context),
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppTheme.border(context)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.2 : 0.05),
               blurRadius: 16,
               offset: const Offset(0, 4),
             ),
@@ -338,25 +361,27 @@ class ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Text(
                     userName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
+                      color: AppTheme.textPrimary(context),
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     userEmail,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF64748B),
+                      color: AppTheme.textSecondary(context),
                     ),
                   ),
                   const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: loggedIn ? const Color(0xFFDCFCE7) : const Color(0xFFE0F2FE),
+                      color: loggedIn
+                          ? (AppTheme.isDark(context) ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7))
+                          : (AppTheme.isDark(context) ? const Color(0xFF075985) : const Color(0xFFE0F2FE)),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -366,14 +391,16 @@ class ProfileScreenState extends State<ProfileScreen> {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: loggedIn ? const Color(0xFF166534) : const Color(0xFF0284C7),
+                        color: loggedIn
+                            ? (AppTheme.isDark(context) ? const Color(0xFF4ADE80) : const Color(0xFF166534))
+                            : (AppTheme.isDark(context) ? const Color(0xFF38BDF8) : const Color(0xFF0284C7)),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+            Icon(Icons.chevron_right_rounded, color: AppTheme.textSecondary(context)),
           ],
         ),
       ),
@@ -383,7 +410,7 @@ class ProfileScreenState extends State<ProfileScreen> {
   Widget _buildStatCardsRow(BuildContext context) {
     return Row(
       children: [
-        _buildStatCard('Live Works', 'Active', onTap: () async {
+        _buildStatCard(context, context.tr('live_work'), context.tr('active'), onTap: () async {
           if (!AuthService.isLoggedIn()) {
             final result = await Navigator.push(
               context,
@@ -398,7 +425,7 @@ class ProfileScreenState extends State<ProfileScreen> {
           );
         }),
         const SizedBox(width: 10),
-        _buildStatCard('Saved Cards', 'View All', onTap: () async {
+        _buildStatCard(context, context.tr('saved_cards'), context.tr('view_all'), onTap: () async {
           if (!AuthService.isLoggedIn()) {
             final result = await Navigator.push(
               context,
@@ -416,7 +443,7 @@ class ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, {VoidCallback? onTap}) {
+  Widget _buildStatCard(BuildContext context, String title, String value, {VoidCallback? onTap}) {
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -424,33 +451,44 @@ class ProfileScreenState extends State<ProfileScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.surface(context),
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
+                color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.15 : 0.03),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
             ],
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: AppTheme.border(context)),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF094943),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primary(context),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF64748B),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    color: AppTheme.textSecondary(context),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -460,25 +498,26 @@ class ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMenuGroup(List<Widget> items) {
+  Widget _buildMenuGroup(BuildContext context, List<Widget> items) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.15 : 0.03),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
         ],
-        border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(children: items),
     );
   }
 
   Widget _buildMenuItem({
+    required BuildContext context,
     required IconData icon,
     required Color iconBg,
     required Color iconColor,
@@ -502,42 +541,47 @@ class ProfileScreenState extends State<ProfileScreen> {
           ),
           title: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF0F172A),
+              color: AppTheme.textPrimary(context),
             ),
           ),
           subtitle: Text(
             subtitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: Color(0xFF64748B),
+              color: AppTheme.textSecondary(context),
             ),
           ),
-          trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+          trailing: Icon(Icons.chevron_right_rounded, color: AppTheme.textSecondary(context)),
         ),
         if (showDivider)
-          const Divider(height: 1, indent: 68, endIndent: 16, color: Color(0xFFF1F5F9)),
+          Divider(height: 1, indent: 68, endIndent: 16, color: AppTheme.divider(context)),
       ],
     );
   }
 
   Widget _buildLogoutCard(BuildContext context) {
     final bool loggedIn = AuthService.isLoggedIn();
+    final isDark = AppTheme.isDark(context);
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
         ],
-        border: Border.all(color: loggedIn ? const Color(0xFFFEE2E2) : const Color(0xFFDCFCE7)),
+        border: Border.all(
+          color: loggedIn
+              ? (isDark ? const Color(0xFF991B1B) : const Color(0xFFFEE2E2))
+              : (isDark ? const Color(0xFF065F46) : const Color(0xFFDCFCE7)),
+        ),
       ),
       child: ListTile(
         onTap: () async {
@@ -557,12 +601,16 @@ class ProfileScreenState extends State<ProfileScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: loggedIn ? const Color(0xFFFEE2E2) : const Color(0xFFDCFCE7),
+            color: loggedIn
+                ? (isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2))
+                : (isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7)),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
             loggedIn ? Icons.logout_rounded : Icons.login_rounded,
-            color: loggedIn ? const Color(0xFFEF4444) : const Color(0xFF16A34A),
+            color: loggedIn
+                ? (isDark ? const Color(0xFFF87171) : const Color(0xFFEF4444))
+                : (isDark ? const Color(0xFF4ADE80) : const Color(0xFF16A34A)),
             size: 20,
           ),
         ),
@@ -571,16 +619,18 @@ class ProfileScreenState extends State<ProfileScreen> {
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,
-            color: loggedIn ? const Color(0xFFEF4444) : const Color(0xFF16A34A),
+            color: loggedIn
+                ? (isDark ? const Color(0xFFF87171) : const Color(0xFFEF4444))
+                : (isDark ? const Color(0xFF4ADE80) : const Color(0xFF16A34A)),
           ),
         ),
         subtitle: Text(
           loggedIn
               ? 'Sign out of your account on this device'
               : 'Sign in or create an account to post cards & chat',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: Color(0xFF64748B),
+            color: AppTheme.textSecondary(context),
           ),
         ),
       ),

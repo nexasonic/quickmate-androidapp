@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'core/api_service.dart';
 import 'core/app_dialogs.dart';
+import 'core/app_language.dart';
+import 'core/app_theme.dart';
 import 'login_screen.dart';
 import 'models/category_model.dart';
 import 'models/live_work_card_model.dart';
@@ -250,7 +252,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.90,
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.surface(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -312,12 +314,12 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE6F4F1),
+                          color: AppTheme.isDark(context) ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
                           isEditing ? Icons.edit_note_rounded : Icons.business_center_outlined,
-                          color: const Color(0xFF094943),
+                          color: AppTheme.primary(context),
                           size: 22,
                         ),
                       ),
@@ -327,18 +329,18 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              isEditing ? 'Edit Live Work Card' : 'Create Live Work Card',
-                              style: const TextStyle(
+                              isEditing ? context.tr('edit_card') : context.tr('create_live_work'),
+                              style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF0F172A),
+                                color: AppTheme.textPrimary(context),
                               ),
                             ),
                             Text(
                               isEditing
                                   ? (cardToEdit.title)
-                                  : 'Fill in the details below to publish your card.',
-                              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                  : context.tr('fill_details_desc'),
+                              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context)),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -347,19 +349,19 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(sheetContext),
-                        icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                        icon: Icon(Icons.close_rounded, color: AppTheme.textSecondary(context)),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Divider(height: 1),
+                  Divider(height: 1, color: AppTheme.divider(context)),
                   const SizedBox(height: 16),
 
                   // Task Title
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildFieldLabel('TASK TITLE', isRequired: true),
+                      _buildFieldLabel(context.tr('task_title'), isRequired: true),
                       Text(
                         '${titleController.text.length}/80',
                         style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
@@ -368,7 +370,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                   ),
                   _buildModalInput(
                     controller: titleController,
-                    hintText: 'e.g. Need a Plumber for kitchen leak repair',
+                    hintText: context.tr('task_title_hint'),
                     onChanged: (_) => setModalState(() {}),
                   ),
                   const SizedBox(height: 14),
@@ -377,7 +379,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildFieldLabel('CATEGORY', isRequired: true),
+                      _buildFieldLabel(context.tr('category').toUpperCase(), isRequired: true),
                       _buildModalDropdown<int>(
                         value: selectedCategoryId,
                         hintText: 'Select category',
@@ -397,7 +399,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('EXPIRY TIME', isRequired: true),
+                            _buildFieldLabel(context.tr('expiry_time'), isRequired: true),
                             _buildModalDropdown<String>(
                               value: selectedExpiry,
                               hintText: 'Select expiry',
@@ -419,7 +421,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('BUDGET TYPE', isRequired: true),
+                            _buildFieldLabel(context.tr('budget_type'), isRequired: true),
                             _buildModalDropdown<String>(
                               value: selectedBudgetType,
                               hintText: 'Select budget type',
@@ -453,7 +455,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildFieldLabel('DESCRIBE THE WORK', isRequired: true),
+                      _buildFieldLabel(context.tr('describe_work'), isRequired: true),
                       Text(
                         '${descController.text.length}/250',
                         style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
@@ -462,7 +464,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                   ),
                   _buildModalInput(
                     controller: descController,
-                    hintText: 'Describe exactly what needs to be done. More details = better matches.',
+                    hintText: context.tr('describe_work_hint'),
                     maxLines: 4,
                     onChanged: (_) => setModalState(() {}),
                   ),
@@ -472,7 +474,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildFieldLabel('TAGS'),
+                      _buildFieldLabel(context.tr('tags')),
                       Text(
                         '${currentTags.length}/5 tags',
                         style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
@@ -501,25 +503,25 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                     ),
                   TextField(
                     controller: tagInputController,
-                    style: const TextStyle(fontSize: 13),
+                    style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
                     onSubmitted: (_) => addTagFromInput(),
                     decoration: InputDecoration(
-                      hintText: 'Type a tag and press Enter (max 5)',
-                      hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                      hintText: context.tr('tags_hint'),
+                      hintStyle: TextStyle(color: AppTheme.textSecondary(context), fontSize: 12),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: AppTheme.inputFill(context),
                       suffixIcon: IconButton(
-                        icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF094943)),
+                        icon: Icon(Icons.add_circle_outline_rounded, color: AppTheme.primary(context)),
                         onPressed: addTagFromInput,
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                        borderSide: BorderSide(color: AppTheme.border(context)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF094943), width: 1.5),
+                        borderSide: BorderSide(color: AppTheme.primary(context), width: 1.5),
                       ),
                     ),
                   ),
@@ -529,7 +531,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildFieldLabel('PHOTOS'),
+                      _buildFieldLabel(context.tr('photos')),
                       Text(
                         '${modalPhotos.length}/3 images',
                         style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
@@ -634,18 +636,26 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                               width: 85,
                               height: 85,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
+                                color: AppTheme.subtleBackground(context),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFCBD5E1)),
+                                border: Border.all(color: AppTheme.border(context)),
                               ),
-                              child: const Column(
+                              child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.add_a_photo_outlined, color: Color(0xFF094943), size: 22),
-                                  SizedBox(height: 4),
+                                  Icon(
+                                    Icons.add_a_photo_outlined,
+                                    color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : AppTheme.primary(context),
+                                    size: 22,
+                                  ),
+                                  const SizedBox(height: 4),
                                   Text(
-                                    'Add Photo',
-                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF094943)),
+                                    context.tr('add_photo'),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : AppTheme.primary(context),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -655,9 +665,9 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'ⓘ Tap Set Main to select the cover photo. Tap the red × to remove any photo.',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                  Text(
+                    'ⓘ ${context.tr('photo_instructions')}',
+                    style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context)),
                   ),
                   const SizedBox(height: 20),
 
@@ -668,13 +678,13 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                       ElevatedButton(
                         onPressed: isSubmitting ? null : () => Navigator.pop(modalContext),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF1F5F9),
-                          foregroundColor: const Color(0xFF334155),
+                          backgroundColor: AppTheme.subtleBackground(context),
+                          foregroundColor: AppTheme.textPrimary(context),
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        child: Text(context.tr('cancel'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                       ),
                       const SizedBox(width: 12),
                       ElevatedButton(
@@ -786,7 +796,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                                   Icon(isEditing ? Icons.check_rounded : Icons.publish_rounded, color: Colors.white, size: 16),
                                   const SizedBox(width: 6),
                                   Text(
-                                    isEditing ? 'Save Changes' : 'Publish Card',
+                                    isEditing ? context.tr('save_changes') : context.tr('publish_card'),
                                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                                   ),
                                 ],
@@ -811,10 +821,10 @@ class MyCardsScreenState extends State<MyCardsScreen> {
           children: [
             TextSpan(
               text: label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF475569),
+                color: AppTheme.textPrimary(context),
                 letterSpacing: 0.5,
               ),
             ),
@@ -845,20 +855,20 @@ class MyCardsScreenState extends State<MyCardsScreen> {
       maxLines: maxLines,
       keyboardType: keyboardType,
       onChanged: onChanged,
-      style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
+      style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+        hintStyle: TextStyle(color: AppTheme.textSecondary(context), fontSize: 12),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppTheme.inputFill(context),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+          borderSide: BorderSide(color: AppTheme.border(context)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF094943), width: 1.5),
+          borderSide: BorderSide(color: AppTheme.primary(context), width: 1.5),
         ),
       ),
     );
@@ -875,17 +885,18 @@ class MyCardsScreenState extends State<MyCardsScreen> {
       items: items,
       onChanged: onChanged,
       isExpanded: true,
-      style: const TextStyle(fontSize: 12, color: Color(0xFF0F172A)),
-      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B), size: 20),
+      dropdownColor: AppTheme.surface(context),
+      style: TextStyle(fontSize: 12, color: AppTheme.textPrimary(context)),
+      icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textSecondary(context), size: 20),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+        hintStyle: TextStyle(color: AppTheme.textSecondary(context), fontSize: 12),
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppTheme.inputFill(context),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+          borderSide: BorderSide(color: AppTheme.border(context)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -896,12 +907,12 @@ class MyCardsScreenState extends State<MyCardsScreen> {
   }
 
   Widget _buildGuestPromptScreen() {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppTheme.background(context),
       appBar: AppBar(
-        backgroundColor: primaryDark,
+        backgroundColor: AppTheme.appBarBg(context),
         elevation: 0,
         title: const Text('My Live Work Cards', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
@@ -922,22 +933,22 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(22),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE6F4F1),
+                      decoration: BoxDecoration(
+                        color: AppTheme.isDark(context) ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.lock_outline_rounded, size: 54, color: primaryDark),
+                      child: Icon(Icons.lock_outline_rounded, size: 54, color: primaryDark),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
+                    Text(
                       'Sign In Required',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Please sign in to manage, edit, pause or post your live work cards.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
+                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary(context), height: 1.4),
                     ),
                     const SizedBox(height: 28),
                     SizedBox(
@@ -977,24 +988,31 @@ class MyCardsScreenState extends State<MyCardsScreen> {
       return _buildGuestPromptScreen();
     }
 
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
+    final isDark = AppTheme.isDark(context);
     final activeCount = _allCards.where((c) => c.isActive && !c.isExpired).length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppTheme.background(context),
       body: Stack(
         children: [
           Container(
             height: 180,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF064E3B),
-                  Color(0xFF094943),
-                  Color(0xFF0D9488),
-                ],
+                colors: isDark
+                    ? [
+                        const Color(0xFF042F2E),
+                        const Color(0xFF0F172A),
+                        const Color(0xFF0F172A),
+                      ]
+                    : [
+                        const Color(0xFF064E3B),
+                        const Color(0xFF094943),
+                        const Color(0xFF0D9488),
+                      ],
               ),
             ),
           ),
@@ -1011,18 +1029,18 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                          children: [
                             Text(
-                              'My Live Work Cards',
-                              style: TextStyle(
+                              context.tr('my_cards'),
+                              style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
                             ),
                             Text(
-                              'Manage all your live work listings in one place.',
-                              style: TextStyle(
+                              context.tr('manage_live_works_desc'),
+                              style: const TextStyle(
                                 fontSize: 12,
                                 color: Colors.white70,
                               ),
@@ -1062,8 +1080,8 @@ class MyCardsScreenState extends State<MyCardsScreen> {
 
                           // Cards List
                           if (_isLoading)
-                            const Padding(
-                              padding: EdgeInsets.all(40),
+                            Padding(
+                              padding: const EdgeInsets.all(40),
                               child: Center(
                                 child: CircularProgressIndicator(color: primaryDark),
                               ),
@@ -1073,16 +1091,17 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                               padding: const EdgeInsets.all(30),
                               width: double.infinity,
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppTheme.surface(context),
                                 borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppTheme.border(context)),
                               ),
                               child: Column(
-                                children: const [
-                                  Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey),
-                                  SizedBox(height: 12),
+                                children: [
+                                  Icon(Icons.inventory_2_outlined, size: 48, color: AppTheme.textSecondary(context)),
+                                  const SizedBox(height: 12),
                                   Text(
                                     'No Live Work cards found.',
-                                    style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                                    style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
@@ -1123,16 +1142,17 @@ class MyCardsScreenState extends State<MyCardsScreen> {
   }
 
   Widget _buildHeroBannerCard(int activeCount) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppTheme.border(context)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.2 : 0.05),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -1160,19 +1180,19 @@ class MyCardsScreenState extends State<MyCardsScreen> {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
-                      'Live Work Cards',
-                      style: TextStyle(
+                      context.tr('my_cards'),
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF0F172A),
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
-                      'Create, edit, bump or pause your live work cards anytime.',
-                      style: TextStyle(
+                      context.tr('create_edit_cards_desc'),
+                      style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF64748B),
                         height: 1.3,
@@ -1186,9 +1206,9 @@ class MyCardsScreenState extends State<MyCardsScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              _buildStatPill('${_allCards.length}', 'Total'),
+              _buildStatPill('${_allCards.length}', context.tr('total')),
               const SizedBox(width: 8),
-              _buildStatPill('$activeCount', 'Active'),
+              _buildStatPill('$activeCount', context.tr('active')),
               const SizedBox(width: 10),
               Expanded(
                 child: SizedBox(
@@ -1203,17 +1223,17 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.add_rounded, color: Colors.white, size: 18),
-                        SizedBox(width: 4),
+                        const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                        const SizedBox(width: 4),
                         Flexible(
                           child: Text(
-                            'Create Live Work Card',
+                            context.tr('create_card'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -1267,13 +1287,13 @@ class MyCardsScreenState extends State<MyCardsScreen> {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _buildStatusChip(0, 'All Status'),
+          _buildStatusChip(0, context.tr('all')),
           const SizedBox(width: 8),
-          _buildStatusChip(1, 'Active'),
+          _buildStatusChip(1, context.tr('active')),
           const SizedBox(width: 8),
-          _buildStatusChip(2, 'Paused'),
+          _buildStatusChip(2, context.tr('paused')),
           const SizedBox(width: 8),
-          _buildStatusChip(3, 'Expired'),
+          _buildStatusChip(3, context.tr('expired')),
         ],
       ),
     );
@@ -1282,7 +1302,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
   Widget _buildStatusChip(int index, String label) {
     final bool isSelected = _selectedStatusTab == index;
     final count = _countByTab(index);
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     return InkWell(
       onTap: () {
@@ -1294,10 +1314,10 @@ class MyCardsScreenState extends State<MyCardsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? primaryDark : Colors.white,
+          color: isSelected ? primaryDark : AppTheme.surface(context),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? primaryDark : const Color(0xFFE2E8F0),
+            color: isSelected ? primaryDark : AppTheme.border(context),
           ),
         ),
         child: Text(
@@ -1305,7 +1325,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? Colors.white : const Color(0xFF475569),
+            color: isSelected ? Colors.white : AppTheme.textPrimary(context),
           ),
         ),
       ),
@@ -1313,18 +1333,19 @@ class MyCardsScreenState extends State<MyCardsScreen> {
   }
 
   Widget _buildWebStyleWorkCard(LiveWorkCardModel card) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
+    final isDark = AppTheme.isDark(context);
     final coverImage = card.thumbnailUrl ?? (card.images.isNotEmpty ? card.images.first : null);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
@@ -1409,8 +1430,8 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                     ],
                   ),
                   child: Text(
-                    card.formattedPrice,
-                    style: const TextStyle(
+                    card.getTrFormattedPrice(context),
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: primaryDark,
@@ -1523,7 +1544,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                         ),
                         child: Text(
                           tag,
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primaryDark),
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primaryDark),
                         ),
                       );
                     }).toList(),
@@ -1583,7 +1604,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                       ],
                     ),
                     Text(
-                      card.formattedTimeAgo,
+                      card.getTrFormattedTimeAgo(context),
                       style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                     ),
                   ],
@@ -1597,87 +1618,129 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                     Expanded(
                       child: SizedBox(
                         height: 36,
-                        child: OutlinedButton.icon(
+                        child: OutlinedButton(
                           onPressed: () => _showCardModal(cardToEdit: card),
-                          icon: const Icon(Icons.edit_outlined, size: 14, color: Color(0xFF334155)),
-                          label: const Text('Edit', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
                           style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.zero,
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
                             side: const BorderSide(color: Color(0xFFCBD5E1)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.edit_outlined, size: 13, color: Color(0xFF334155)),
+                                const SizedBox(width: 3),
+                                Text(
+                                  context.tr('edit'),
+                                  style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 4),
 
                     // 2. Pause / Activate
                     Expanded(
                       child: SizedBox(
                         height: 36,
-                        child: OutlinedButton.icon(
+                        child: OutlinedButton(
                           onPressed: () => _toggleStatus(card),
-                          icon: Icon(
-                            card.isActive ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded,
-                            size: 14,
-                            color: card.isActive ? const Color(0xFFD97706) : const Color(0xFF166534),
-                          ),
-                          label: Text(
-                            card.isActive ? 'Pause' : 'Activate',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: card.isActive ? const Color(0xFFD97706) : const Color(0xFF166534),
-                            ),
-                          ),
                           style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.zero,
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
                             side: BorderSide(
                               color: card.isActive ? const Color(0xFFFDE68A) : const Color(0xFFBBF7D0),
                             ),
                             backgroundColor: card.isActive ? const Color(0xFFFFFBEB) : const Color(0xFFF0FDF4),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  card.isActive ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded,
+                                  size: 13,
+                                  color: card.isActive ? const Color(0xFFD97706) : const Color(0xFF166534),
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  card.isActive ? context.tr('pause') : context.tr('active'),
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: card.isActive ? const Color(0xFFD97706) : const Color(0xFF166534),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 4),
 
                     // 3. Update / Repost
                     Expanded(
                       child: SizedBox(
                         height: 36,
-                        child: OutlinedButton.icon(
+                        child: OutlinedButton(
                           onPressed: () => _repostOrUpdateCard(card),
-                          icon: const Icon(Icons.arrow_upward_rounded, size: 14, color: Color(0xFF059669)),
-                          label: Text(
-                            card.isExpired ? 'Repost' : 'Update',
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
-                          ),
                           style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.zero,
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
                             backgroundColor: const Color(0xFFECFDF5),
                             side: const BorderSide(color: Color(0xFFA7F3D0)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.arrow_upward_rounded, size: 13, color: Color(0xFF059669)),
+                                const SizedBox(width: 3),
+                                Text(
+                                  card.isExpired ? context.tr('create_card') : context.tr('update'),
+                                  style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 4),
 
                     // 4. Delete
                     Expanded(
                       child: SizedBox(
                         height: 36,
-                        child: OutlinedButton.icon(
+                        child: OutlinedButton(
                           onPressed: () => _deleteCard(card),
-                          icon: const Icon(Icons.delete_outline_rounded, size: 14, color: Color(0xFFDC2626)),
-                          label: const Text('Delete', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFDC2626))),
                           style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.zero,
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
                             backgroundColor: const Color(0xFFFEF2F2),
                             side: const BorderSide(color: Color(0xFFFCA5A5)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.delete_outline_rounded, size: 13, color: Color(0xFFDC2626)),
+                                const SizedBox(width: 3),
+                                Text(
+                                  context.tr('delete'),
+                                  style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),

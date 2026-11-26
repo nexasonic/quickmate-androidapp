@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'chat_detail_screen.dart';
+import 'core/app_language.dart';
+import 'core/app_theme.dart';
 import 'login_screen.dart';
 import 'models/chat_model.dart';
 import 'services/auth_service.dart';
@@ -18,6 +20,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
   List<ConversationModel> _conversations = [];
   bool _isLoggedIn = false;
   Timer? _refreshTimer;
+
+  String _formatLastMessage(String? body, BuildContext context) {
+    if (body == null || body.isEmpty) return context.tr('no_messages_yet');
+    if (body.contains('Referenced Live Work:')) {
+      final workTitle = body.replaceFirst('Referenced Live Work:', '').trim();
+      return '${context.tr('referenced_live_work')}: $workTitle';
+    }
+    return body;
+  }
 
   @override
   void initState() {
@@ -76,10 +87,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppTheme.background(context),
       body: SafeArea(
         child: Column(
           children: [
@@ -89,31 +100,36 @@ class _ChatListScreenState extends State<ChatListScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Chat',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: primaryDark,
-                          height: 1.1,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.tr('chat'),
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary(context),
+                            height: 1.1,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Chat with service providers',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w400,
+                        const SizedBox(height: 4),
+                        Text(
+                          context.tr('chat_with_providers'),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppTheme.textSecondary(context),
+                            fontWeight: FontWeight.w400,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.refresh_rounded, color: primaryDark, size: 26),
+                    icon: Icon(Icons.refresh_rounded, color: primaryDark, size: 26),
                     onPressed: _loadConversations,
                   ),
                 ],
@@ -128,7 +144,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       onRefresh: _loadConversations,
                       color: primaryDark,
                       child: _isLoading
-                          ? const Center(
+                          ? Center(
                               child: CircularProgressIndicator(color: primaryDark),
                             )
                           : _conversations.isEmpty
@@ -150,7 +166,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   Widget _buildGuestView() {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     return Padding(
       padding: const EdgeInsets.all(30),
@@ -160,21 +176,21 @@ class _ChatListScreenState extends State<ChatListScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: primaryDark.withValues(alpha: 0.1),
+              color: AppTheme.isDark(context) ? const Color(0xFF134E4A) : primaryDark.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.chat_bubble_outline_rounded, size: 60, color: primaryDark),
+            child: Icon(Icons.chat_bubble_outline_rounded, size: 60, color: primaryDark),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'Sign In to Chat',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Connect with live work service providers directly by logging into your account.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
+            style: TextStyle(color: AppTheme.textSecondary(context), fontSize: 14),
           ),
           const SizedBox(height: 24),
           SizedBox(
@@ -206,17 +222,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.chat_bubble_outline_rounded, size: 50, color: Colors.grey),
-          SizedBox(height: 12),
+        children: [
+          Icon(Icons.chat_bubble_outline_rounded, size: 50, color: AppTheme.textSecondary(context)),
+          const SizedBox(height: 12),
           Text(
             'No conversations yet.',
-            style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 16),
+            style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.bold, fontSize: 16),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
             'Start a chat from any Live Work card detail page!',
-            style: TextStyle(color: Colors.grey, fontSize: 12),
+            style: TextStyle(color: AppTheme.textSecondary(context), fontSize: 12),
           ),
         ],
       ),
@@ -224,7 +240,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   Widget _buildChatItem(ConversationModel convo) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
     final avatar = convo.otherUserAvatar;
 
     return GestureDetector(
@@ -250,16 +266,16 @@ class _ChatListScreenState extends State<ChatListScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.surface(context),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.2 : 0.03),
               blurRadius: 12,
               offset: const Offset(0, 3),
             ),
           ],
-          border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
+          border: Border.all(color: AppTheme.border(context)),
         ),
         child: Row(
           children: [
@@ -283,7 +299,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     decoration: BoxDecoration(
                       color: convo.isOnline ? const Color(0xFF10B981) : const Color(0xFFCBD5E1),
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+                      border: Border.all(color: AppTheme.surface(context), width: 2),
                     ),
                   ),
                 ),
@@ -298,21 +314,21 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 children: [
                   Text(
                     convo.otherUserName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
+                      color: AppTheme.textPrimary(context),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    convo.lastMessageBody ?? 'No messages yet',
+                    _formatLastMessage(convo.lastMessageBody, context),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: convo.unreadCount > 0 ? FontWeight.bold : FontWeight.w500,
-                      color: convo.unreadCount > 0 ? primaryDark : const Color(0xFF475569),
+                      color: convo.unreadCount > 0 ? primaryDark : AppTheme.textSecondary(context),
                     ),
                   ),
                 ],
@@ -327,10 +343,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 if (convo.lastMessageTime != null)
                   Text(
                     convo.lastMessageTime!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF64748B),
+                      color: AppTheme.textSecondary(context),
                     ),
                   ),
                 const SizedBox(height: 8),
@@ -338,7 +354,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   Container(
                     width: 22,
                     height: 22,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: primaryDark,
                       shape: BoxShape.circle,
                     ),

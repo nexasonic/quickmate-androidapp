@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'card_detail_screen.dart';
 import 'core/app_dialogs.dart';
+import 'core/app_language.dart';
+import 'core/app_theme.dart';
 import 'discover_screen.dart';
 import 'chat_list_screen.dart';
 import 'map_view_screen.dart';
@@ -155,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppTheme.background(context),
       body: IndexedStack(
         index: _selectedIndex,
         children: [
@@ -219,7 +221,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildOriginalHomeView() {
-    final userName = _currentUser?.name ?? 'Welcome Guest';
+    final primaryDark = AppTheme.primary(context);
+    final userName = _currentUser?.name ?? context.tr('welcome_guest');
     final avatarUrl = _currentUser?.avatarUrl;
 
     return SafeArea(
@@ -242,21 +245,25 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           userName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF333333),
+                            color: AppTheme.textPrimary(context),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         Row(
-                          children: const [
-                            Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
-                            SizedBox(width: 4),
-                            Text(
-                              'Nearby Live Works',
-                              style: TextStyle(color: Colors.grey),
+                          children: [
+                            Icon(Icons.location_on_outlined, size: 16, color: AppTheme.textSecondary(context)),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                context.tr('nearby_live_works'),
+                                style: TextStyle(color: AppTheme.textSecondary(context)),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                         ),
@@ -273,46 +280,51 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                         child: Container(
-                          padding: const EdgeInsets.all(8),
+                          width: 42,
+                          height: 42,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppTheme.surface(context),
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.border(context)),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
+                                color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.2 : 0.05),
                                 blurRadius: 10,
                               ),
                             ],
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.chat_bubble_outline_rounded,
-                            color: Color(0xFF094943),
-                            size: 22,
+                            color: primaryDark,
+                            size: 20,
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        width: 42,
+                        height: 42,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppTheme.surface(context),
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.border(context)),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
+                              color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.2 : 0.05),
                               blurRadius: 10,
                             ),
                           ],
                         ),
                         child: Stack(
+                          alignment: Alignment.center,
                           children: [
-                            const Icon(Icons.notifications_none_outlined, color: Colors.black54),
+                            Icon(Icons.notifications_none_outlined, color: AppTheme.textPrimary(context), size: 20),
                             Positioned(
-                              right: 0,
-                              top: 0,
+                              top: 8,
+                              right: 8,
                               child: Container(
-                                width: 8,
-                                height: 8,
+                                width: 7,
+                                height: 7,
                                 decoration: const BoxDecoration(
                                   color: Colors.redAccent,
                                   shape: BoxShape.circle,
@@ -322,27 +334,27 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: avatarUrl != null && avatarUrl.isNotEmpty
                             ? Image.network(
                                 avatarUrl,
-                                width: 45,
-                                height: 45,
+                                width: 42,
+                                height: 42,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) => Container(
-                                  width: 45,
-                                  height: 45,
-                                  color: const Color(0xFF094943),
-                                  child: const Icon(Icons.person, color: Colors.white),
+                                  width: 42,
+                                  height: 42,
+                                  color: primaryDark,
+                                  child: const Icon(Icons.person, color: Colors.white, size: 20),
                                 ),
                               )
                             : Container(
-                                width: 45,
-                                height: 45,
-                                color: const Color(0xFF094943),
-                                child: const Icon(Icons.person, color: Colors.white),
+                                width: 42,
+                                height: 42,
+                                color: primaryDark,
+                                child: const Icon(Icons.person, color: Colors.white, size: 20),
                               ),
                       ),
                     ],
@@ -355,29 +367,31 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 padding: const EdgeInsets.only(left: 16, right: 6, top: 4, bottom: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppTheme.surface(context),
                   borderRadius: BorderRadius.circular(25),
+                  border: Border.all(color: AppTheme.border(context)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.2 : 0.05),
                       blurRadius: 10,
                     ),
                   ],
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.search, color: Colors.grey),
+                    Icon(Icons.search, color: AppTheme.textSecondary(context)),
                     const SizedBox(width: 10),
                     Expanded(
                       child: TextField(
                         controller: _homeSearchController,
+                        style: TextStyle(color: AppTheme.textPrimary(context)),
                         onChanged: (text) {
                           setState(() {});
                         },
                         onSubmitted: (_) => _performSearch(),
-                        decoration: const InputDecoration(
-                          hintText: 'Search Live Work cards...',
-                          hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: context.tr('search_cards_placeholder'),
+                          hintStyle: TextStyle(color: AppTheme.textSecondary(context), fontSize: 14),
                           border: InputBorder.none,
                           isDense: true,
                         ),
@@ -391,9 +405,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             _searchQuery = '';
                           });
                         },
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 6),
-                          child: Icon(Icons.clear, color: Colors.grey, size: 20),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Icon(Icons.clear, color: AppTheme.textSecondary(context), size: 20),
                         ),
                       ),
                     const SizedBox(width: 4),
@@ -402,17 +416,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF094943),
+                          color: primaryDark,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.search, color: Colors.white, size: 16),
-                            SizedBox(width: 4),
+                            const Icon(Icons.search, color: Colors.white, size: 16),
+                            const SizedBox(width: 4),
                             Text(
-                              'Search',
-                              style: TextStyle(
+                              context.tr('search'),
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
@@ -432,8 +446,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF094943),
+                  color: AppTheme.isDark(context) ? const Color(0xFF042F2E) : const Color(0xFF094943),
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppTheme.border(context)),
                 ),
                 child: Row(
                   children: [
@@ -441,18 +456,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'LIVE WORK MARKET',
-                            style: TextStyle(
+                          Text(
+                            context.tr('live_work_market'),
+                            style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Explore real-time active services & work around you!',
-                            style: TextStyle(
+                          Text(
+                            context.tr('explore_realtime_services'),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -466,14 +481,18 @@ class _HomeScreenState extends State<HomeScreen> {
                               });
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.black,
+                              backgroundColor: const Color(0xFF0D9488),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               padding: const EdgeInsets.symmetric(horizontal: 20),
                             ),
-                            child: const Text('Discover'),
+                            child: Text(
+                              context.tr('discover'),
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
@@ -488,11 +507,12 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Popular Categories',
+                  Text(
+                    context.tr('popular_categories'),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary(context),
                     ),
                   ),
                   TextButton(
@@ -502,9 +522,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       });
                     },
                     child: Row(
-                      children: const [
-                        Text('View All', style: TextStyle(color: Colors.grey)),
-                        Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+                      children: [
+                        Text(context.tr('view_all'), style: TextStyle(color: AppTheme.textSecondary(context))),
+                        Icon(Icons.chevron_right, size: 16, color: AppTheme.textSecondary(context)),
                       ],
                     ),
                   ),
@@ -533,18 +553,18 @@ class _HomeScreenState extends State<HomeScreen> {
                             margin: const EdgeInsets.only(right: 8),
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isAllSelected ? const Color(0xFF094943) : Colors.white,
+                              color: isAllSelected ? primaryDark : AppTheme.surface(context),
                               borderRadius: BorderRadius.circular(18),
                               border: Border.all(
-                                color: isAllSelected ? const Color(0xFF094943) : Colors.black12,
+                                color: isAllSelected ? primaryDark : AppTheme.border(context),
                               ),
                             ),
                             child: Text(
-                              'All',
+                              context.tr('all'),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: isAllSelected ? Colors.white : const Color(0xFF094943),
+                                color: isAllSelected ? Colors.white : AppTheme.textPrimary(context),
                               ),
                             ),
                           ),
@@ -564,10 +584,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           margin: const EdgeInsets.only(right: 8),
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFF094943) : Colors.white,
+                            color: isSelected ? primaryDark : AppTheme.surface(context),
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(
-                              color: isSelected ? const Color(0xFF094943) : Colors.black12,
+                              color: isSelected ? primaryDark : AppTheme.border(context),
                             ),
                           ),
                           child: Text(
@@ -575,7 +595,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                              color: isSelected ? Colors.white : const Color(0xFF094943),
+                              color: isSelected ? Colors.white : AppTheme.textPrimary(context),
                             ),
                           ),
                         ),
@@ -591,11 +611,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     _selectedCategory != null
-                        ? 'Nearest ${_selectedCategory!.name} Cards'
-                        : 'Nearest Live Works',
-                    style: const TextStyle(
+                        ? '${context.tr('nearest')} ${_selectedCategory!.name}'
+                        : context.tr('nearest_live_works'),
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary(context),
                     ),
                   ),
                 ],
@@ -604,10 +625,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Service Cards Grid (Only 6 Cards)
               if (_isLoading)
-                const Padding(
-                  padding: EdgeInsets.all(40),
+                Padding(
+                  padding: const EdgeInsets.all(40),
                   child: Center(
-                    child: CircularProgressIndicator(color: Color(0xFF094943)),
+                    child: CircularProgressIndicator(color: primaryDark),
                   ),
                 )
               else if (_displayedLiveWorks.isEmpty)
@@ -615,16 +636,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.all(30),
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppTheme.surface(context),
                     borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.border(context)),
                   ),
                   child: Column(
-                    children: const [
-                      Icon(Icons.business_center_outlined, size: 48, color: Colors.grey),
-                      SizedBox(height: 12),
+                    children: [
+                      Icon(Icons.business_center_outlined, size: 48, color: AppTheme.textSecondary(context)),
+                      const SizedBox(height: 12),
                       Text(
                         'No Live Work cards available.',
-                        style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -636,7 +658,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemCount: _displayedLiveWorks.length,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.65,
+                    childAspectRatio: 0.62,
                     crossAxisSpacing: 14,
                     mainAxisSpacing: 14,
                   ),
@@ -665,24 +687,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildLiveWorkCard(LiveWorkCardModel item) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
     final image = item.thumbnailUrl ?? (item.images.isNotEmpty ? item.images.first : null);
     final isOnline = item.user?.isOnline ?? item.isActive;
     final userName = item.user?.name ?? item.title;
-    final distStr = item.getFormattedDistance(PresenceService.currentLatitude, PresenceService.currentLongitude);
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.2 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
         ],
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -695,19 +716,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: image != null && image.isNotEmpty
                     ? Image.network(
                         image,
-                        height: 100,
+                        height: 88,
                         width: double.infinity,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
-                          height: 100,
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.work_outline, color: Colors.grey),
+                          height: 88,
+                          color: AppTheme.subtleBackground(context),
+                          child: Icon(Icons.work_outline, color: AppTheme.textSecondary(context)),
                         ),
                       )
                     : Container(
-                        height: 100,
-                        color: Colors.grey[200],
-                        child: const Icon(Icons.work_outline, color: Colors.grey),
+                        height: 88,
+                        color: AppTheme.subtleBackground(context),
+                        child: Icon(Icons.work_outline, color: AppTheme.textSecondary(context)),
                       ),
               ),
 
@@ -734,7 +755,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        isOnline ? 'Online' : item.formattedLastSeen,
+                        isOnline ? context.tr('online') : item.formattedLastSeen,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 9,
@@ -755,7 +776,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: AppTheme.surface(context).withValues(alpha: 0.9),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -767,7 +788,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Icon(
                       item.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                       size: 16,
-                      color: item.isFavorite ? Colors.red : const Color(0xFF1E293B),
+                      color: item.isFavorite ? Colors.red : AppTheme.textPrimary(context),
                     ),
                   ),
                 ),
@@ -794,10 +815,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               userName.toUpperCase(),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w900,
                                 fontSize: 12,
-                                color: Color(0xFF0F172A),
+                                color: AppTheme.textPrimary(context),
                                 letterSpacing: 0.3,
                               ),
                             ),
@@ -817,27 +838,27 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(width: 2),
                           Text(
                             '${item.rating}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 10,
-                              color: Color(0xFF0F172A),
+                              color: AppTheme.textPrimary(context),
                             ),
                           ),
                           const SizedBox(width: 2),
                           Text(
                             ' (${item.reviewsCount})',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 9,
-                              color: Color(0xFF64748B),
+                              color: AppTheme.textSecondary(context),
                             ),
                           ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               '• ${item.category?.name ?? "Driving"}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
-                                color: Color(0xFF64748B),
+                                color: AppTheme.textSecondary(context),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -851,23 +872,29 @@ class _HomeScreenState extends State<HomeScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE6F4F1),
+                          color: AppTheme.isDark(context) ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFC7F3E2)),
+                          border: Border.all(
+                            color: AppTheme.isDark(context) ? const Color(0xFF115E59) : const Color(0xFFC7F3E2),
+                          ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.bolt_rounded, size: 12, color: primaryDark),
+                            Icon(
+                              Icons.bolt_rounded,
+                              size: 12,
+                              color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
+                            ),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 item.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: primaryDark,
+                                  color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
                                 ),
                               ),
                             ),
@@ -879,14 +906,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       // Card Updated Time Subtitle
                       Row(
                         children: [
-                          const Icon(Icons.access_time_rounded, size: 10, color: Color(0xFF64748B)),
+                          Icon(Icons.access_time_rounded, size: 10, color: AppTheme.textSecondary(context)),
                           const SizedBox(width: 3),
                           Text(
-                            item.formattedTimeAgo,
-                            style: const TextStyle(
+                            item.getTrFormattedTimeAgo(context),
+                            style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF64748B),
+                              color: AppTheme.textSecondary(context),
                             ),
                           ),
                         ],
@@ -896,16 +923,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       // Location & Calculated Distance
                       Row(
                         children: [
-                          const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF094943)),
+                          Icon(
+                            Icons.location_on_outlined,
+                            size: 12,
+                            color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : const Color(0xFF094943),
+                          ),
                           const SizedBox(width: 3),
                           Expanded(
                             child: Text(
-                              '${item.location ?? item.user?.location ?? PresenceService.currentPlaceName} • $distStr',
+                              '${item.location ?? item.user?.location ?? PresenceService.currentPlaceName} • ${item.getTrFormattedDistance(context, PresenceService.currentLatitude, PresenceService.currentLongitude)}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 9,
-                                color: Color(0xFF094943),
+                                color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : const Color(0xFF094943),
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -919,13 +950,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: (item.price == null || item.price == 0)
-                              ? const Color(0xFFFEF3C7)
-                              : const Color(0xFFDCFCE7),
+                              ? (AppTheme.isDark(context) ? const Color(0xFF78350F) : const Color(0xFFFEF3C7))
+                              : (AppTheme.isDark(context) ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7)),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: (item.price == null || item.price == 0)
-                                ? const Color(0xFFFDE68A)
-                                : const Color(0xFFBBF7D0),
+                                ? (AppTheme.isDark(context) ? const Color(0xFF92400E) : const Color(0xFFFDE68A))
+                                : (AppTheme.isDark(context) ? const Color(0xFF047857) : const Color(0xFFBBF7D0)),
                           ),
                         ),
                         child: Row(
@@ -937,21 +968,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                   : Icons.payments_outlined,
                               size: 11,
                               color: (item.price == null || item.price == 0)
-                                  ? const Color(0xFF92400E)
-                                  : const Color(0xFF166534),
+                                  ? (AppTheme.isDark(context) ? const Color(0xFFFDE68A) : const Color(0xFF92400E))
+                                  : (AppTheme.isDark(context) ? const Color(0xFF86EFAC) : const Color(0xFF166534)),
                             ),
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
-                                item.formattedPrice,
+                                item.getTrFormattedPrice(context),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 10,
                                   color: (item.price == null || item.price == 0)
-                                      ? const Color(0xFF92400E)
-                                      : const Color(0xFF166534),
+                                      ? (AppTheme.isDark(context) ? const Color(0xFFFDE68A) : const Color(0xFF92400E))
+                                      : (AppTheme.isDark(context) ? const Color(0xFF86EFAC) : const Color(0xFF166534)),
                                 ),
                               ),
                             ),
@@ -972,28 +1003,29 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBottomNavBar() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.3 : 0.06),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
         ],
+        border: Border(top: BorderSide(color: AppTheme.border(context), width: 0.5)),
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(0, Icons.home_rounded, 'Home'),
-              _buildNavItem(1, Icons.explore_rounded, 'Discover', filledIcon: Icons.explore),
-              _buildNavItem(2, Icons.grid_view_outlined, 'My Cards', filledIcon: Icons.grid_view_rounded),
-              _buildNavItem(3, Icons.map_outlined, 'Map', filledIcon: Icons.map_rounded),
-              _buildNavItem(4, Icons.person_outline_rounded, 'Profile', filledIcon: Icons.person_rounded),
+              Expanded(child: _buildNavItem(0, Icons.home_rounded, context.tr('home'))),
+              Expanded(child: _buildNavItem(1, Icons.explore_rounded, context.tr('discover'), filledIcon: Icons.explore)),
+              Expanded(child: _buildNavItem(2, Icons.grid_view_outlined, context.tr('my_cards'), filledIcon: Icons.grid_view_rounded)),
+              Expanded(child: _buildNavItem(3, Icons.map_outlined, context.tr('map'), filledIcon: Icons.map_rounded)),
+              Expanded(child: _buildNavItem(4, Icons.person_outline_rounded, context.tr('profile'), filledIcon: Icons.person_rounded)),
             ],
           ),
         ),
@@ -1003,42 +1035,45 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildNavItem(int index, IconData icon, String label, {IconData? filledIcon}) {
     final bool isActive = _selectedIndex == index;
-    const activeColor = Color(0xFF094943);
-    const inactiveColor = Color(0xFF64748B);
+    final activeColor = AppTheme.primary(context);
+    final inactiveColor = AppTheme.textSecondary(context);
 
     return InkWell(
       onTap: () => _onTabSelected(index),
       borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isActive && filledIcon != null)
               Container(
-                width: 34,
-                height: 34,
-                decoration: const BoxDecoration(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
                   color: activeColor,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   filledIcon,
-                  size: 20,
+                  size: 18,
                   color: Colors.white,
                 ),
               )
             else
               Icon(
                 icon,
-                size: 24,
+                size: 22,
                 color: isActive ? activeColor : inactiveColor,
               ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 10,
                 color: isActive ? activeColor : inactiveColor,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
               ),

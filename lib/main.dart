@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'core/app_language.dart';
+import 'core/app_theme.dart';
 import 'core/storage_service.dart';
 import 'splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await StorageService.init();
+  initTheme();
+  AppLanguage.initLanguage();
 
   runApp(const MyApp());
 }
@@ -14,18 +18,36 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'QuickMate',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF094943),
-          brightness: Brightness.light,
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF7F9F8),
-        useMaterial3: true,
-      ),
-      home: const SplashScreen(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeModeNotifier,
+      builder: (context, themeMode, child) {
+        return ValueListenableBuilder<Locale>(
+          valueListenable: appLocaleNotifier,
+          builder: (context, locale, child) {
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'QuickMate',
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: themeMode,
+              locale: locale,
+              supportedLocales: const [
+                Locale('en', ''),
+                Locale('hi', ''),
+                Locale('ml', ''),
+                Locale('ta', ''),
+                Locale('te', ''),
+                Locale('kn', ''),
+              ],
+              localizationsDelegates: const [
+                FallbackMaterialLocalizationsDelegate(),
+                FallbackCupertinoLocalizationsDelegate(),
+              ],
+              home: const SplashScreen(),
+            );
+          },
+        );
+      },
     );
   }
 }

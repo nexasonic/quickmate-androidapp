@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'core/app_dialogs.dart';
+import 'core/app_language.dart';
 import 'home_screen.dart';
 import 'services/auth_service.dart';
 
@@ -181,17 +182,17 @@ class _SignupScreenState extends State<SignupScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                "Already have an account? ",
-                                style: TextStyle(color: Colors.white70, fontSize: 13),
+                              Text(
+                                context.tr('already_have_account'),
+                                style: const TextStyle(color: Colors.white70, fontSize: 13),
                               ),
                               GestureDetector(
                                 onTap: () {
                                   Navigator.pop(context);
                                 },
-                                child: const Text(
-                                  'Login',
-                                  style: TextStyle(
+                                child: Text(
+                                  context.tr('login'),
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,

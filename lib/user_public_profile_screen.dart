@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'chat_detail_screen.dart';
 import 'core/api_config.dart';
 import 'core/app_dialogs.dart';
+import 'core/app_language.dart';
+import 'core/app_theme.dart';
 import 'core/api_service.dart';
 import 'login_screen.dart';
 import 'models/live_work_card_model.dart';
@@ -96,17 +98,17 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
         .trim();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppTheme.background(context),
       appBar: AppBar(
-        backgroundColor: primaryDark,
+        backgroundColor: AppTheme.appBarBg(context),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 26),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'User Profile',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          context.tr('user_profile'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
       body: _isLoading
@@ -215,9 +217,9 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                         );
                       },
                       icon: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
-                      label: const Text(
-                        'Start Chat',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      label: Text(
+                        context.tr('chat_now'),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryDark,
@@ -251,9 +253,9 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFE6F4F1),
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFC7F3E2)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         children: [
@@ -375,7 +377,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            isVerified ? 'VERIFIED' : 'NOT VERIFIED',
+                            isVerified ? context.tr('verified').toUpperCase() : context.tr('not_verified').toUpperCase(),
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -420,10 +422,10 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                     Expanded(
                       child: Text(
                         userName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF0F172A),
+                          color: AppTheme.textPrimary(context),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -464,23 +466,23 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                 const SizedBox(height: 2),
                 Text(
                   headline,
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondary(context)),
                 ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF64748B)),
+                    Icon(Icons.location_on_outlined, size: 14, color: AppTheme.textSecondary(context)),
                     const SizedBox(width: 2),
                     Text(
                       location,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context)),
                     ),
                     const SizedBox(width: 12),
                     const Icon(Icons.star_rounded, size: 14, color: Color(0xFFFFB800)),
                     const SizedBox(width: 2),
                     Text(
                       '${rating.toStringAsFixed(1)} ($reviewsCount ${reviewsCount == 1 ? 'review' : 'reviews'})',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)),
                     ),
                   ],
                 ),
@@ -525,18 +527,18 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppTheme.subtleBackground(context),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                      border: Border.all(color: AppTheme.border(context)),
                     ),
                     child: Text(
                       '"$tagline"',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontStyle: FontStyle.italic,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF094943),
+                        color: AppTheme.primary(context),
                       ),
                     ),
                   ),
@@ -597,9 +599,9 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1237,11 +1239,11 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
   Widget _buildQuickStatsRow(double rating, int reviewsCount, bool isVerified) {
     return Row(
       children: [
-        _buildStatCard('Reviews', '$reviewsCount'),
+        _buildStatCard(context.tr('reviews'), '$reviewsCount'),
         const SizedBox(width: 8),
-        _buildStatCard('Rating', '${rating.toStringAsFixed(1)} ★'),
+        _buildStatCard(context.tr('rating'), '${rating.toStringAsFixed(1)} ★'),
         const SizedBox(width: 8),
-        _buildStatCard('Provider Status', isVerified ? 'Verified ✔' : 'Not Verified'),
+        _buildStatCard(context.tr('provider_status'), isVerified ? context.tr('verified') : context.tr('not_verified')),
       ],
     );
   }
@@ -1251,21 +1253,21 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.surface(context),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AppTheme.border(context)),
         ),
         child: Column(
           children: [
             Text(
               value,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF094943)),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primary(context)),
             ),
             const SizedBox(height: 2),
             Text(
               label,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+              style: TextStyle(fontSize: 10, color: AppTheme.textSecondary(context)),
             ),
           ],
         ),
@@ -1284,24 +1286,24 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('About Me', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+          Text(context.tr('about_me'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
           const SizedBox(height: 6),
-          Text(bio, style: const TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.4)),
+          Text(bio, style: TextStyle(fontSize: 13, color: AppTheme.textSecondary(context), height: 1.4)),
           const SizedBox(height: 16),
 
           // Equal Size Grid Row 1
           Row(
             children: [
-              Expanded(child: _buildInfoBadge(Icons.access_time_rounded, '1 Year', 'Experience')),
+              Expanded(child: _buildInfoBadge(Icons.access_time_rounded, '1 Year', context.tr('experience'))),
               const SizedBox(width: 10),
-              Expanded(child: _buildInfoBadge(Icons.translate_rounded, 'English, Malayalam', 'Languages')),
+              Expanded(child: _buildInfoBadge(Icons.translate_rounded, 'English, Malayalam', context.tr('languages'))),
             ],
           ),
           const SizedBox(height: 10),
@@ -1309,9 +1311,9 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
           // Equal Size Grid Row 2
           Row(
             children: [
-              Expanded(child: _buildInfoBadge(Icons.location_on_outlined, location, 'Location')),
+              Expanded(child: _buildInfoBadge(Icons.location_on_outlined, location, context.tr('location'))),
               const SizedBox(width: 10),
-              Expanded(child: _buildInfoBadge(Icons.person_outline, gender, 'Gender')),
+              Expanded(child: _buildInfoBadge(Icons.person_outline, gender, context.tr('gender'))),
             ],
           ),
           const SizedBox(height: 10),
@@ -1319,15 +1321,19 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
           // Equal Size Grid Row 3
           Row(
             children: [
-              Expanded(child: _buildInfoBadge(Icons.cake_outlined, dob, 'Date of Birth')),
+              Expanded(child: _buildInfoBadge(Icons.cake_outlined, dob, context.tr('date_of_birth'))),
               const SizedBox(width: 10),
               Expanded(
                 child: _buildInfoBadge(
                   isVerified ? Icons.check_circle_rounded : Icons.gpp_bad_rounded,
-                  isVerified ? 'Verified ✔' : 'Not Verified',
-                  'Trust Status',
-                  iconColor: isVerified ? const Color(0xFF166534) : const Color(0xFFDC2626),
-                  valueColor: isVerified ? const Color(0xFF166534) : const Color(0xFFDC2626),
+                  isVerified ? context.tr('verified') : context.tr('not_verified'),
+                  context.tr('trust_status'),
+                  iconColor: isVerified
+                      ? (AppTheme.isDark(context) ? const Color(0xFF4ADE80) : const Color(0xFF166534))
+                      : (AppTheme.isDark(context) ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
+                  valueColor: isVerified
+                      ? (AppTheme.isDark(context) ? const Color(0xFF4ADE80) : const Color(0xFF166534))
+                      : (AppTheme.isDark(context) ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
                 ),
               ),
             ],
@@ -1338,22 +1344,26 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
   }
 
   Widget _buildInfoBadge(IconData icon, String value, String label, {Color? iconColor, Color? valueColor}) {
+    final primaryDark = AppTheme.primary(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: AppTheme.subtleBackground(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: iconColor != null ? iconColor.withValues(alpha: 0.12) : const Color(0xFFE6F4F1),
+              color: iconColor != null
+                  ? iconColor.withValues(alpha: 0.12)
+                  : (AppTheme.isDark(context) ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1)),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 16, color: iconColor ?? const Color(0xFF094943)),
+            child: Icon(icon, size: 16, color: iconColor ?? primaryDark),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -1366,14 +1376,14 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: valueColor ?? const Color(0xFF0F172A),
+                    color: valueColor ?? AppTheme.textPrimary(context),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   label,
-                  style: const TextStyle(fontSize: 9, color: Color(0xFF64748B)),
+                  style: TextStyle(fontSize: 9, color: AppTheme.textSecondary(context)),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1386,29 +1396,41 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
   }
 
   Widget _buildAvailabilityCard(Color primaryDark, String status, String hours) {
+    final isDark = AppTheme.isDark(context);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Availability', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+          Text(context.tr('availability'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(12)),
-            child: Text(status, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF166534))),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              context.tr('available_for_work'),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534),
+              ),
+            ),
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              const Icon(Icons.schedule_outlined, size: 16, color: Color(0xFF64748B)),
+              Icon(Icons.schedule_outlined, size: 16, color: AppTheme.textSecondary(context)),
               const SizedBox(width: 6),
-              Text(hours, style: const TextStyle(fontSize: 12, color: Color(0xFF334155))),
+              Text(hours, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context))),
             ],
           ),
         ],
@@ -1420,28 +1442,32 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Experience (${_experiences.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+          Text('Experience (${_experiences.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
           const SizedBox(height: 8),
           ..._experiences.map((exp) {
             return Container(
               margin: const EdgeInsets.only(top: 8),
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: AppTheme.subtleBackground(context),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.border(context)),
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(exp['job_title']?.toString() ?? 'Role', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        Text(exp['company']?.toString() ?? 'Company', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                        Text(exp['job_title']?.toString() ?? 'Role', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
+                        Text(exp['company']?.toString() ?? 'Company', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
                       ],
                     ),
                   ),
@@ -1458,28 +1484,32 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Education (${_educations.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+          Text('Education (${_educations.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
           const SizedBox(height: 8),
           ..._educations.map((edu) {
             return Container(
               margin: const EdgeInsets.only(top: 8),
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: AppTheme.subtleBackground(context),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.border(context)),
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(edu['degree']?.toString() ?? 'Degree', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        Text(edu['institution']?.toString() ?? 'Institution', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                        Text(edu['degree']?.toString() ?? 'Degree', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
+                        Text(edu['institution']?.toString() ?? 'Institution', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
                       ],
                     ),
                   ),
@@ -1493,25 +1523,35 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
   }
 
   Widget _buildSkillsSection(Color primaryDark) {
+    final isDark = AppTheme.isDark(context);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Skills & Expertise (${_skills.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+          Text('Skills & Expertise (${_skills.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: _skills.map((s) {
               return Chip(
-                label: Text(s['name']?.toString() ?? 'Skill', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF094943))),
-                backgroundColor: const Color(0xFFE6F4F1),
+                label: Text(
+                  s['name']?.toString() ?? 'Skill',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? const Color(0xFF2DD4BF) : primaryDark,
+                  ),
+                ),
+                backgroundColor: isDark ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
+                side: BorderSide(color: isDark ? const Color(0xFF115E59) : const Color(0xFFC7F3E2)),
               );
             }).toList(),
           ),
@@ -1529,14 +1569,14 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Contact Information', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+          Text('Contact Information', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
           const SizedBox(height: 12),
           _buildContactRow(Icons.email_outlined, 'Email Address', email),
           const SizedBox(height: 10),
@@ -1555,23 +1595,25 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
   }
 
   Widget _buildContactRow(IconData icon, String label, String value) {
+    final primaryDark = AppTheme.primary(context);
+
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFFE6F4F1),
+            color: AppTheme.isDark(context) ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, size: 16, color: const Color(0xFF094943)),
+          child: Icon(icon, size: 16, color: primaryDark),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-              Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+              Text(label, style: TextStyle(fontSize: 10, color: AppTheme.textSecondary(context))),
+              Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
             ],
           ),
         ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/app_dialogs.dart';
+import '../core/app_language.dart';
+import '../core/app_theme.dart';
 import '../login_screen.dart';
 import '../models/live_work_card_model.dart';
 import '../services/auth_service.dart';
@@ -120,12 +122,19 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Text(existing != null ? 'Edit Review' : 'Add Review'),
+            backgroundColor: AppTheme.surface(dialogContext),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(color: AppTheme.border(dialogContext)),
+            ),
+            title: Text(
+              existing != null ? context.tr('edit_review') : context.tr('add_review'),
+              style: TextStyle(color: AppTheme.textPrimary(dialogContext)),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Rate your experience:'),
+                Text(context.tr('rate_your_experience'), style: TextStyle(color: AppTheme.textSecondary(dialogContext))),
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -149,9 +158,18 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
                 TextField(
                   controller: reviewController,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    hintText: 'Write your feedback here...',
-                    border: OutlineInputBorder(),
+                  style: TextStyle(color: AppTheme.textPrimary(dialogContext)),
+                  decoration: InputDecoration(
+                    hintText: context.tr('write_feedback_hint'),
+                    hintStyle: TextStyle(color: AppTheme.textSecondary(dialogContext)),
+                    filled: true,
+                    fillColor: AppTheme.inputFill(dialogContext),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppTheme.border(dialogContext)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppTheme.primary(dialogContext), width: 1.5),
+                    ),
                   ),
                 ),
               ],
@@ -159,7 +177,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
+                child: Text(context.tr('cancel'), style: TextStyle(color: AppTheme.textSecondary(dialogContext))),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -244,7 +262,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
                         height: 18,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                       )
-                    : Text(existing != null ? 'Update Review' : 'Submit Review',
+                    : Text(existing != null ? context.tr('update_review') : context.tr('submit_review'),
                         style: const TextStyle(color: Colors.white)),
               ),
             ],
@@ -262,9 +280,9 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
     final isEditing = _hasUserReviewed;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppTheme.background(context),
       appBar: AppBar(
-        backgroundColor: primaryDark,
+        backgroundColor: AppTheme.appBarBg(context),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 26),
@@ -273,9 +291,9 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Ratings & Reviews',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            Text(
+              context.tr('reviews_ratings'),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
             ),
             Text(
               widget.cardTitle,
@@ -319,7 +337,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Reviews (${filteredList.length})',
+                  '${context.tr('reviews')} (${filteredList.length})',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -347,8 +365,12 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
                     GestureDetector(
                       onTap: _showAddOrEditReviewDialog,
                       child: Text(
-                        isEditing ? 'Edit My Review' : '+ Add Review',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryDark),
+                        isEditing ? context.tr('edit_review') : '+ ${context.tr('add_review')}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
+                        ),
                       ),
                     ),
                   ],
@@ -363,16 +385,17 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
                 padding: const EdgeInsets.all(30),
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppTheme.surface(context),
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppTheme.border(context)),
                 ),
                 child: Column(
-                  children: const [
-                    Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
-                    SizedBox(height: 12),
+                  children: [
+                    Icon(Icons.search_off_rounded, size: 48, color: AppTheme.textSecondary(context)),
+                    const SizedBox(height: 12),
                     Text(
                       'No reviews match your search.',
-                      style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -395,22 +418,22 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
   }
 
   Widget _buildRatingSummaryCard(int totalCount) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
     final counts = _starCounts;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.2 : 0.04),
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Row(
         children: [
@@ -419,7 +442,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
             children: [
               Text(
                 _computedAverageRating.toStringAsFixed(1),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 42,
                   fontWeight: FontWeight.w900,
                   color: primaryDark,
@@ -438,13 +461,13 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                '$totalCount ${totalCount == 1 ? 'review' : 'reviews'}',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                '$totalCount ${context.tr('reviews')}',
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context)),
               ),
             ],
           ),
           const SizedBox(width: 20),
-          const SizedBox(height: 90, child: VerticalDivider(width: 1, color: Color(0xFFE2E8F0))),
+          SizedBox(height: 90, child: VerticalDivider(width: 1, color: AppTheme.divider(context))),
           const SizedBox(width: 16),
 
           // Right: Star Rating Distribution Progress Bars
@@ -505,25 +528,26 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
       height: 46,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(23),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.search_rounded, color: Color(0xFF94A3B8), size: 20),
+          Icon(Icons.search_rounded, color: AppTheme.textSecondary(context), size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
               controller: _searchController,
+              style: TextStyle(color: AppTheme.textPrimary(context)),
               onChanged: (val) {
                 setState(() {
                   _searchQuery = val.trim();
                 });
               },
-              decoration: const InputDecoration(
-                hintText: 'Search reviews by keyword or reviewer...',
-                hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+              decoration: InputDecoration(
+                hintText: context.tr('search_reviews_hint'),
+                hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
                 border: InputBorder.none,
                 isDense: true,
               ),
@@ -549,7 +573,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _buildFilterChip(0, 'All Stars'),
+          _buildFilterChip(0, context.tr('all_stars')),
           const SizedBox(width: 8),
           _buildFilterChip(5, '5 ★'),
           const SizedBox(width: 8),
@@ -567,7 +591,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
 
   Widget _buildFilterChip(int star, String label) {
     final isSelected = _selectedFilterStar == star;
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     return InkWell(
       onTap: () {
@@ -579,10 +603,10 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? primaryDark : Colors.white,
+          color: isSelected ? primaryDark : AppTheme.surface(context),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? primaryDark : const Color(0xFFE2E8F0),
+            color: isSelected ? primaryDark : AppTheme.border(context),
           ),
         ),
         child: Text(
@@ -590,7 +614,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? Colors.white : const Color(0xFF475569),
+            color: isSelected ? Colors.white : AppTheme.textPrimary(context),
           ),
         ),
       ),
@@ -598,7 +622,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
   }
 
   Widget _buildReviewCardItem(CardReviewModel r) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
     final avatar = r.reviewerAvatar;
     final currentUser = AuthService.getStoredUser();
     final bool isMyReview = currentUser != null &&
@@ -610,16 +634,16 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.2 : 0.03),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
         ],
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -641,10 +665,10 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
                   children: [
                     Text(
                       r.reviewerName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF0F172A),
+                        color: AppTheme.textPrimary(context),
                       ),
                     ),
                     Row(
@@ -659,7 +683,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
                         const SizedBox(width: 6),
                         Text(
                           '${r.rating.toStringAsFixed(1)} ★',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)),
                         ),
                       ],
                     ),
@@ -668,14 +692,14 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
               ),
               if (isMyReview)
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 18, color: primaryDark),
+                  icon: Icon(Icons.edit_outlined, size: 18, color: primaryDark),
                   tooltip: 'Edit Review',
                   onPressed: () => _showAddOrEditReviewDialog(r),
                 )
               else if (r.createdAt != null)
                 Text(
                   r.createdAt!,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context)),
                 ),
             ],
           ),
@@ -684,12 +708,12 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: AppTheme.subtleBackground(context),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                'For: ${r.cardTitle}',
-                style: const TextStyle(fontSize: 11, color: Color(0xFF475569), fontWeight: FontWeight.w500),
+                '${context.tr('for')}: ${r.cardTitle}',
+                style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context), fontWeight: FontWeight.w500),
               ),
             ),
           ],
@@ -697,9 +721,9 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
             const SizedBox(height: 8),
             Text(
               r.review,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF334155),
+                color: AppTheme.textPrimary(context),
                 height: 1.4,
               ),
             ),

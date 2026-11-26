@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'chat_detail_screen.dart';
 import 'core/app_dialogs.dart';
+import 'core/app_language.dart';
+import 'core/app_theme.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 import 'models/live_work_card_model.dart';
@@ -108,11 +110,11 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
         builder: (context, setDialogState) {
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Text(existingReview != null ? 'Edit Review' : 'Add Review'),
+            title: Text(existingReview != null ? context.tr('edit_review') : context.tr('add_review')),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Rate your experience:'),
+                Text(context.tr('rate_your_experience')),
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -136,9 +138,9 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 TextField(
                   controller: reviewController,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    hintText: 'Write your feedback here...',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    hintText: context.tr('write_feedback_hint'),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
               ],
@@ -146,7 +148,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
+                child: Text(context.tr('cancel')),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -240,7 +242,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                         height: 18,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                       )
-                    : Text(existingReview != null ? 'Update Review' : 'Submit Review',
+                    : Text(existingReview != null ? context.tr('update_review') : context.tr('submit_review'),
                         style: const TextStyle(color: Colors.white)),
               ),
             ],
@@ -348,7 +350,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
     final images = _card.images.isNotEmpty
         ? _card.images
         : (_card.thumbnailUrl != null ? [_card.thumbnailUrl!] : <String>[]);
@@ -356,9 +358,9 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
     final owner = _card.user;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppTheme.background(context),
       appBar: AppBar(
-        backgroundColor: primaryDark,
+        backgroundColor: AppTheme.appBarBg(context),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 26),
@@ -366,14 +368,14 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
-              'View Card',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              context.tr('view_card'),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             Text(
-              'Live Work Card Details',
-              style: TextStyle(fontSize: 11, color: Colors.white70),
+              context.tr('live_work_card_details'),
+              style: const TextStyle(fontSize: 11, color: Colors.white70),
             ),
           ],
         ),
@@ -422,17 +424,19 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 Expanded(
                   child: Text(
                     _card.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
+                      color: AppTheme.textPrimary(context),
                     ),
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _card.isActive ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+                    color: _card.isActive
+                        ? (AppTheme.isDark(context) ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7))
+                        : (AppTheme.isDark(context) ? const Color(0xFF78350F) : const Color(0xFFFEF3C7)),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Row(
@@ -442,7 +446,9 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                         width: 7,
                         height: 7,
                         decoration: BoxDecoration(
-                          color: _card.isActive ? const Color(0xFF166534) : const Color(0xFF92400E),
+                          color: _card.isActive
+                              ? (AppTheme.isDark(context) ? const Color(0xFF4ADE80) : const Color(0xFF166534))
+                              : (AppTheme.isDark(context) ? const Color(0xFFFDE68A) : const Color(0xFF92400E)),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -452,7 +458,9 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: _card.isActive ? const Color(0xFF166534) : const Color(0xFF92400E),
+                          color: _card.isActive
+                              ? (AppTheme.isDark(context) ? const Color(0xFF4ADE80) : const Color(0xFF166534))
+                              : (AppTheme.isDark(context) ? const Color(0xFFFDE68A) : const Color(0xFF92400E)),
                         ),
                       ),
                     ],
@@ -466,21 +474,25 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFE6F4F1),
+                color: AppTheme.isDark(context) ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFC7F3E2)),
+                border: Border.all(color: AppTheme.isDark(context) ? const Color(0xFF115E59) : const Color(0xFFC7F3E2)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF094943)),
+                  Icon(
+                    Icons.access_time_rounded,
+                    size: 12,
+                    color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
+                  ),
                   const SizedBox(width: 5),
                   Text(
-                    'Updated ${_card.formattedTimeAgo}',
-                    style: const TextStyle(
+                    '${context.tr('updated')} ${_card.getTrFormattedTimeAgo(context)}',
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF094943),
+                      color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
                     ),
                   ),
                 ],
@@ -494,16 +506,24 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 const Icon(Icons.star_rounded, size: 18, color: Color(0xFFFFB800)),
                 const SizedBox(width: 4),
                 Text(
-                  '${_card.rating.toStringAsFixed(1)} (${_card.reviewsCount} ${_card.reviewsCount == 1 ? 'Review' : 'Reviews'})',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A)),
+                  '${_card.rating.toStringAsFixed(1)} (${_card.reviewsCount} ${context.tr('reviews')})',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context)),
                 ),
-                const SizedBox(height: 12, child: VerticalDivider(width: 16, color: Colors.grey)),
-                const Icon(Icons.location_on_outlined, size: 16, color: Color(0xFF094943)),
+                SizedBox(height: 12, child: VerticalDivider(width: 16, color: AppTheme.divider(context))),
+                Icon(
+                  Icons.location_on_outlined,
+                  size: 16,
+                  color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : const Color(0xFF094943),
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     '${_card.location ?? _card.user?.location ?? PresenceService.currentPlaceName} • ${_card.getFormattedDistance(PresenceService.currentLatitude, PresenceService.currentLongitude)}',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF094943)),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : const Color(0xFF094943),
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -743,46 +763,50 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   }
 
   Widget _buildPriceAndTypeBox() {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F7FF),
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFD0F2E5),
+              color: AppTheme.isDark(context) ? const Color(0xFF134E4A) : const Color(0xFFD0F2E5),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.account_balance_wallet_outlined, color: primaryDark, size: 22),
+            child: Icon(
+              Icons.account_balance_wallet_outlined,
+              color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'PRICE / RATE',
+                Text(
+                  context.tr('price_rate'),
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF64748B),
+                    color: AppTheme.textSecondary(context),
                     letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _card.formattedPrice,
-                  style: const TextStyle(
+                  _card.getTrFormattedPrice(context),
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: primaryDark,
+                    color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -790,35 +814,39 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 30, child: VerticalDivider(width: 20, color: Color(0xFFCBD5E1))),
+          SizedBox(height: 30, child: VerticalDivider(width: 20, color: AppTheme.divider(context))),
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFE0F2FE),
+              color: AppTheme.isDark(context) ? const Color(0xFF075985) : const Color(0xFFE0F2FE),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.calendar_today_outlined, color: Color(0xFF0284C7), size: 20),
+            child: Icon(
+              Icons.calendar_today_outlined,
+              color: AppTheme.isDark(context) ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Service Type',
+                Text(
+                  context.tr('service_type'),
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF64748B),
+                    color: AppTheme.textSecondary(context),
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   _card.category?.name ?? 'Driving',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
+                    color: AppTheme.textPrimary(context),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -832,13 +860,13 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   }
 
   Widget _buildChatAndDirectionsBar(BuildContext context, dynamic owner) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.black.withValues(alpha: 0.05))),
+        color: AppTheme.surface(context),
+        border: Border(top: BorderSide(color: AppTheme.border(context))),
       ),
       child: Row(
         children: [
@@ -891,13 +919,16 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                   );
                 },
                 icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 18),
-                label: const Text(
-                  'Chat Now',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                label: Text(
+                  context.tr('chat_now'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryDark,
                   elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
                 ),
               ),
@@ -909,13 +940,16 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
               height: 46,
               child: OutlinedButton.icon(
                 onPressed: _openDirections,
-                icon: const Icon(Icons.location_on_outlined, color: primaryDark, size: 18),
-                label: const Text(
-                  'Get Directions',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: primaryDark),
+                icon: Icon(Icons.location_on_outlined, color: primaryDark, size: 18),
+                label: Text(
+                  context.tr('get_directions'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryDark),
                 ),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: primaryDark, width: 1.5),
+                  side: BorderSide(color: primaryDark, width: 1.5),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
                 ),
               ),
@@ -929,9 +963,9 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   Widget _buildAboutSection() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         children: [
@@ -949,46 +983,54 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE0F2FE),
+                      color: AppTheme.isDark(context) ? const Color(0xFF075985) : const Color(0xFFE0F2FE),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.description_outlined, color: Color(0xFF0284C7), size: 20),
+                    child: Icon(
+                      Icons.description_outlined,
+                      color: AppTheme.isDark(context) ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'About This Work',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                        Text(
+                          context.tr('about_this_work'),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary(context),
+                          ),
                         ),
                         Text(
                           _card.description ?? 'Available in work',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context)),
                         ),
                       ],
                     ),
                   ),
                   Icon(
                     _isAboutExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                    color: const Color(0xFF64748B),
+                    color: AppTheme.textSecondary(context),
                   ),
                 ],
               ),
             ),
           ),
           if (_isAboutExpanded && _card.description != null) ...[
-            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            Divider(height: 1, color: AppTheme.divider(context)),
             Padding(
               padding: const EdgeInsets.all(14),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   _card.description!,
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF334155), height: 1.4),
+                  style: TextStyle(fontSize: 14, color: AppTheme.textSecondary(context), height: 1.4),
                 ),
               ),
             ),
@@ -999,22 +1041,22 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   }
 
   Widget _buildUserWhereIsBox() {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
     final userLocation = _card.location ?? _card.user?.location ?? PresenceService.currentPlaceName;
     final dist = _card.getFormattedDistance(PresenceService.currentLatitude, PresenceService.currentLongitude);
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFE6F4F1),
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFC7F3E2)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: primaryDark,
               shape: BoxShape.circle,
             ),
@@ -1027,12 +1069,12 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
               children: [
                 Row(
                   children: [
-                    const Text(
-                      'USER WHEREABOUTS',
+                    Text(
+                      context.tr('user_whereabouts'),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
-                        color: primaryDark,
+                        color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -1053,10 +1095,10 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 const SizedBox(height: 2),
                 Text(
                   '$userLocation • $dist',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
+                    color: AppTheme.textPrimary(context),
                   ),
                 ),
               ],
@@ -1068,7 +1110,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   }
 
   Widget _buildProviderCard(BuildContext context, dynamic owner) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
     final double userRating = (owner != null && owner.rating != null && owner.rating > 0)
         ? (owner.rating as num).toDouble()
         : (_card.rating > 0 ? _card.rating : 5.0);
@@ -1079,17 +1121,17 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Service Provider',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+        Text(
+          context.tr('service_provider'),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textSecondary(context)),
         ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFE6F4F1).withValues(alpha: 0.6),
+            color: AppTheme.surface(context),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFC7F3E2)),
+            border: Border.all(color: AppTheme.border(context)),
           ),
           child: Row(
             children: [
@@ -1113,10 +1155,10 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                         Flexible(
                           child: Text(
                             owner.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF0F172A),
+                              color: AppTheme.textPrimary(context),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1135,10 +1177,10 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                         const SizedBox(width: 3),
                         Text(
                           '${userRating.toStringAsFixed(1)} ($userReviewsCount ${userReviewsCount == 1 ? 'review' : 'reviews'})',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F172A),
+                            color: AppTheme.textPrimary(context),
                           ),
                         ),
                       ],
@@ -1146,12 +1188,12 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        const Icon(Icons.storefront_outlined, size: 12, color: Color(0xFF64748B)),
+                        Icon(Icons.storefront_outlined, size: 12, color: AppTheme.textSecondary(context)),
                         const SizedBox(width: 3),
                         Expanded(
                           child: Text(
                             owner.accountType != null ? owner.accountType!.toUpperCase() : 'MEMBER',
-                            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context)),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1171,15 +1213,26 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                     ),
                   );
                 },
-                icon: const Icon(Icons.person_outline_rounded, color: primaryDark, size: 15),
-                label: const Text(
-                  'View Profile',
-                  style: TextStyle(color: primaryDark, fontSize: 11, fontWeight: FontWeight.bold),
+                icon: Icon(
+                  Icons.person_outline_rounded,
+                  color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
+                  size: 15,
+                ),
+                label: Text(
+                  context.tr('view_profile'),
+                  style: TextStyle(
+                    color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
+                  backgroundColor: AppTheme.isDark(context) ? const Color(0xFF334155) : Colors.white,
                   elevation: 0,
-                  side: const BorderSide(color: primaryDark, width: 1.5),
+                  side: BorderSide(
+                    color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
+                    width: 1.5,
+                  ),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 ),
@@ -1266,7 +1319,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   }
 
   Widget _buildWorkGallerySection(List<String> images) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     final displayImages = images.isNotEmpty
         ? images
@@ -1287,14 +1340,14 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.collections_outlined, color: primaryDark, size: 20),
+                Icon(Icons.collections_outlined, color: primaryDark, size: 20),
                 const SizedBox(width: 6),
                 Text(
-                  'Work Gallery (${displayImages.length})',
-                  style: const TextStyle(
+                  '${context.tr('work_gallery')} (${displayImages.length})',
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
+                    color: AppTheme.textPrimary(context),
                   ),
                 ),
               ],
@@ -1302,12 +1355,20 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
             GestureDetector(
               onTap: () => _showFullImageViewer(displayImages, 0),
               child: Row(
-                children: const [
+                children: [
                   Text(
-                    'View All',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: primaryDark),
+                    context.tr('view_all'),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
+                    ),
                   ),
-                  Icon(Icons.arrow_forward_rounded, size: 14, color: primaryDark),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 14,
+                    color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
+                  ),
                 ],
               ),
             ),
@@ -1367,7 +1428,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   }
 
   Widget _buildReviewAndFavoriteRow() {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
     final isEditing = _hasUserReviewed;
 
     return Row(
@@ -1379,19 +1440,25 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
               onPressed: _showAddReviewDialog,
               icon: Icon(
                 isEditing ? Icons.edit_note_rounded : Icons.edit_outlined,
-                color: primaryDark,
+                color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
                 size: 18,
               ),
               label: Text(
-                isEditing ? 'Edit Review' : 'Add Review',
-                style: const TextStyle(
-                  fontSize: 13,
+                isEditing ? context.tr('edit_review') : context.tr('add_review'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: primaryDark,
+                  color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
                 ),
               ),
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: primaryDark, width: 1.5),
+                side: BorderSide(
+                  color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
+                  width: 1.5,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
               ),
             ),
@@ -1409,9 +1476,11 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 size: 18,
               ),
               label: Text(
-                _card.isFavorite ? 'Saved' : 'Save to Favorites',
+                _card.isFavorite ? context.tr('saved') : context.tr('save_to_favorites'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -1419,6 +1488,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _card.isFavorite ? const Color(0xFFEF4444) : primaryDark,
                 elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 6),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
               ),
             ),
@@ -1429,7 +1499,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   }
 
   Widget _buildReviewsSection() {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
     final reviews = _card.reviews;
     final displayReviews = reviews.take(2).toList();
 
@@ -1444,11 +1514,11 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 const Icon(Icons.star_rounded, color: Color(0xFFFFB800), size: 22),
                 const SizedBox(width: 4),
                 Text(
-                  'Card Reviews (${_card.reviewsCount > reviews.length ? _card.reviewsCount : reviews.length})',
-                  style: const TextStyle(
+                  '${context.tr('card_reviews')} (${_card.reviewsCount > reviews.length ? _card.reviewsCount : reviews.length})',
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
+                    color: AppTheme.textPrimary(context),
                   ),
                 ),
               ],
@@ -1471,13 +1541,21 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                   _fetchFullDetails();
                 },
                 child: Row(
-                  children: const [
+                  children: [
                     Text(
-                      'View All',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: primaryDark),
+                      context.tr('view_all'),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
+                      ),
                     ),
-                    SizedBox(width: 2),
-                    Icon(Icons.arrow_forward_rounded, size: 14, color: primaryDark),
+                    const SizedBox(width: 2),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 14,
+                      color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
+                    ),
                   ],
                 ),
               ),
@@ -1489,22 +1567,22 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
             padding: const EdgeInsets.all(20),
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.surface(context),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: AppTheme.border(context)),
             ),
             child: Column(
               children: [
-                const Icon(Icons.rate_review_outlined, color: Colors.grey, size: 36),
+                Icon(Icons.rate_review_outlined, color: AppTheme.textSecondary(context), size: 36),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'No reviews yet for this card.',
-                  style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Be the first to share your experience!',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  style: TextStyle(color: AppTheme.textSecondary(context), fontSize: 12),
                 ),
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
@@ -1528,16 +1606,16 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppTheme.surface(context),
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
+                      color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.2 : 0.03),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
                   ],
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: AppTheme.border(context)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1559,10 +1637,10 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                             children: [
                               Text(
                                 r.reviewerName,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF0F172A),
+                                  color: AppTheme.textPrimary(context),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1579,7 +1657,11 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                                   const SizedBox(width: 6),
                                   Text(
                                     '${r.rating.toStringAsFixed(1)} ★',
-                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.textPrimary(context),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1589,7 +1671,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                         if (r.createdAt != null && r.createdAt!.isNotEmpty)
                           Text(
                             r.createdAt!,
-                            style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                            style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context)),
                           ),
                       ],
                     ),
@@ -1597,9 +1679,9 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                       const SizedBox(height: 10),
                       Text(
                         r.review,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: Color(0xFF334155),
+                          color: AppTheme.textSecondary(context),
                           height: 1.4,
                         ),
                       ),
@@ -1616,28 +1698,29 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   Widget _buildBottomNavBar() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.3 : 0.06),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
         ],
+        border: Border(top: BorderSide(color: AppTheme.border(context), width: 0.5)),
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(0, Icons.home_rounded, 'Home'),
-              _buildNavItem(1, Icons.explore_rounded, 'Discover', filledIcon: Icons.explore),
-              _buildNavItem(2, Icons.grid_view_outlined, 'My Cards', filledIcon: Icons.grid_view_rounded),
-              _buildNavItem(3, Icons.map_outlined, 'Map', filledIcon: Icons.map_rounded),
-              _buildNavItem(4, Icons.person_outline_rounded, 'Profile', filledIcon: Icons.person_rounded),
+              Expanded(child: _buildNavItem(0, Icons.home_rounded, context.tr('home'))),
+              Expanded(child: _buildNavItem(1, Icons.explore_rounded, context.tr('discover'), filledIcon: Icons.explore)),
+              Expanded(child: _buildNavItem(2, Icons.grid_view_outlined, context.tr('my_cards'), filledIcon: Icons.grid_view_rounded)),
+              Expanded(child: _buildNavItem(3, Icons.map_outlined, context.tr('map'), filledIcon: Icons.map_rounded)),
+              Expanded(child: _buildNavItem(4, Icons.person_outline_rounded, context.tr('profile'), filledIcon: Icons.person_rounded)),
             ],
           ),
         ),
@@ -1647,42 +1730,45 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
 
   Widget _buildNavItem(int index, IconData icon, String label, {IconData? filledIcon}) {
     final bool isActive = _selectedNavIndex == index;
-    const activeColor = Color(0xFF094943);
-    const inactiveColor = Color(0xFF64748B);
+    final activeColor = AppTheme.primary(context);
+    final inactiveColor = AppTheme.textSecondary(context);
 
     return InkWell(
       onTap: () => _handleNavTap(index),
       borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isActive && filledIcon != null)
               Container(
-                width: 34,
-                height: 34,
-                decoration: const BoxDecoration(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
                   color: activeColor,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   filledIcon,
-                  size: 20,
+                  size: 18,
                   color: Colors.white,
                 ),
               )
             else
               Icon(
                 icon,
-                size: 24,
+                size: 22,
                 color: isActive ? activeColor : inactiveColor,
               ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 10,
                 color: isActive ? activeColor : inactiveColor,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
               ),

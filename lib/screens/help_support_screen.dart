@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/app_dialogs.dart';
+import '../core/app_language.dart';
+import '../core/app_theme.dart';
 
 class HelpSupportScreen extends StatefulWidget {
   const HelpSupportScreen({super.key});
@@ -12,26 +14,26 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   final TextEditingController _supportMsgController = TextEditingController();
   bool _isSending = false;
 
-  final List<Map<String, String>> _faqs = [
+  List<Map<String, String>> _getFaqs(BuildContext context) => [
     {
-      'question': 'How do I post a Live Work card?',
-      'answer': 'Go to "My Cards" tab on the bottom bar, tap the "+ Create Live Work Card" button at the top banner, fill in your service title, category, price, and description, and tap Submit!'
+      'question': context.tr('faq_q1'),
+      'answer': context.tr('faq_a1'),
     },
     {
-      'question': 'How does real-time chat work?',
-      'answer': 'When viewing any Live Work card detail page, tap the "Chat Now" button to directly message the card owner or service provider in real-time.'
+      'question': context.tr('faq_q2'),
+      'answer': context.tr('faq_a2'),
     },
     {
-      'question': 'How is location and distance calculated?',
-      'answer': 'Distance is calculated using the Haversine formula based on your location and the service provider card location, displayed in kilometers or meters.'
+      'question': context.tr('faq_q3'),
+      'answer': context.tr('faq_a3'),
     },
     {
-      'question': 'How do I save cards to my favorites?',
-      'answer': 'Tap the heart icon on any card or the "Save to Favorites" button on the card details page. You can view all saved cards anytime under Profile > Saved Cards.'
+      'question': context.tr('faq_q4'),
+      'answer': context.tr('faq_a4'),
     },
     {
-      'question': 'Is my personal contact information secure?',
-      'answer': 'Yes, QuickMate uses encrypted HTTPS API communication and secure authentication tokens to protect user data and privacy.'
+      'question': context.tr('faq_q5'),
+      'answer': context.tr('faq_a5'),
     },
   ];
 
@@ -49,7 +51,6 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         message: 'Please enter your query or message.',
         icon: Icons.warning_amber_rounded,
         iconColor: Colors.orange,
-        iconBgColor: const Color(0xFFFEF3C7),
       );
       return;
     }
@@ -73,20 +74,20 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppTheme.background(context),
       appBar: AppBar(
-        backgroundColor: primaryDark,
+        backgroundColor: AppTheme.appBarBg(context),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 26),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Help & Support',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          context.tr('help_support'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
       body: RefreshIndicator(
@@ -99,128 +100,144 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // FAQs Section
-            const Text(
-              'Frequently Asked Questions',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: primaryDark,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // FAQs Section
+              Text(
+                context.tr('faq'),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: primaryDark,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: ExpansionPanelList.radio(
-                elevation: 0,
-                children: _faqs.map((faq) {
-                  return ExpansionPanelRadio(
-                    value: faq['question']!,
-                    headerBuilder: (context, isExpanded) {
-                      return ListTile(
-                        title: Text(
-                          faq['question']!,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F172A),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppTheme.surface(context),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppTheme.border(context)),
+                ),
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    cardColor: AppTheme.surface(context),
+                    dividerColor: Colors.transparent,
+                  ),
+                  child: ExpansionPanelList.radio(
+                    elevation: 0,
+                    expandedHeaderPadding: EdgeInsets.zero,
+                    children: _getFaqs(context).map((faq) {
+                      return ExpansionPanelRadio(
+                        value: faq['question']!,
+                        headerBuilder: (context, isExpanded) {
+                          return ListTile(
+                            title: Text(
+                              faq['question']!,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary(context),
+                              ),
+                            ),
+                          );
+                        },
+                        body: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          child: Text(
+                            faq['answer']!,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.textSecondary(context),
+                              height: 1.4,
+                            ),
                           ),
                         ),
                       );
-                    },
-                    body: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      child: Text(
-                        faq['answer']!,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF475569),
-                          height: 1.4,
+                    }).toList(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Contact Support Section
+              Text(
+                context.tr('contact_support'),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: primaryDark,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.surface(context),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.2 : 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                  border: Border.all(color: AppTheme.border(context)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('have_question_prompt'),
+                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary(context)),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _supportMsgController,
+                      maxLines: 4,
+                      style: TextStyle(color: AppTheme.textPrimary(context)),
+                      decoration: InputDecoration(
+                        hintText: context.tr('describe_issue_hint'),
+                        hintStyle: TextStyle(color: AppTheme.textSecondary(context)),
+                        filled: true,
+                        fillColor: AppTheme.inputFill(context),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: AppTheme.border(context)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: primaryDark, width: 1.5),
                         ),
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Contact Support Section
-            const Text(
-              'Contact Support',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: primaryDark,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Have a question or issue? Write to us below:',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _supportMsgController,
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      hintText: 'Describe your issue or feedback...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: _isSending ? null : _sendSupportMessage,
+                        icon: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                        label: _isSending
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : Text(
+                                context.tr('submit'),
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                              ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryDark,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: _isSending ? null : _sendSupportMessage,
-                      icon: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
-                      label: _isSending
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                              'Submit Query',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryDark,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }

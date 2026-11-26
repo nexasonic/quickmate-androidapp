@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+import 'package:flutter/material.dart';
 import '../core/api_config.dart';
+import '../core/app_language.dart';
 import '../services/presence_service.dart';
 import 'category_model.dart';
 import 'user_model.dart';
@@ -221,6 +223,30 @@ class LiveWorkCardModel {
     return '$currency $pStr${priceUnit != null && priceUnit!.isNotEmpty ? ' / $priceUnit' : ''}';
   }
 
+  String getTrFormattedPrice(BuildContext context) {
+    if (price == null || price == 0) {
+      if (priceType != null && priceType!.isNotEmpty && priceType!.toLowerCase() != 'fixed') {
+        final pt = priceType!.toLowerCase();
+        if (pt.contains('negotiable')) return context.tr('negotiable');
+        if (pt.contains('hour')) return context.tr('per_hour');
+        if (pt.contains('day')) return context.tr('per_day');
+        return priceType!.toUpperCase();
+      }
+      return context.tr('negotiable');
+    }
+    final pStr = price! % 1 == 0 ? price!.toInt().toString() : price!.toStringAsFixed(2);
+    final pUnit = priceUnit?.toLowerCase() ?? '';
+    String unitSuffix = '';
+    if (pUnit.contains('hour') || pUnit.contains('hr')) {
+      unitSuffix = ' ${context.tr('per_hour')}';
+    } else if (pUnit.contains('day')) {
+      unitSuffix = ' ${context.tr('per_day')}';
+    } else if (priceUnit != null && priceUnit!.isNotEmpty) {
+      unitSuffix = ' / $priceUnit';
+    }
+    return '$currency $pStr$unitSuffix';
+  }
+
   String getFormattedDistance([double? userLat, double? userLng]) {
     final curLat = userLat ?? PresenceService.currentLatitude;
     final curLng = userLng ?? PresenceService.currentLongitude;
@@ -248,6 +274,72 @@ class LiveWorkCardModel {
 
     final locStr = location ?? user?.location;
     return (locStr != null && locStr.isNotEmpty) ? locStr : 'Nearby';
+  }
+
+  String getTrFormattedDistance(BuildContext context, [double? userLat, double? userLng]) {
+    final curLat = userLat ?? PresenceService.currentLatitude;
+    final curLng = userLng ?? PresenceService.currentLongitude;
+
+    final targetLat = latitude ?? user?.latitude;
+    final targetLng = longitude ?? user?.longitude;
+
+    double? km = distanceKm;
+
+    if ((km == null || km == 0) && curLat != 0 && curLng != 0 && targetLat != null && targetLng != null && targetLat != 0 && targetLng != 0) {
+      km = calculateDistanceKm(
+        lat1: curLat,
+        lon1: curLng,
+        lat2: targetLat,
+        lon2: targetLng,
+      );
+    }
+
+    if (km != null && km > 0) {
+      if (km < 1.0) {
+        return '${(km * 1000).round()} ${context.tr('meters_away')}';
+      }
+      return '${km.toStringAsFixed(1)} ${context.tr('km_away')}';
+    }
+
+    final locStr = location ?? user?.location;
+    return (locStr != null && locStr.isNotEmpty) ? locStr : context.tr('near_you');
+  }
+
+  String getTrFormattedTimeAgo(BuildContext context) {
+    final rawDateStr = updatedAt ?? createdAt;
+    if (rawDateStr == null || rawDateStr.isEmpty) return context.tr('just_now');
+
+    try {
+      final dt = DateTime.parse(rawDateStr).toLocal();
+      final diff = DateTime.now().difference(dt);
+
+      if (diff.inSeconds < 60) {
+        return context.tr('just_now');
+      } else if (diff.inMinutes < 60) {
+        return '${diff.inMinutes} ${context.tr('mins_ago')}';
+      } else if (diff.inHours < 24) {
+        return '${diff.inHours} ${context.tr('hours_ago')}';
+      } else if (diff.inDays < 30) {
+        return '${diff.inDays} ${context.tr('days_ago')}';
+      } else {
+        return '${(diff.inDays / 30).floor()} mo ago';
+      }
+    } catch (_) {
+      final str = rawDateStr.toLowerCase().trim();
+      if (str.contains('min') || str.contains('m ago')) {
+        final num = RegExp(r'\d+').stringMatch(str) ?? '1';
+        return '$num ${context.tr('mins_ago')}';
+      }
+      if (str.contains('hour') || str.contains('h ago')) {
+        final num = RegExp(r'\d+').stringMatch(str) ?? '1';
+        return '$num ${context.tr('hours_ago')}';
+      }
+      if (str.contains('day') || str.contains('d ago')) {
+        final num = RegExp(r'\d+').stringMatch(str) ?? '1';
+        return '$num ${context.tr('days_ago')}';
+      }
+      return str;
+    }
   }
 
   String get formattedDistance => getFormattedDistance();

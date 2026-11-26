@@ -4,6 +4,8 @@ import '../chat_detail_screen.dart';
 import '../core/api_config.dart';
 import '../core/api_service.dart';
 import '../core/app_dialogs.dart';
+import '../core/app_language.dart';
+import '../core/app_theme.dart';
 import '../login_screen.dart';
 import '../models/live_work_card_model.dart';
 import '../services/auth_service.dart';
@@ -70,24 +72,23 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
         message: response.message.isNotEmpty ? response.message : 'Unable to remove card.',
         icon: Icons.error_outline_rounded,
         iconColor: Colors.redAccent,
-        iconBgColor: const Color(0xFFFEE2E2),
       );
     }
   }
 
   Widget _buildGuestPromptScreen() {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppTheme.background(context),
       appBar: AppBar(
-        backgroundColor: primaryDark,
+        backgroundColor: AppTheme.appBarBg(context),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 26),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Saved Cards', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(context.tr('saved_cards'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
       body: Center(
         child: Padding(
@@ -97,22 +98,22 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(22),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE6F4F1),
+                decoration: BoxDecoration(
+                  color: AppTheme.isDark(context) ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.lock_outline_rounded, size: 54, color: primaryDark),
+                child: Icon(Icons.lock_outline_rounded, size: 54, color: primaryDark),
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Sign In Required',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Please sign in to view and access your bookmarked live work cards.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary(context), height: 1.4),
               ),
               const SizedBox(height: 28),
               SizedBox(
@@ -149,12 +150,12 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
       return _buildGuestPromptScreen();
     }
 
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppTheme.background(context),
       appBar: AppBar(
-        backgroundColor: primaryDark,
+        backgroundColor: AppTheme.appBarBg(context),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 26),
@@ -163,12 +164,12 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Saved Cards',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            Text(
+              context.tr('saved_cards'),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
             ),
             Text(
-              '${_savedCards.length} bookmarked live work listing${_savedCards.length == 1 ? '' : 's'}',
+              '${_savedCards.length} ${context.tr('saved_cards')}',
               style: const TextStyle(color: Colors.white70, fontSize: 11),
             ),
           ],
@@ -184,7 +185,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
         onRefresh: _fetchSavedCards,
         color: primaryDark,
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: primaryDark))
+            ? Center(child: CircularProgressIndicator(color: primaryDark))
             : _savedCards.isEmpty
                 ? _buildEmptyState()
                 : ListView.builder(
@@ -200,6 +201,8 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
   }
 
   Widget _buildEmptyState() {
+    final primaryDark = AppTheme.primary(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(30),
@@ -208,22 +211,22 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                color: Color(0xFFE6F4F1),
+              decoration: BoxDecoration(
+                color: AppTheme.isDark(context) ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.bookmark_border_rounded, size: 54, color: Color(0xFF094943)),
+              child: Icon(Icons.bookmark_border_rounded, size: 54, color: primaryDark),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'No saved cards yet',
-              style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 18),
+            Text(
+              context.tr('no_saved_cards'),
+              style: TextStyle(color: AppTheme.textPrimary(context), fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Bookmark live work listings you find interesting to easily view and contact providers anytime!',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Color(0xFF64748B), fontSize: 12, height: 1.4),
+              style: TextStyle(color: AppTheme.textSecondary(context), fontSize: 12, height: 1.4),
             ),
           ],
         ),
@@ -232,7 +235,8 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
   }
 
   Widget _buildInformativeSavedCardItem(LiveWorkCardModel card) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
+    final isDark = AppTheme.isDark(context);
     final coverImage = card.thumbnailUrl ?? (card.images.isNotEmpty ? card.images.first : null);
     final owner = card.user;
     final String providerName = owner?.name ?? 'Service Provider';
@@ -243,12 +247,12 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -273,13 +277,13 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                               coverImage,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) => Container(
-                                color: const Color(0xFFE2E8F0),
-                                child: const Icon(Icons.work_outline_rounded, color: Colors.grey, size: 30),
+                                color: AppTheme.subtleBackground(context),
+                                child: Icon(Icons.work_outline_rounded, color: AppTheme.textSecondary(context), size: 30),
                               ),
                             )
                           : Container(
-                              color: const Color(0xFFE2E8F0),
-                              child: const Icon(Icons.work_outline_rounded, color: Colors.grey, size: 30),
+                              color: AppTheme.subtleBackground(context),
+                              child: Icon(Icons.work_outline_rounded, color: AppTheme.textSecondary(context), size: 30),
                             ),
                     ),
 
@@ -351,10 +355,10 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                               Flexible(
                                 child: Text(
                                   providerName,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF0F172A),
+                                    color: AppTheme.textPrimary(context),
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -372,11 +376,15 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                           onTap: () => _removeBookmark(card),
                           child: Container(
                             padding: const EdgeInsets.all(5),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFEE2E2),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.bookmark_remove_rounded, color: Color(0xFFDC2626), size: 15),
+                            child: Icon(
+                              Icons.bookmark_remove_rounded,
+                              color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
+                              size: 15,
+                            ),
                           ),
                         ),
                       ],
@@ -386,10 +394,10 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                     // Task Title
                     Text(
                       card.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF0F172A),
+                        color: AppTheme.textPrimary(context),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -402,12 +410,12 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE6F4F1),
+                            color: isDark ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            card.formattedPrice,
-                            style: const TextStyle(
+                            card.getTrFormattedPrice(context),
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                               color: primaryDark,
@@ -419,8 +427,10 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: card.isExpired
-                                ? const Color(0xFFFEE2E2)
-                                : (card.isPaused ? const Color(0xFFFEF3C7) : const Color(0xFFDCFCE7)),
+                                ? (isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2))
+                                : (card.isPaused
+                                    ? (isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7))
+                                    : (isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7))),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -429,8 +439,10 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
                               color: card.isExpired
-                                  ? const Color(0xFFDC2626)
-                                  : (card.isPaused ? const Color(0xFFD97706) : const Color(0xFF166534)),
+                                  ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                  : (card.isPaused
+                                      ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))
+                                      : (isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534))),
                             ),
                           ),
                         ),
@@ -441,12 +453,12 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                     // Location & Rating Row
                     Row(
                       children: [
-                        const Icon(Icons.location_on_outlined, size: 13, color: Color(0xFF64748B)),
+                        Icon(Icons.location_on_outlined, size: 13, color: AppTheme.textSecondary(context)),
                         const SizedBox(width: 2),
                         Expanded(
                           child: Text(
-                            card.formattedDistance,
-                            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            card.getTrFormattedDistance(context),
+                            style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context)),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -455,7 +467,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                         const SizedBox(width: 2),
                         Text(
                           card.rating > 0 ? card.rating.toStringAsFixed(1) : 'New',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)),
                         ),
                       ],
                     ),
@@ -465,7 +477,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          Divider(height: 1, color: AppTheme.divider(context)),
           const SizedBox(height: 10),
 
           // Action Buttons Row (View Card & Chat Provider)
@@ -482,9 +494,9 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                       );
                     },
                     icon: const Icon(Icons.visibility_outlined, size: 15, color: Colors.white),
-                    label: const Text(
-                      'View Card',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                    label: Text(
+                      context.tr('view_card'),
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryDark,
@@ -506,7 +518,6 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                           message: 'Please sign in to start a chat with this provider.',
                           icon: Icons.lock_outline_rounded,
                           iconColor: Colors.orange,
-                          iconBgColor: const Color(0xFFFEF3C7),
                         );
                         final result = await Navigator.push(
                           context,
@@ -532,13 +543,13 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                         ),
                       );
                     },
-                    icon: const Icon(Icons.chat_bubble_outline_rounded, size: 15, color: primaryDark),
-                    label: const Text(
-                      'Chat Provider',
+                    icon: Icon(Icons.chat_bubble_outline_rounded, size: 15, color: primaryDark),
+                    label: Text(
+                      context.tr('chat_now'),
                       style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryDark),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: primaryDark, width: 1.2),
+                      side: BorderSide(color: primaryDark, width: 1.2),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),

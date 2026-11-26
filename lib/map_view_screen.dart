@@ -5,6 +5,8 @@ import 'card_detail_screen.dart';
 import 'chat_list_screen.dart';
 import 'core/api_config.dart';
 import 'core/api_service.dart';
+import 'core/app_language.dart';
+import 'core/app_theme.dart';
 import 'models/live_work_card_model.dart';
 import 'my_cards_screen.dart';
 import 'services/auth_service.dart';
@@ -397,10 +399,10 @@ class MapViewScreenState extends State<MapViewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppTheme.background(context),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _fetchMapPins,
@@ -417,28 +419,33 @@ class MapViewScreenState extends State<MapViewScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              'Map View',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: primaryDark,
-                                height: 1.1,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                context.tr('map_view'),
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textPrimary(context),
+                                  height: 1.1,
+                                ),
                               ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Real-time live worker radar',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF64748B),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Real-time live worker radar',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppTheme.textSecondary(context),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Row(
                           children: [
                             // Top Chat Icon Button
@@ -453,7 +460,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: AppTheme.surface(context),
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
@@ -462,7 +469,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                                     ),
                                   ],
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.chat_bubble_outline_rounded,
                                   color: primaryDark,
                                   size: 20,
@@ -486,7 +493,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                                     ),
                                   ],
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.refresh_rounded,
                                   color: primaryDark,
                                   size: 22,
@@ -502,7 +509,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                   // Real Interactive OpenStreetMap Canvas
                   Expanded(
                     child: _isLoading
-                        ? const Center(child: CircularProgressIndicator(color: primaryDark))
+                        ? Center(child: CircularProgressIndicator(color: primaryDark))
                         : Stack(
                             children: [
                               FlutterMap(
@@ -668,12 +675,12 @@ class MapViewScreenState extends State<MapViewScreen> {
                                     ],
                                   ),
                                   child: Row(
-                                    children: const [
-                                      Icon(Icons.circle, color: Color(0xFF10B981), size: 10),
-                                      SizedBox(width: 8),
+                                    children: [
+                                      const Icon(Icons.circle, color: Color(0xFF10B981), size: 10),
+                                      const SizedBox(width: 8),
                                       Text(
-                                        'Live Workers Radar',
-                                        style: TextStyle(
+                                        context.tr('live_workers_radar'),
+                                        style: const TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.bold,
                                           color: Color(0xFF0F172A),
@@ -705,7 +712,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                                             ),
                                           ],
                                         ),
-                                        child: const Icon(Icons.my_location_rounded, color: primaryDark, size: 20),
+                                        child: Icon(Icons.my_location_rounded, color: primaryDark, size: 20),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -724,11 +731,11 @@ class MapViewScreenState extends State<MapViewScreen> {
                                           ],
                                         ),
                                         child: Row(
-                                          children: const [
+                                          children: [
                                             Icon(Icons.aspect_ratio_rounded, color: primaryDark, size: 18),
-                                            SizedBox(width: 4),
+                                            const SizedBox(width: 4),
                                             Text(
-                                              'Fit',
+                                              context.tr('fit'),
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.bold,
@@ -811,7 +818,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                                           const Icon(Icons.push_pin_rounded, color: Colors.pinkAccent, size: 14),
                                           const SizedBox(width: 4),
                                           Text(
-                                            '${PresenceService.currentPlaceName} Radius',
+                                            '${PresenceService.currentPlaceName} ${context.tr('radius')}',
                                             style: const TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.bold,
@@ -822,7 +829,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        '${_pins.length} ${_pins.length == 1 ? 'card' : 'cards'} available nearby',
+                                        '${_pins.length} ${context.tr('cards_available_nearby')}',
                                         style: const TextStyle(
                                           fontSize: 11,
                                           color: Color(0xFF64748B),
@@ -854,21 +861,22 @@ class MapViewScreenState extends State<MapViewScreen> {
   }
 
   Widget _buildSelectedGroupCards(UserMapPinGroup group) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
     final isYou = group.isCurrentUser || group.userName == 'YOU';
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
+            color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.4 : 0.12),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
         ],
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -901,8 +909,8 @@ class MapViewScreenState extends State<MapViewScreen> {
                         children: [
                           Text(
                             isYou
-                                ? 'YOU (${group.cardCount} ${group.cardCount == 1 ? 'Card' : 'Cards'})'
-                                : '${group.userName} (${group.cardCount} ${group.cardCount == 1 ? 'Card' : 'Cards'})',
+                                ? '${context.tr('you')} (${group.cardCount} ${context.tr('cards')})'
+                                : '${group.userName} (${group.cardCount} ${context.tr('cards')})',
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
@@ -917,9 +925,9 @@ class MapViewScreenState extends State<MapViewScreen> {
                                 color: const Color(0xFF10B981),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Text(
-                                'Your Location',
-                                style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.white),
+                              child: Text(
+                                context.tr('your_location'),
+                                style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.white),
                               ),
                             ),
                           ],
@@ -928,7 +936,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                       const SizedBox(height: 1),
                       Text(
                         isYou
-                            ? 'Live Location: ${PresenceService.currentPlaceName}'
+                            ? '${context.tr('live_location')}: ${PresenceService.currentPlaceName}'
                             : '${group.latitude.toStringAsFixed(4)}, ${group.longitude.toStringAsFixed(4)}',
                         style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
                       ),
@@ -960,12 +968,12 @@ class MapViewScreenState extends State<MapViewScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline_rounded, color: primaryDark, size: 20),
+                  Icon(Icons.info_outline_rounded, color: primaryDark, size: 20),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'You have no active work cards posted on the map.',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF0F172A), fontWeight: FontWeight.w500),
+                      context.tr('no_cards_posted_map'),
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF0F172A), fontWeight: FontWeight.w500),
                     ),
                   ),
                   ElevatedButton(
@@ -980,9 +988,9 @@ class MapViewScreenState extends State<MapViewScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text(
-                      '+ Create Card',
-                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    child: Text(
+                      '+ ${context.tr('create_card')}',
+                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],

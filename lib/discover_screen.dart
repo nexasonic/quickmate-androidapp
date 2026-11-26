@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'card_detail_screen.dart';
 import 'chat_list_screen.dart';
 import 'core/app_dialogs.dart';
+import 'core/app_language.dart';
+import 'core/app_theme.dart';
 import 'models/category_model.dart';
 import 'models/live_work_card_model.dart';
 import 'models/user_model.dart';
@@ -38,6 +40,21 @@ class DiscoverScreenState extends State<DiscoverScreen> {
   List<CategoryModel> _categories = [];
   List<LiveWorkCardModel> _cards = [];
   UserModel? _currentUser;
+
+  String _getTranslatedSort(String sortOption) {
+    switch (sortOption) {
+      case 'Nearest':
+        return context.tr('sort_nearest');
+      case 'Top Rated':
+        return context.tr('sort_top_rated');
+      case 'Price: Low to High':
+        return context.tr('sort_price_low_high');
+      case 'Price: High to Low':
+        return context.tr('sort_price_high_low');
+      default:
+        return '${context.tr('sort')}: $sortOption';
+    }
+  }
 
   final List<String> _sortOptions = [
     'Nearest',
@@ -248,10 +265,10 @@ class DiscoverScreenState extends State<DiscoverScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppTheme.background(context),
       body: Stack(
         children: [
           SafeArea(
@@ -286,12 +303,12 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                       children: [
                         Text(
                           _selectedCategory != null
-                              ? '${_selectedCategory!.name} Live Works'
-                              : 'Recommended Live Works',
-                          style: const TextStyle(
+                              ? '${_selectedCategory!.name} ${context.tr('live_work')}'
+                              : context.tr('recommended_live_works'),
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E293B),
+                            color: AppTheme.textPrimary(context),
                             letterSpacing: -0.3,
                           ),
                         ),
@@ -318,8 +335,8 @@ class DiscoverScreenState extends State<DiscoverScreen> {
 
                     // Grid or Empty State
                     if (_isLoading)
-                      const Padding(
-                        padding: EdgeInsets.all(40),
+                      Padding(
+                        padding: const EdgeInsets.all(40),
                         child: Center(
                           child: CircularProgressIndicator(color: primaryDark),
                         ),
@@ -329,17 +346,18 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                         padding: const EdgeInsets.all(40),
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppTheme.surface(context),
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppTheme.border(context)),
                         ),
                         child: Column(
-                          children: const [
-                            Icon(Icons.work_off_outlined, size: 50, color: Colors.grey),
-                            SizedBox(height: 12),
+                          children: [
+                            Icon(Icons.work_off_outlined, size: 50, color: AppTheme.textSecondary(context)),
+                            const SizedBox(height: 12),
                             Text(
-                              'No Live Work cards match your criteria.',
+                              context.tr('no_cards_match_criteria'),
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -351,7 +369,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                         itemCount: _cards.length,
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
-                          childAspectRatio: 0.70,
+                          childAspectRatio: 0.57,
                           crossAxisSpacing: 14,
                           mainAxisSpacing: 14,
                         ),
@@ -406,36 +424,41 @@ class DiscoverScreenState extends State<DiscoverScreen> {
   }
 
   Widget _buildHeader() {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
     final avatarUrl = _currentUser?.avatarUrl;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'Discover',
-              style: TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-                color: primaryDark,
-                height: 1.1,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                context.tr('discover'),
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary(context),
+                  height: 1.1,
+                ),
               ),
-            ),
-            SizedBox(height: 4),
-            Text(
-              'Find active live work cards near you',
-              style: TextStyle(
-                fontSize: 13,
-                color: Color(0xFF64748B),
-                fontWeight: FontWeight.w400,
+              const SizedBox(height: 4),
+              Text(
+                context.tr('find_active_live_works'),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppTheme.textSecondary(context),
+                  fontWeight: FontWeight.w400,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        const SizedBox(width: 8),
         Row(
           children: [
             GestureDetector(
@@ -449,11 +472,11 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: AppTheme.subtleBackground(context),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+                  border: Border.all(color: AppTheme.border(context)),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.chat_bubble_outline_rounded,
                   color: primaryDark,
                   size: 20,
@@ -465,16 +488,16 @@ class DiscoverScreenState extends State<DiscoverScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: AppTheme.subtleBackground(context),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+                border: Border.all(color: AppTheme.border(context)),
               ),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.notifications_none_rounded,
-                    color: Color(0xFF334155),
+                    color: AppTheme.textSecondary(context),
                     size: 20,
                   ),
                   Positioned(
@@ -522,28 +545,29 @@ class DiscoverScreenState extends State<DiscoverScreen> {
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.2 : 0.04),
             blurRadius: 14,
             offset: const Offset(0, 3),
           ),
         ],
-        border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.search_rounded,
-            color: Color(0xFF94A3B8),
+            color: AppTheme.textSecondary(context),
             size: 22,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
               controller: _searchController,
+              style: TextStyle(color: AppTheme.textPrimary(context)),
               onSubmitted: (_) {
                 _debounceTimer?.cancel();
                 _fetchCards();
@@ -551,10 +575,10 @@ class DiscoverScreenState extends State<DiscoverScreen> {
               onChanged: (val) {
                 _onSearchChanged(val);
               },
-              decoration: const InputDecoration(
-                hintText: 'Search Live Work cards...',
+              decoration: InputDecoration(
+                hintText: context.tr('search_cards_placeholder'),
                 hintStyle: TextStyle(
-                  color: Color(0xFF94A3B8),
+                  color: AppTheme.textSecondary(context),
                   fontSize: 13,
                   fontWeight: FontWeight.w400,
                 ),
@@ -583,9 +607,9 @@ class DiscoverScreenState extends State<DiscoverScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Categories',
-          style: TextStyle(
+        Text(
+          context.tr('categories'),
+          style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.bold,
             color: Color(0xFF64748B),
@@ -609,18 +633,18 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                   margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _selectedCategory == null ? primaryDark : Colors.white,
+                    color: _selectedCategory == null ? primaryDark : AppTheme.surface(context),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: _selectedCategory == null ? primaryDark : const Color(0xFFE2E8F0),
+                      color: _selectedCategory == null ? primaryDark : AppTheme.border(context),
                     ),
                   ),
                   child: Text(
-                    'All',
+                    context.tr('all'),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: _selectedCategory == null ? Colors.white : const Color(0xFF334155),
+                      color: _selectedCategory == null ? Colors.white : AppTheme.textPrimary(context),
                     ),
                   ),
                 ),
@@ -640,10 +664,10 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                     margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isSelected ? primaryDark : Colors.white,
+                      color: isSelected ? primaryDark : AppTheme.surface(context),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isSelected ? primaryDark : const Color(0xFFE2E8F0),
+                        color: isSelected ? primaryDark : AppTheme.border(context),
                       ),
                     ),
                     child: Text(
@@ -651,7 +675,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                        color: isSelected ? Colors.white : const Color(0xFF334155),
+                        color: isSelected ? Colors.white : AppTheme.textPrimary(context),
                       ),
                     ),
                   ),
@@ -669,7 +693,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
       children: [
         _buildFilterPill(
           icon: Icons.swap_vert_rounded,
-          label: 'Sort: $_selectedSort',
+          label: _getTranslatedSort(_selectedSort),
           hasDropdown: true,
           iconColor: const Color(0xFF094943),
           onTap: () {
@@ -695,16 +719,16 @@ class DiscoverScreenState extends State<DiscoverScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.surface(context),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.2 : 0.03),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
           ],
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AppTheme.border(context)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -713,18 +737,18 @@ class DiscoverScreenState extends State<DiscoverScreen> {
             const SizedBox(width: 4),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1E293B),
+                color: AppTheme.textPrimary(context),
               ),
             ),
             if (hasDropdown) ...[
               const SizedBox(width: 4),
-              const Icon(
+              Icon(
                 Icons.keyboard_arrow_down_rounded,
                 size: 16,
-                color: Color(0xFF64748B),
+                color: AppTheme.textSecondary(context),
               ),
             ],
           ],
@@ -734,24 +758,23 @@ class DiscoverScreenState extends State<DiscoverScreen> {
   }
 
   Widget _buildServiceCard(LiveWorkCardModel item) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
     final image = item.thumbnailUrl ?? (item.images.isNotEmpty ? item.images.first : null);
     final isOnline = item.user?.isOnline ?? item.isActive;
     final userName = item.user?.name ?? item.title;
-    final distStr = item.getFormattedDistance(PresenceService.currentLatitude, PresenceService.currentLongitude);
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.2 : 0.04),
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -803,7 +826,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        isOnline ? 'Online' : item.formattedLastSeen,
+                        isOnline ? context.tr('online') : item.formattedLastSeen,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 9,
@@ -863,10 +886,10 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                               userName.toUpperCase(),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w900,
                                 fontSize: 12,
-                                color: Color(0xFF0F172A),
+                                color: AppTheme.textPrimary(context),
                                 letterSpacing: 0.3,
                               ),
                             ),
@@ -886,27 +909,27 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                           const SizedBox(width: 2),
                           Text(
                             '${item.rating}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 10,
-                              color: Color(0xFF0F172A),
+                              color: AppTheme.textPrimary(context),
                             ),
                           ),
                           const SizedBox(width: 2),
                           Text(
                             ' (${item.reviewsCount})',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 9,
-                              color: Color(0xFF64748B),
+                              color: AppTheme.textSecondary(context),
                             ),
                           ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               '• ${item.category?.name ?? "Driving"}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
-                                color: Color(0xFF64748B),
+                                color: AppTheme.textSecondary(context),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -920,23 +943,29 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE6F4F1),
+                          color: AppTheme.isDark(context) ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFC7F3E2)),
+                          border: Border.all(
+                            color: AppTheme.isDark(context) ? const Color(0xFF115E59) : const Color(0xFFC7F3E2),
+                          ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.bolt_rounded, size: 12, color: primaryDark),
+                            Icon(
+                              Icons.bolt_rounded,
+                              size: 12,
+                              color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
+                            ),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 item.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: primaryDark,
+                                  color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
                                 ),
                               ),
                             ),
@@ -948,14 +977,14 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                       // Card Updated Time Subtitle
                       Row(
                         children: [
-                          const Icon(Icons.access_time_rounded, size: 10, color: Color(0xFF64748B)),
+                          Icon(Icons.access_time_rounded, size: 10, color: AppTheme.textSecondary(context)),
                           const SizedBox(width: 3),
                           Text(
-                            item.formattedTimeAgo,
-                            style: const TextStyle(
+                            item.getTrFormattedTimeAgo(context),
+                            style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF64748B),
+                              color: AppTheme.textSecondary(context),
                             ),
                           ),
                         ],
@@ -965,16 +994,20 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                       // Location & Calculated Distance
                       Row(
                         children: [
-                          const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF094943)),
+                          Icon(
+                            Icons.location_on_outlined,
+                            size: 12,
+                            color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : const Color(0xFF094943),
+                          ),
                           const SizedBox(width: 3),
                           Expanded(
                             child: Text(
-                              '${item.location ?? item.user?.location ?? PresenceService.currentPlaceName} • $distStr',
+                              '${item.location ?? item.user?.location ?? PresenceService.currentPlaceName} • ${item.getTrFormattedDistance(context, PresenceService.currentLatitude, PresenceService.currentLongitude)}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 9,
-                                color: Color(0xFF094943),
+                                color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : const Color(0xFF094943),
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -988,13 +1021,13 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: (item.price == null || item.price == 0)
-                              ? const Color(0xFFFEF3C7)
-                              : const Color(0xFFDCFCE7),
+                              ? (AppTheme.isDark(context) ? const Color(0xFF78350F) : const Color(0xFFFEF3C7))
+                              : (AppTheme.isDark(context) ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7)),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: (item.price == null || item.price == 0)
-                                ? const Color(0xFFFDE68A)
-                                : const Color(0xFFBBF7D0),
+                                ? (AppTheme.isDark(context) ? const Color(0xFF92400E) : const Color(0xFFFDE68A))
+                                : (AppTheme.isDark(context) ? const Color(0xFF047857) : const Color(0xFFBBF7D0)),
                           ),
                         ),
                         child: Row(
@@ -1006,21 +1039,21 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                                   : Icons.payments_outlined,
                               size: 11,
                               color: (item.price == null || item.price == 0)
-                                  ? const Color(0xFF92400E)
-                                  : const Color(0xFF166534),
+                                  ? (AppTheme.isDark(context) ? const Color(0xFFFDE68A) : const Color(0xFF92400E))
+                                  : (AppTheme.isDark(context) ? const Color(0xFF86EFAC) : const Color(0xFF166534)),
                             ),
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
-                                item.formattedPrice,
+                                item.getTrFormattedPrice(context),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 10,
                                   color: (item.price == null || item.price == 0)
-                                      ? const Color(0xFF92400E)
-                                      : const Color(0xFF166534),
+                                      ? (AppTheme.isDark(context) ? const Color(0xFFFDE68A) : const Color(0xFF92400E))
+                                      : (AppTheme.isDark(context) ? const Color(0xFF86EFAC) : const Color(0xFF166534)),
                                 ),
                               ),
                             ),
@@ -1039,19 +1072,20 @@ class DiscoverScreenState extends State<DiscoverScreen> {
   }
 
   Widget _buildSortBottomSheet() {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
+            color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.4 : 0.12),
             blurRadius: 30,
             offset: const Offset(0, -6),
           ),
         ],
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: SafeArea(
         top: false,
@@ -1064,7 +1098,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFCBD5E1),
+                  color: AppTheme.border(context),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1072,12 +1106,12 @@ class DiscoverScreenState extends State<DiscoverScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Sort By',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
+                      color: AppTheme.textPrimary(context),
                     ),
                   ),
                   GestureDetector(
@@ -1136,7 +1170,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                             ),
                           ),
                           if (isSelected)
-                            const Icon(
+                            Icon(
                               Icons.check_circle_rounded,
                               color: primaryDark,
                               size: 20,

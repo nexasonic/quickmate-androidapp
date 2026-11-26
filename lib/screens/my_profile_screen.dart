@@ -7,6 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/api_config.dart';
 import '../core/api_service.dart';
 import '../core/app_dialogs.dart';
+import '../core/app_language.dart';
+import '../core/app_theme.dart';
 import '../login_screen.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
@@ -169,10 +171,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           children: [
             TextSpan(
               text: label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF1E293B),
+                color: AppTheme.textPrimary(context),
               ),
             ),
             if (isRequired)
@@ -187,8 +189,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             if (optionalText != null)
               TextSpan(
                 text: ' ($optionalText)',
-                style: const TextStyle(
-                  color: Color(0xFF94A3B8),
+                style: TextStyle(
+                  color: AppTheme.textSecondary(context),
                   fontSize: 12,
                   fontWeight: FontWeight.normal,
                 ),
@@ -216,21 +218,21 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       onTap: onTap,
       keyboardType: keyboardType,
       onChanged: onChanged,
-      style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
+      style: TextStyle(fontSize: 14, color: AppTheme.textPrimary(context)),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+        hintStyle: TextStyle(color: AppTheme.textSecondary(context), fontSize: 13),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppTheme.inputFill(context),
         suffixIcon: suffixIcon,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+          borderSide: BorderSide(color: AppTheme.border(context)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF094943), width: 1.5),
+          borderSide: BorderSide(color: AppTheme.primary(context), width: 1.5),
         ),
       ),
     );
@@ -246,21 +248,22 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       initialValue: value,
       items: items,
       onChanged: onChanged,
-      style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
-      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B)),
+      dropdownColor: AppTheme.surface(context),
+      style: TextStyle(fontSize: 14, color: AppTheme.textPrimary(context)),
+      icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textSecondary(context)),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+        hintStyle: TextStyle(color: AppTheme.textSecondary(context), fontSize: 13),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppTheme.inputFill(context),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+          borderSide: BorderSide(color: AppTheme.border(context)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF094943), width: 1.5),
+          borderSide: BorderSide(color: AppTheme.primary(context), width: 1.5),
         ),
       ),
     );
@@ -280,10 +283,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF094943),
-              onPrimary: Colors.white,
-              onSurface: Color(0xFF0F172A),
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: AppTheme.primary(context),
+              brightness: AppTheme.isDark(context) ? Brightness.dark : Brightness.light,
             ),
           ),
           child: child!,
@@ -325,18 +327,18 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
+                      color: AppTheme.textPrimary(context),
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF64748B),
+                      color: AppTheme.textSecondary(context),
                     ),
                   ),
                 ],
@@ -344,14 +346,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             ),
             IconButton(
               onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B), size: 22),
+              icon: Icon(Icons.close_rounded, color: AppTheme.textSecondary(context), size: 22),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        const Divider(height: 1, color: Color(0xFFF1F5F9)),
+        Divider(height: 1, color: AppTheme.divider(context)),
       ],
     );
   }
@@ -362,25 +364,27 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     required bool isSubmitting,
     required VoidCallback onSave,
   }) {
+    final primaryDark = AppTheme.primary(context);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         ElevatedButton(
           onPressed: isSubmitting ? null : () => Navigator.pop(context),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFF1F5F9),
-            foregroundColor: const Color(0xFF334155),
+            backgroundColor: AppTheme.subtleBackground(context),
+            foregroundColor: AppTheme.textPrimary(context),
             elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
-          child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          child: Text(context.tr('cancel'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
         ),
         const SizedBox(width: 12),
         ElevatedButton(
           onPressed: isSubmitting ? null : onSave,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF094943),
+            backgroundColor: primaryDark,
             foregroundColor: Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -420,9 +424,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      backgroundColor: AppTheme.surface(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: AppTheme.border(context)),
       ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (modalContext, setModalState) {
@@ -443,8 +448,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     icon: Icons.person_outline_rounded,
                     iconBgColor: const Color(0xFFE6F4F1),
                     iconColor: const Color(0xFF094943),
-                    title: 'Edit Profile',
-                    subtitle: 'Update your personal details & professional profile',
+                    title: context.tr('edit_profile'),
+                    subtitle: context.tr('update_personal_prof_details'),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -453,7 +458,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Full Name', isRequired: true),
+                            _buildFieldLabel(context.tr('full_name'), isRequired: true),
                             _buildModalInput(controller: nameCtrl, hintText: 'JAISON PETER'),
                           ],
                         ),
@@ -463,7 +468,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Phone'),
+                            _buildFieldLabel(context.tr('phone_number')),
                             _buildModalInput(controller: phoneCtrl, hintText: '+91 98765 43210', keyboardType: TextInputType.phone),
                           ],
                         ),
@@ -471,13 +476,13 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  _buildFieldLabel('Professional Headline'),
+                  _buildFieldLabel(context.tr('professional_headline')),
                   _buildModalInput(controller: headlineCtrl, hintText: 'e.g. Software Engineer | Freelancer | Local Service Provider'),
                   const SizedBox(height: 14),
-                  _buildFieldLabel('Tagline / Quote'),
+                  _buildFieldLabel(context.tr('tagline_quote')),
                   _buildModalInput(controller: taglineCtrl, hintText: 'e.g. Passionate about technology and community growth.'),
                   const SizedBox(height: 14),
-                  _buildFieldLabel('About Me / Bio'),
+                  _buildFieldLabel(context.tr('about_me')),
                   _buildModalInput(controller: bioCtrl, hintText: 'Tell people about yourself, your work, and your goals...', maxLines: 4),
                   const SizedBox(height: 14),
                   Row(
@@ -486,7 +491,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Languages'),
+                            _buildFieldLabel(context.tr('languages')),
                             _buildModalInput(controller: languagesCtrl, hintText: 'e.g. English, Malayalam'),
                           ],
                         ),
@@ -496,7 +501,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Location'),
+                            _buildFieldLabel(context.tr('location')),
                             _buildModalInput(controller: locationCtrl, hintText: 'Thodupuzha'),
                           ],
                         ),
@@ -510,14 +515,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Gender'),
+                            _buildFieldLabel(context.tr('gender')),
                             _buildModalDropdown<String>(
                               value: selectedGender,
                               hintText: 'Select gender',
-                              items: const [
-                                DropdownMenuItem(value: 'male', child: Text('Male')),
-                                DropdownMenuItem(value: 'female', child: Text('Female')),
-                                DropdownMenuItem(value: 'other', child: Text('Other')),
+                              items: [
+                                DropdownMenuItem(value: 'male', child: Text(context.tr('male'))),
+                                DropdownMenuItem(value: 'female', child: Text(context.tr('female'))),
+                                DropdownMenuItem(value: 'other', child: Text(context.tr('other'))),
                               ],
                               onChanged: (val) {
                                 if (val != null) setModalState(() => selectedGender = val);
@@ -531,7 +536,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Date of Birth'),
+                            _buildFieldLabel(context.tr('date_of_birth')),
                             _buildModalInput(
                               controller: dobCtrl,
                               hintText: 'dd-mm-yyyy',
@@ -551,7 +556,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Working Hours'),
+                            _buildFieldLabel(context.tr('working_hours')),
                             _buildModalInput(controller: workingHoursCtrl, hintText: 'Mon - Sat, 9:00 AM - 6:00 PM'),
                           ],
                         ),
@@ -561,7 +566,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('WhatsApp'),
+                            _buildFieldLabel(context.tr('whatsapp')),
                             _buildModalInput(controller: whatsappCtrl, hintText: '+91 98765 43210', keyboardType: TextInputType.phone),
                           ],
                         ),
@@ -571,7 +576,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   const SizedBox(height: 24),
                   _buildModalActions(
                     sheetContext,
-                    saveText: 'Save Changes',
+                    saveText: context.tr('save_changes'),
                     isSubmitting: isSubmitting,
                     onSave: () async {
                       final name = nameCtrl.text.trim();
@@ -643,9 +648,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      backgroundColor: AppTheme.surface(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: AppTheme.border(context)),
       ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (modalContext, setModalState) {
@@ -666,11 +672,11 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     icon: Icons.work_outline_rounded,
                     iconBgColor: const Color(0xFFE0F2FE),
                     iconColor: const Color(0xFF0284C7),
-                    title: 'Add Experience',
-                    subtitle: 'Share your professional work history',
+                    title: context.tr('add_experience'),
+                    subtitle: context.tr('share_work_history'),
                   ),
                   const SizedBox(height: 16),
-                  _buildFieldLabel('Job Title', isRequired: true),
+                  _buildFieldLabel(context.tr('job_title'), isRequired: true),
                   _buildModalInput(controller: titleCtrl, hintText: 'e.g. Software Engineer, Electrician, Carpenter'),
                   const SizedBox(height: 14),
                   Row(
@@ -679,7 +685,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Company / Employer', isRequired: true),
+                            _buildFieldLabel(context.tr('company_employer'), isRequired: true),
                             _buildModalInput(controller: companyCtrl, hintText: 'e.g. TechCorp, Self-employed'),
                           ],
                         ),
@@ -689,7 +695,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Employment Type'),
+                            _buildFieldLabel(context.tr('employment_type')),
                             _buildModalDropdown<String>(
                               value: selectedEmpType,
                               hintText: 'Select type',
@@ -726,9 +732,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'I currently work here',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                      Text(
+                        context.tr('currently_work_here'),
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
                       ),
                     ],
                   ),
@@ -739,7 +745,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Start Date', isRequired: true),
+                            _buildFieldLabel(context.tr('start_date'), isRequired: true),
                             _buildModalInput(
                               controller: startDateCtrl,
                               hintText: '---------, ----',
@@ -755,7 +761,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('End Date'),
+                            _buildFieldLabel(context.tr('end_date')),
                             _buildModalInput(
                               controller: endDateCtrl,
                               hintText: '---------, ----',
@@ -769,10 +775,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  _buildFieldLabel('Location'),
+                  _buildFieldLabel(context.tr('location')),
                   _buildModalInput(controller: locationCtrl, hintText: 'e.g. Kochi, Kerala · Remote · On-site'),
                   const SizedBox(height: 14),
-                  _buildFieldLabel('Description', optionalText: 'optional'),
+                  _buildFieldLabel(context.tr('description'), optionalText: 'optional'),
                   _buildModalInput(
                     controller: descCtrl,
                     hintText: 'Describe your responsibilities, achievements or skills learned...',
@@ -792,7 +798,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   const SizedBox(height: 20),
                   _buildModalActions(
                     sheetContext,
-                    saveText: 'Save Experience',
+                    saveText: context.tr('save_experience'),
                     isSubmitting: isSubmitting,
                     onSave: () async {
                       final title = titleCtrl.text.trim();
@@ -845,9 +851,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      backgroundColor: AppTheme.surface(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: AppTheme.border(context)),
       ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (modalContext, setModalState) {
@@ -868,11 +875,11 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     icon: Icons.school_outlined,
                     iconBgColor: const Color(0xFFDCFCE7),
                     iconColor: const Color(0xFF15803D),
-                    title: 'Add Education',
-                    subtitle: 'Add your academic background',
+                    title: context.tr('add_education'),
+                    subtitle: context.tr('add_academic_bg'),
                   ),
                   const SizedBox(height: 16),
-                  _buildFieldLabel('School / College / University', isRequired: true),
+                  _buildFieldLabel(context.tr('school_college'), isRequired: true),
                   _buildModalInput(controller: instCtrl, hintText: "e.g. University of Kerala, St. Xavier's College"),
                   const SizedBox(height: 14),
                   Row(
@@ -881,7 +888,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Degree / Level'),
+                            _buildFieldLabel(context.tr('degree_level')),
                             _buildModalDropdown<String>(
                               value: selectedDegree,
                               hintText: 'Select degree',
@@ -905,7 +912,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Field of Study'),
+                            _buildFieldLabel(context.tr('field_of_study')),
                             _buildModalInput(controller: fieldCtrl, hintText: 'e.g. Computer Science, Commerce'),
                           ],
                         ),
@@ -928,9 +935,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'I currently study here',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                      Text(
+                        context.tr('currently_study_here'),
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
                       ),
                     ],
                   ),
@@ -941,7 +948,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Start Year'),
+                            _buildFieldLabel(context.tr('start_year')),
                             _buildModalInput(controller: startYearCtrl, hintText: 'e.g. 2018', keyboardType: TextInputType.number),
                           ],
                         ),
@@ -951,7 +958,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Passout Year'),
+                            _buildFieldLabel(context.tr('passout_year')),
                             _buildModalInput(
                               controller: endYearCtrl,
                               hintText: 'e.g. 2022',
@@ -964,10 +971,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  _buildFieldLabel('Grade / Percentage / CGPA', optionalText: 'optional'),
+                  _buildFieldLabel(context.tr('grade_percentage'), optionalText: 'optional'),
                   _buildModalInput(controller: gradeCtrl, hintText: 'e.g. 8.5 CGPA, 85%, Distinction'),
                   const SizedBox(height: 14),
-                  _buildFieldLabel('Activities / Description', optionalText: 'optional'),
+                  _buildFieldLabel(context.tr('activities_description'), optionalText: 'optional'),
                   _buildModalInput(
                     controller: descCtrl,
                     hintText: 'Clubs, achievements, projects or activities during this period...',
@@ -987,7 +994,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   const SizedBox(height: 20),
                   _buildModalActions(
                     sheetContext,
-                    saveText: 'Save Education',
+                    saveText: context.tr('save_education'),
                     isSubmitting: isSubmitting,
                     onSave: () async {
                       final inst = instCtrl.text.trim();
@@ -1035,9 +1042,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      backgroundColor: AppTheme.surface(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: AppTheme.border(context)),
       ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (modalContext, setModalState) {
@@ -1058,11 +1066,11 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     icon: Icons.bolt_outlined,
                     iconBgColor: const Color(0xFFFEF3C7),
                     iconColor: const Color(0xFFD97706),
-                    title: 'Add Skill',
-                    subtitle: 'Showcase your technical and practical skills',
+                    title: context.tr('add_skill'),
+                    subtitle: context.tr('showcase_skills'),
                   ),
                   const SizedBox(height: 16),
-                  _buildFieldLabel('Skill Name', isRequired: true),
+                  _buildFieldLabel(context.tr('skill_name'), isRequired: true),
                   _buildModalInput(controller: skillCtrl, hintText: 'e.g. Laravel, React, Graphic Design, Plumbing'),
                   const SizedBox(height: 14),
                   Row(
@@ -1071,7 +1079,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Proficiency Level', optionalText: 'Optional'),
+                            _buildFieldLabel(context.tr('proficiency_level'), optionalText: 'Optional'),
                             _buildModalDropdown<String>(
                               value: selectedProficiency,
                               hintText: 'Select proficiency...',
@@ -1094,7 +1102,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Years of Experience', optionalText: 'Optional'),
+                            _buildFieldLabel(context.tr('years_experience'), optionalText: 'Optional'),
                             _buildModalInput(controller: expYearsCtrl, hintText: 'e.g. 3', keyboardType: TextInputType.number),
                           ],
                         ),
@@ -1102,7 +1110,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  _buildFieldLabel('Short Description', optionalText: 'Optional'),
+                  _buildFieldLabel(context.tr('short_description'), optionalText: 'Optional'),
                   _buildModalInput(
                     controller: descCtrl,
                     hintText: 'Briefly describe your experience, tools used, or key accomplishments with this skill...',
@@ -1116,7 +1124,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   const SizedBox(height: 20),
                   _buildModalActions(
                     sheetContext,
-                    saveText: 'Save Skill',
+                    saveText: context.tr('save_skill'),
                     isSubmitting: isSubmitting,
                     onSave: () async {
                       final name = skillCtrl.text.trim();
@@ -1209,9 +1217,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    'Profile Verification',
-                    style: TextStyle(
+                  Text(
+                    context.tr('profile_verification'),
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF0F172A),
@@ -1230,14 +1238,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFBBF7D0)),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.check_circle_rounded, color: Color(0xFF166534), size: 14),
-                  SizedBox(width: 6),
+                  const Icon(Icons.check_circle_rounded, color: Color(0xFF166534), size: 14),
+                  const SizedBox(width: 6),
                   Text(
-                    'Verified & Trusted Profile',
-                    style: TextStyle(
+                    context.tr('verified'),
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF166534),
@@ -1278,14 +1286,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFFCA5A5)),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.brightness_1_rounded, color: Color(0xFFDC2626), size: 8),
-                  SizedBox(width: 6),
+                  const Icon(Icons.brightness_1_rounded, color: Color(0xFFDC2626), size: 8),
+                  const SizedBox(width: 6),
                   Text(
-                    'Not Verified',
-                    style: TextStyle(
+                    context.tr('not_verified'),
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFFDC2626),
@@ -1337,7 +1345,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 onPressed: _showRequestVerificationModal,
                 icon: const Icon(Icons.shield_outlined, color: Colors.white, size: 18),
                 label: Text(
-                  isDeclined ? 'Re-submit Verification' : 'Request Verification',
+                  context.tr('request_verification'),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -1369,9 +1377,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      backgroundColor: AppTheme.surface(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: AppTheme.border(context)),
       ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (modalContext, setModalState) {
@@ -1830,9 +1839,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      backgroundColor: AppTheme.surface(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: AppTheme.border(context)),
       ),
       builder: (payContext) => StatefulBuilder(
         builder: (dialogContext, setPayState) {
@@ -1980,12 +1990,12 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   }
 
   Widget _buildGuestPromptScreen(String title, String subtitle) {
-    const primaryDark = Color(0xFF094943);
+    final primaryDark = AppTheme.primary(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppTheme.background(context),
       appBar: AppBar(
-        backgroundColor: primaryDark,
+        backgroundColor: AppTheme.appBarBg(context),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 26),
@@ -2005,7 +2015,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   color: Color(0xFFE6F4F1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.lock_outline_rounded, size: 54, color: primaryDark),
+                child: Icon(Icons.lock_outline_rounded, size: 54, color: primaryDark),
               ),
               const SizedBox(height: 20),
               const Text(
@@ -2099,17 +2109,17 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     final availabilityStatus = profileData['availability_status']?.toString() ?? 'Available for Work';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppTheme.background(context),
       appBar: AppBar(
-        backgroundColor: primaryDark,
+        backgroundColor: AppTheme.appBarBg(context),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 26),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'My Profile',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          context.tr('my_profile'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
@@ -2209,14 +2219,16 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     required String? avatarUrl,
     required String? coverUrl,
   }) {
+    final isDark = AppTheme.isDark(context);
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
@@ -2238,18 +2250,22 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
                           height: 125,
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [Color(0xFF064E3B), Color(0xFF094943), Color(0xFF0D9488)],
+                              colors: isDark
+                                  ? const [Color(0xFF042F2E), Color(0xFF0F172A), Color(0xFF0F172A)]
+                                  : const [Color(0xFF064E3B), Color(0xFF094943), Color(0xFF0D9488)],
                             ),
                           ),
                         ),
                       )
                     : Container(
                         height: 125,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Color(0xFF064E3B), Color(0xFF094943), Color(0xFF0D9488)],
+                            colors: isDark
+                                ? const [Color(0xFF042F2E), Color(0xFF0F172A), Color(0xFF0F172A)]
+                                : const [Color(0xFF064E3B), Color(0xFF094943), Color(0xFF0D9488)],
                           ),
                         ),
                       ),
@@ -2268,14 +2284,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: Colors.white30),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.camera_alt_rounded, color: Colors.white, size: 14),
-                        SizedBox(width: 4),
+                        const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 14),
+                        const SizedBox(width: 4),
                         Text(
-                          'Edit Cover',
-                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          context.tr('edit_cover'),
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -2290,10 +2306,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 child: Stack(
                   children: [
                     Container(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white,
-                        boxShadow: [
+                        color: AppTheme.surface(context),
+                        boxShadow: const [
                           BoxShadow(color: Colors.black12, blurRadius: 8),
                         ],
                       ),
@@ -2315,7 +2331,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         bottom: 2,
                         child: Container(
                           padding: const EdgeInsets.all(2),
-                          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                          decoration: BoxDecoration(color: AppTheme.surface(context), shape: BoxShape.circle),
                           child: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
                         ),
                       ),
@@ -2328,8 +2344,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         onTap: () => _pickCropAndUploadImage(isCover: false),
                         child: Container(
                           padding: const EdgeInsets.all(5),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF094943),
+                          decoration: BoxDecoration(
+                            color: primaryDark,
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 14),
@@ -2355,10 +2371,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     Expanded(
                       child: Text(
                         userName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF0F172A),
+                          color: AppTheme.textPrimary(context),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -2367,10 +2383,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: isVerified ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+                        color: isVerified
+                            ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7))
+                            : (isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2)),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: isVerified ? const Color(0xFFBBF7D0) : const Color(0xFFFCA5A5),
+                          color: isVerified
+                              ? (isDark ? const Color(0xFF047857) : const Color(0xFFBBF7D0))
+                              : (isDark ? const Color(0xFF991B1B) : const Color(0xFFFCA5A5)),
                         ),
                       ),
                       child: Row(
@@ -2378,16 +2398,20 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         children: [
                           Icon(
                             isVerified ? Icons.check_circle_rounded : Icons.gpp_bad_rounded,
-                            color: isVerified ? const Color(0xFF166534) : const Color(0xFFDC2626),
+                            color: isVerified
+                                ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534))
+                                : (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
                             size: 12,
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            isVerified ? 'VERIFIED' : 'NOT VERIFIED',
+                            isVerified ? context.tr('verified').toUpperCase() : context.tr('not_verified').toUpperCase(),
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
-                              color: isVerified ? const Color(0xFF166534) : const Color(0xFFDC2626),
+                              color: isVerified
+                                  ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534))
+                                  : (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
                             ),
                           ),
                         ],
@@ -2397,15 +2421,15 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF3E8FF),
+                        color: isDark ? const Color(0xFF581C87) : const Color(0xFFF3E8FF),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         accountType,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF7C3AED),
+                          color: isDark ? const Color(0xFFC084FC) : const Color(0xFF7C3AED),
                         ),
                       ),
                     ),
@@ -2414,23 +2438,23 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 const SizedBox(height: 2),
                 Text(
                   headline,
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondary(context)),
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF64748B)),
+                    Icon(Icons.location_on_outlined, size: 14, color: AppTheme.textSecondary(context)),
                     const SizedBox(width: 2),
                     Text(
                       location,
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context)),
                     ),
                     const SizedBox(width: 10),
                     const Icon(Icons.star_rounded, size: 14, color: Color(0xFFFFB800)),
                     const SizedBox(width: 2),
-                    const Text(
+                    Text(
                       '5.0 (1 review)',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)),
                     ),
                   ],
                 ),
@@ -2440,18 +2464,18 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
+                      color: AppTheme.subtleBackground(context),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                      border: Border.all(color: AppTheme.border(context)),
                     ),
                     child: Text(
                       '"$tagline"',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontStyle: FontStyle.italic,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF094943),
+                        color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
                       ),
                     ),
                   ),
@@ -2465,7 +2489,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: ElevatedButton.icon(
                           onPressed: _showEditProfileModal,
                           icon: const Icon(Icons.edit_outlined, color: Colors.white, size: 16),
-                          label: const Text('Edit Profile', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                          label: Text(context.tr('edit_profile'), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryDark,
                             elevation: 0,
@@ -2488,16 +2512,16 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   Widget _buildQuickStatsRow(Color primaryDark) {
     return Row(
       children: [
-        _buildStatCard('Work Cards', '5'),
+        _buildStatCard(context.tr('my_cards'), '5'),
         const SizedBox(width: 8),
-        _buildStatCard('Saved Cards', 'Bookmarked', onTap: () {
+        _buildStatCard(context.tr('saved_cards'), context.tr('saved'), onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const SavedCardsScreen()),
           );
         }),
         const SizedBox(width: 8),
-        _buildStatCard('Average Rating', '5.0 ★'),
+        _buildStatCard(context.tr('rating'), '5.0 ★'),
       ],
     );
   }
@@ -2508,23 +2532,34 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.surface(context),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: AppTheme.border(context)),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                value,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF094943)),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  value,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.primary(context)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               const SizedBox(height: 2),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 9.5, color: AppTheme.textSecondary(context)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -2697,7 +2732,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'User Gallery (${mediaList.length}/6)',
+                    '${context.tr('user_gallery')} (${mediaList.length}/6)',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -2709,9 +2744,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               ElevatedButton.icon(
                 onPressed: _pickAndUploadGalleryImage,
                 icon: const Icon(Icons.add_a_photo_rounded, size: 14, color: Colors.white),
-                label: const Text(
-                  'Add Photo',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                label: Text(
+                  context.tr('add_photo'),
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: canAddMore ? primaryDark : Colors.grey,
@@ -2724,7 +2759,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Max 6 photos • Max 1 MB per image',
+            context.tr('max_photos_info'),
             style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 14),
@@ -2944,9 +2979,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2954,39 +2989,46 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('About Me', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
-              IconButton(icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF094943)), onPressed: _showEditProfileModal),
+              Text(context.tr('about_me'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
+              IconButton(icon: Icon(Icons.edit_outlined, size: 18, color: primaryDark), onPressed: _showEditProfileModal),
             ],
           ),
-          Text(bio, style: const TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.4)),
+          Text(
+            bio == 'Working Professional' ? context.tr('working_professional') : bio,
+            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary(context), height: 1.4),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildInfoBadge(Icons.access_time_rounded, '1 Year', 'Experience')),
+              Expanded(child: _buildInfoBadge(Icons.access_time_rounded, '1 ${context.tr('year')}', context.tr('experience'))),
               const SizedBox(width: 10),
-              Expanded(child: _buildInfoBadge(Icons.translate_rounded, 'English, Malayalam', 'Languages')),
+              Expanded(child: _buildInfoBadge(Icons.translate_rounded, 'English, Malayalam', context.tr('languages'))),
             ],
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: _buildInfoBadge(Icons.location_on_outlined, location, 'Location')),
+              Expanded(child: _buildInfoBadge(Icons.location_on_outlined, location, context.tr('location'))),
               const SizedBox(width: 10),
-              Expanded(child: _buildInfoBadge(Icons.person_outline, gender, 'Gender')),
+              Expanded(child: _buildInfoBadge(Icons.person_outline, gender == 'MALE' ? context.tr('male').toUpperCase() : gender, context.tr('gender'))),
             ],
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: _buildInfoBadge(Icons.cake_outlined, dob, 'Date of Birth')),
+              Expanded(child: _buildInfoBadge(Icons.cake_outlined, dob, context.tr('date_of_birth'))),
               const SizedBox(width: 10),
               Expanded(
                 child: _buildInfoBadge(
                   isVerified ? Icons.check_circle_rounded : Icons.gpp_bad_rounded,
-                  isVerified ? 'Verified ✔' : 'Not Verified',
-                  'Trust Status',
-                  iconColor: isVerified ? const Color(0xFF166534) : const Color(0xFFDC2626),
-                  valueColor: isVerified ? const Color(0xFF166534) : const Color(0xFFDC2626),
+                  isVerified ? context.tr('verified') : context.tr('not_verified'),
+                  context.tr('trust_status'),
+                  iconColor: isVerified
+                      ? (AppTheme.isDark(context) ? const Color(0xFF4ADE80) : const Color(0xFF166534))
+                      : (AppTheme.isDark(context) ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
+                  valueColor: isVerified
+                      ? (AppTheme.isDark(context) ? const Color(0xFF4ADE80) : const Color(0xFF166534))
+                      : (AppTheme.isDark(context) ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
                 ),
               ),
             ],
@@ -2997,22 +3039,26 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   }
 
   Widget _buildInfoBadge(IconData icon, String value, String label, {Color? iconColor, Color? valueColor}) {
+    final primaryDark = AppTheme.primary(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: AppTheme.subtleBackground(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: iconColor != null ? iconColor.withValues(alpha: 0.12) : const Color(0xFFE6F4F1),
+              color: iconColor != null
+                  ? iconColor.withValues(alpha: 0.12)
+                  : (AppTheme.isDark(context) ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1)),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 16, color: iconColor ?? const Color(0xFF094943)),
+            child: Icon(icon, size: 16, color: iconColor ?? primaryDark),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -3025,14 +3071,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: valueColor ?? const Color(0xFF0F172A),
+                    color: valueColor ?? AppTheme.textPrimary(context),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   label,
-                  style: const TextStyle(fontSize: 9, color: Color(0xFF64748B)),
+                  style: TextStyle(fontSize: 9, color: AppTheme.textSecondary(context)),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -3045,12 +3091,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   }
 
   Widget _buildAvailabilityCard(Color primaryDark, String status, String hours) {
+    final isDark = AppTheme.isDark(context);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3058,21 +3106,31 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Availability', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
-              IconButton(icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF094943)), onPressed: _showEditProfileModal),
+              Text(context.tr('availability'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
+              IconButton(icon: Icon(Icons.edit_outlined, size: 18, color: primaryDark), onPressed: _showEditProfileModal),
             ],
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(12)),
-            child: Text(status, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF166534))),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              status == 'Available for Work' ? context.tr('available_for_work') : status,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534),
+              ),
+            ),
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              const Icon(Icons.schedule_outlined, size: 16, color: Color(0xFF64748B)),
+              Icon(Icons.schedule_outlined, size: 16, color: AppTheme.textSecondary(context)),
               const SizedBox(width: 6),
-              Text(hours, style: const TextStyle(fontSize: 12, color: Color(0xFF334155))),
+              Text(hours, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context))),
             ],
           ),
         ],
@@ -3084,9 +3142,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3094,30 +3152,34 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Experience (${_experiences.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+              Text('${context.tr('experience')} (${_experiences.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
               TextButton.icon(
                 onPressed: _showAddExperienceModal,
-                icon: const Icon(Icons.add, size: 16, color: Color(0xFF094943)),
-                label: const Text('Add', style: TextStyle(fontSize: 12, color: Color(0xFF094943), fontWeight: FontWeight.bold)),
+                icon: Icon(Icons.add, size: 16, color: primaryDark),
+                label: Text(context.tr('add'), style: TextStyle(fontSize: 12, color: primaryDark, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
           if (_experiences.isEmpty)
-            const Text('No work experience added yet.', style: TextStyle(fontSize: 12, color: Colors.grey))
+            Text(context.tr('no_experience_added'), style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context)))
           else
             ..._experiences.map((exp) {
               return Container(
                 margin: const EdgeInsets.only(top: 8),
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(
+                  color: AppTheme.subtleBackground(context),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.border(context)),
+                ),
                 child: Row(
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(exp['job_title']?.toString() ?? 'Role', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          Text(exp['company']?.toString() ?? 'Company', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                          Text(exp['job_title']?.toString() ?? 'Role', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
+                          Text(exp['company']?.toString() ?? 'Company', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
                         ],
                       ),
                     ),
@@ -3144,9 +3206,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3154,30 +3216,34 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Education (${_educations.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+              Text('${context.tr('education')} (${_educations.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
               TextButton.icon(
                 onPressed: _showAddEducationModal,
-                icon: const Icon(Icons.add, size: 16, color: Color(0xFF094943)),
-                label: const Text('Add', style: TextStyle(fontSize: 12, color: Color(0xFF094943), fontWeight: FontWeight.bold)),
+                icon: Icon(Icons.add, size: 16, color: primaryDark),
+                label: Text(context.tr('add'), style: TextStyle(fontSize: 12, color: primaryDark, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
           if (_educations.isEmpty)
-            const Text('No education added yet.', style: TextStyle(fontSize: 12, color: Colors.grey))
+            Text(context.tr('no_education_added'), style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context)))
           else
             ..._educations.map((edu) {
               return Container(
                 margin: const EdgeInsets.only(top: 8),
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(
+                  color: AppTheme.subtleBackground(context),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.border(context)),
+                ),
                 child: Row(
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(edu['degree']?.toString() ?? 'Degree', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          Text(edu['institution']?.toString() ?? 'Institution', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                          Text(edu['degree']?.toString() ?? 'Degree', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
+                          Text(edu['institution']?.toString() ?? 'Institution', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
                         ],
                       ),
                     ),
@@ -3201,12 +3267,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   }
 
   Widget _buildSkillsSection(Color primaryDark) {
+    final isDark = AppTheme.isDark(context);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3214,24 +3282,32 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Skills & Expertise (${_skills.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+              Text('${context.tr('skills_expertise')} (${_skills.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
               TextButton.icon(
                 onPressed: _showAddSkillModal,
-                icon: const Icon(Icons.add, size: 16, color: Color(0xFF094943)),
-                label: const Text('Add', style: TextStyle(fontSize: 12, color: Color(0xFF094943), fontWeight: FontWeight.bold)),
+                icon: Icon(Icons.add, size: 16, color: primaryDark),
+                label: Text(context.tr('add'), style: TextStyle(fontSize: 12, color: primaryDark, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
           if (_skills.isEmpty)
-            const Text('No skills added yet.', style: TextStyle(fontSize: 12, color: Colors.grey))
+            Text(context.tr('no_skills_added'), style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context)))
           else
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: _skills.map((s) {
                 return Chip(
-                  label: Text(s['name']?.toString() ?? 'Skill', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF094943))),
-                  backgroundColor: const Color(0xFFE6F4F1),
+                  label: Text(
+                    s['name']?.toString() ?? 'Skill',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFF2DD4BF) : primaryDark,
+                    ),
+                  ),
+                  backgroundColor: isDark ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
+                  side: BorderSide(color: isDark ? const Color(0xFF115E59) : const Color(0xFFC7F3E2)),
                   deleteIcon: const Icon(Icons.close, size: 14, color: Colors.redAccent),
                   onDeleted: () async {
                     final id = s['id'];
@@ -3252,32 +3328,39 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Profile Verification', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
-          const SizedBox(height: 8),
-          Row(
-            children: const [
-              Icon(Icons.check_circle, color: Color(0xFF10B981), size: 18),
-              SizedBox(width: 6),
-              Text('Email & Identity Verified', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF166534))),
-            ],
-          ),
-          const SizedBox(height: 14),
-          const Divider(height: 1),
-          const SizedBox(height: 14),
-          const Text('Social Links & Contact', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+          Text(context.tr('profile_verification'), style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.email_outlined, size: 16, color: Color(0xFF64748B)),
+              const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 18),
+              const SizedBox(width: 6),
+              Text(
+                context.tr('verified'),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.isDark(context) ? const Color(0xFF4ADE80) : const Color(0xFF166534),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Divider(height: 1, color: AppTheme.divider(context)),
+          const SizedBox(height: 14),
+          Text(context.tr('social_links_contact'), style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.email_outlined, size: 16, color: AppTheme.textSecondary(context)),
               const SizedBox(width: 8),
-              Text(email, style: const TextStyle(fontSize: 12, color: Color(0xFF334155))),
+              Text(email, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context))),
             ],
           ),
         ],

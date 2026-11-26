@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'core/app_dialogs.dart';
+import 'core/app_language.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
 import 'services/auth_service.dart';
@@ -250,9 +251,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                "Don't have an account? ",
-                                style: TextStyle(color: Colors.white70, fontSize: 13),
+                              Text(
+                                context.tr('dont_have_account'),
+                                style: const TextStyle(color: Colors.white70, fontSize: 13),
                               ),
                               GestureDetector(
                                 onTap: () {
@@ -261,9 +262,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     MaterialPageRoute(builder: (context) => const SignupScreen()),
                                   );
                                 },
-                                child: const Text(
-                                  'Sign Up',
-                                  style: TextStyle(
+                                child: Text(
+                                  context.tr('signup'),
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,

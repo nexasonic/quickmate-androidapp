@@ -4,11 +4,33 @@ import 'package:shared_preferences/shared_preferences.dart';
 class StorageService {
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_profile';
+  static const String _themeKey = 'app_theme_mode';
+  static const String _languageKey = 'app_language_code';
 
   static SharedPreferences? _prefs;
 
   static Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
+  }
+
+  // Language Settings Management
+  static Future<bool> saveLanguageCode(String code) async {
+    await init();
+    return await _prefs!.setString(_languageKey, code);
+  }
+
+  static String getLanguageCode() {
+    return _prefs?.getString(_languageKey) ?? 'en';
+  }
+
+  // Theme Settings Management
+  static Future<bool> saveThemeMode(String mode) async {
+    await init();
+    return await _prefs!.setString(_themeKey, mode);
+  }
+
+  static String getThemeMode() {
+    return _prefs?.getString(_themeKey) ?? 'System';
   }
 
   // Token Management
