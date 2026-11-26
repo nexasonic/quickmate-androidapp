@@ -3,6 +3,8 @@ import '../core/app_dialogs.dart';
 import '../core/app_language.dart';
 import '../core/app_theme.dart';
 import '../core/storage_service.dart';
+import '../services/auth_service.dart';
+import '../services/profile_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -14,18 +16,36 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late String _selectedTheme;
   late String _selectedLanguageCode;
-  bool _notifJobAlerts = true;
-  bool _notifMessages = true;
-  bool _notifPromotions = false;
-  bool _privacyShowLocation = true;
+  late bool _notifJobAlerts;
+  late bool _notifMessages;
+  late bool _notifPromotions;
+  late bool _privacyShowLocation;
 
   final List<String> _themes = ['System', 'Light', 'Dark'];
 
   @override
   void initState() {
     super.initState();
+    _loadLocalSettings();
+    _syncFromServer();
+  }
+
+  void _loadLocalSettings() {
     _selectedTheme = StorageService.getThemeMode();
     _selectedLanguageCode = appLocaleNotifier.value.languageCode;
+    _notifJobAlerts = StorageService.getNotifJobAlerts();
+    _notifMessages = StorageService.getNotifMessages();
+    _notifPromotions = StorageService.getNotifPromotions();
+    _privacyShowLocation = StorageService.getPrivacyShowLocation();
+  }
+
+  Future<void> _syncFromServer() async {
+    if (!AuthService.isLoggedIn()) return;
+    await ProfileService.fetchUserProfile();
+    if (!mounted) return;
+    setState(() {
+      _loadLocalSettings();
+    });
   }
 
   String _getTranslatedTheme(String theme) {
@@ -60,10 +80,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          await Future.delayed(const Duration(milliseconds: 400));
-          if (mounted) setState(() {});
-        },
+        onRefresh: _syncFromServer,
         color: primaryDark,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -96,6 +113,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       final msgPrefix = context.tr('theme_set_to');
                       final translatedTheme = _getTranslatedTheme(val);
                       await updateAppTheme(val);
+                      if (AuthService.isLoggedIn()) {
+                        await ProfileService.updateProfile(prefTheme: themeModeToInt(val));
+                      }
                       if (!context.mounted) return;
                       AppDialogs.showToastModal(
                         context,
@@ -130,6 +150,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       final msgPrefix = context.tr('language_set_to');
                       final langName = AppLanguage.getLanguageName(val);
                       await AppLanguage.setLanguage(val);
+                      if (AuthService.isLoggedIn()) {
+                        await ProfileService.updateProfile(prefLanguage: AppLanguage.languageCodeToInt(val));
+                      }
                       if (!context.mounted) return;
                       AppDialogs.showToastModal(
                         context,
@@ -150,10 +173,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: Text(context.tr('live_work_alerts_desc'), style: TextStyle(color: AppTheme.textSecondary(context))),
                   value: _notifJobAlerts,
                   activeTrackColor: primaryDark,
-                  onChanged: (val) {
+                  onChanged: (val) async {
                     setState(() {
                       _notifJobAlerts = val;
                     });
+                    await StorageService.saveNotifJobAlerts(val);
+                    if (AuthService.isLoggedIn()) {
+                      await ProfileService.updateProfile(notifJobAlerts: val);
+                    }
                   },
                 ),
                 Divider(height: 1, indent: 56, color: AppTheme.divider(context)),
@@ -163,10 +190,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: Text(context.tr('chat_notifs_desc'), style: TextStyle(color: AppTheme.textSecondary(context))),
                   value: _notifMessages,
                   activeTrackColor: primaryDark,
-                  onChanged: (val) {
+                  onChanged: (val) async {
                     setState(() {
                       _notifMessages = val;
                     });
+                    await StorageService.saveNotifMessages(val);
+                    if (AuthService.isLoggedIn()) {
+                      await ProfileService.updateProfile(notifMessages: val);
+                    }
                   },
                 ),
                 Divider(height: 1, indent: 56, color: AppTheme.divider(context)),
@@ -176,10 +207,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: Text(context.tr('promotions_desc'), style: TextStyle(color: AppTheme.textSecondary(context))),
                   value: _notifPromotions,
                   activeTrackColor: primaryDark,
-                  onChanged: (val) {
+                  onChanged: (val) async {
                     setState(() {
                       _notifPromotions = val;
                     });
+                    await StorageService.saveNotifPromotions(val);
+                    if (AuthService.isLoggedIn()) {
+                      await ProfileService.updateProfile(notifPromotions: val);
+                    }
                   },
                 ),
               ]),
@@ -194,10 +229,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: Text(context.tr('show_location_desc'), style: TextStyle(color: AppTheme.textSecondary(context))),
                   value: _privacyShowLocation,
                   activeTrackColor: primaryDark,
-                  onChanged: (val) {
+                  onChanged: (val) async {
                     setState(() {
                       _privacyShowLocation = val;
                     });
+                    await StorageService.savePrivacyShowLocation(val);
+                    if (AuthService.isLoggedIn()) {
+                      await ProfileService.updateProfile(showLocation: val);
+                    }
+                    if (!val && context.mounted) {
+                      AppDialogs.showSuccessModal(
+                        context,
+                        title: context.tr('location_disabled_alert_title'),
+                        message: context.tr('location_disabled_alert_desc'),
+                        icon: Icons.location_off_rounded,
+                        iconColor: const Color(0xFFF59E0B),
+                      );
+                    }
                   },
                 ),
               ]),

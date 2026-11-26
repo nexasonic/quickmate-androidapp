@@ -26,6 +26,7 @@ class MapPinModel {
   final String? thumbnailUrl;
   final String userName;
   final String? userAvatar;
+  final bool showLocation;
 
   MapPinModel({
     required this.id,
@@ -40,6 +41,7 @@ class MapPinModel {
     this.thumbnailUrl,
     required this.userName,
     this.userAvatar,
+    this.showLocation = true,
   });
 
   factory MapPinModel.fromJson(Map<String, dynamic> json) {
@@ -93,6 +95,14 @@ class MapPinModel {
       }
     }
 
+    final bool parsedShowLoc = (json['show_location'] != false &&
+        json['show_location'] != 0 &&
+        json['privacy_show_location'] != false &&
+        json['privacy_show_location'] != 0 &&
+        profileMap['show_location'] != false &&
+        userMap['show_location'] != false &&
+        userMap['privacy_show_location'] != false);
+
     return MapPinModel(
       id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
       userId: rawUserId,
@@ -106,6 +116,7 @@ class MapPinModel {
       thumbnailUrl: rawThumb != null ? ApiConfig.fixImageUrl(rawThumb) : null,
       userName: userName,
       userAvatar: rawAvatar != null ? ApiConfig.fixImageUrl(rawAvatar) : null,
+      showLocation: parsedShowLoc,
     );
   }
 
@@ -123,6 +134,7 @@ class MapPinModel {
             : PresenceService.currentLongitude);
 
     final double dist = calculateDistanceKm(lat1: userLat, lon1: userLng, lat2: cardLat, lon2: cardLng) ?? (card.distanceKm ?? 0.0);
+    final bool parsedShowLoc = card.user?.showLocation ?? true;
 
     return MapPinModel(
       id: card.id,
@@ -137,6 +149,7 @@ class MapPinModel {
       thumbnailUrl: card.thumbnailUrl ?? (card.images.isNotEmpty ? card.images.first : null),
       userName: card.user?.name ?? AppLanguage.trCode('user_fallback'),
       userAvatar: card.user?.avatarUrl,
+      showLocation: parsedShowLoc,
     );
   }
 
@@ -313,6 +326,11 @@ class MapViewScreenState extends State<MapViewScreen> {
       final isCurrentUser = currentUser != null &&
           ((pin.userId != null && pin.userId == currentUser.id) ||
            (pin.userName.toLowerCase() == currentUser.name.toLowerCase()));
+
+      // Privacy Hiding: If pin belongs to another user and pin.showLocation == false, hide their pin and cards from other users
+      if (!isCurrentUser && !pin.showLocation) {
+        continue;
+      }
 
       final displayName = isCurrentUser ? 'YOU' : pin.userName;
       final displayAvatar = isCurrentUser ? (currentUser.avatarUrl ?? pin.userAvatar) : pin.userAvatar;
@@ -511,7 +529,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: AppTheme.surface(context),
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
@@ -691,15 +709,16 @@ class MapViewScreenState extends State<MapViewScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: AppTheme.surface(context),
                                     borderRadius: BorderRadius.circular(20),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.1),
+                                        color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.3 : 0.1),
                                         blurRadius: 10,
                                         offset: const Offset(0, 3),
                                       ),
                                     ],
+                                    border: AppTheme.isDark(context) ? Border.all(color: AppTheme.border(context)) : null,
                                   ),
                                   child: Row(
                                     children: [
@@ -707,10 +726,10 @@ class MapViewScreenState extends State<MapViewScreen> {
                                       const SizedBox(width: 8),
                                       Text(
                                         context.tr('live_workers_radar'),
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.bold,
-                                          color: Color(0xFF0F172A),
+                                          color: AppTheme.textPrimary(context),
                                         ),
                                       ),
                                     ],
@@ -730,16 +749,17 @@ class MapViewScreenState extends State<MapViewScreen> {
                                         width: 40,
                                         height: 40,
                                         decoration: BoxDecoration(
-                                          color: Colors.white,
+                                          color: AppTheme.surface(context),
                                           borderRadius: BorderRadius.circular(12),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withValues(alpha: 0.1),
+                                              color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.3 : 0.1),
                                               blurRadius: 8,
                                             ),
                                           ],
+                                          border: AppTheme.isDark(context) ? Border.all(color: AppTheme.border(context)) : null,
                                         ),
-                                        child: Icon(Icons.my_location_rounded, color: primaryDark, size: 20),
+                                        child: Icon(Icons.my_location_rounded, color: AppTheme.isDark(context) ? Colors.white : primaryDark, size: 20),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -748,25 +768,26 @@ class MapViewScreenState extends State<MapViewScreen> {
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                         decoration: BoxDecoration(
-                                          color: Colors.white,
+                                          color: AppTheme.surface(context),
                                           borderRadius: BorderRadius.circular(12),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withValues(alpha: 0.1),
+                                              color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.3 : 0.1),
                                               blurRadius: 8,
                                             ),
                                           ],
+                                          border: AppTheme.isDark(context) ? Border.all(color: AppTheme.border(context)) : null,
                                         ),
                                         child: Row(
                                           children: [
-                                            Icon(Icons.aspect_ratio_rounded, color: primaryDark, size: 18),
+                                            Icon(Icons.aspect_ratio_rounded, color: AppTheme.isDark(context) ? Colors.white : primaryDark, size: 18),
                                             const SizedBox(width: 4),
                                             Text(
                                               context.tr('fit'),
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.bold,
-                                                color: primaryDark,
+                                                color: AppTheme.isDark(context) ? Colors.white : primaryDark,
                                               ),
                                             ),
                                           ],
@@ -788,30 +809,30 @@ class MapViewScreenState extends State<MapViewScreen> {
                                       child: Container(
                                         width: 42,
                                         height: 42,
-                                        decoration: const BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                                          boxShadow: [
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.surface(context),
+                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                          boxShadow: const [
                                             BoxShadow(color: Colors.black12, blurRadius: 6),
                                           ],
                                         ),
-                                        child: const Icon(Icons.add, color: Color(0xFF0F172A), size: 22),
+                                        child: Icon(Icons.add, color: AppTheme.textPrimary(context), size: 22),
                                       ),
                                     ),
-                                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                                    Divider(height: 1, color: AppTheme.border(context)),
                                     GestureDetector(
                                       onTap: _zoomOut,
                                       child: Container(
                                         width: 42,
                                         height: 42,
-                                        decoration: const BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-                                          boxShadow: [
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.surface(context),
+                                          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                                          boxShadow: const [
                                             BoxShadow(color: Colors.black12, blurRadius: 6),
                                           ],
                                         ),
-                                        child: const Icon(Icons.remove, color: Color(0xFF0F172A), size: 22),
+                                        child: Icon(Icons.remove, color: AppTheme.textPrimary(context), size: 22),
                                       ),
                                     ),
                                   ],
@@ -825,14 +846,15 @@ class MapViewScreenState extends State<MapViewScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: AppTheme.surface(context),
                                     borderRadius: BorderRadius.circular(20),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.1),
+                                        color: Colors.black.withValues(alpha: AppTheme.isDark(context) ? 0.3 : 0.1),
                                         blurRadius: 10,
                                       ),
                                     ],
+                                    border: AppTheme.isDark(context) ? Border.all(color: AppTheme.border(context)) : null,
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -846,10 +868,10 @@ class MapViewScreenState extends State<MapViewScreen> {
                                           const SizedBox(width: 4),
                                           Text(
                                             '${PresenceService.currentPlaceName} ${context.tr('radius')}',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.bold,
-                                              color: Color(0xFF0F172A),
+                                              color: AppTheme.textPrimary(context),
                                             ),
                                           ),
                                         ],
@@ -857,9 +879,9 @@ class MapViewScreenState extends State<MapViewScreen> {
                                       const SizedBox(height: 2),
                                       Text(
                                         '${_pins.length} ${context.tr('cards_available_nearby')}',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 11,
-                                          color: Color(0xFF64748B),
+                                          color: AppTheme.textSecondary(context),
                                         ),
                                       ),
                                     ],
@@ -940,10 +962,10 @@ class MapViewScreenState extends State<MapViewScreen> {
                             isYou
                                 ? '${context.tr('you')} (${group.cardCount} ${context.tr('cards')})'
                                 : '${group.userName} (${group.cardCount} ${context.tr('cards')})',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF0F172A),
+                              color: AppTheme.textPrimary(context),
                             ),
                           ),
                           if (isYou) ...[
@@ -967,7 +989,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                         isYou
                             ? '${context.tr('live_location')}: ${PresenceService.currentPlaceName}'
                             : '${group.latitude.toStringAsFixed(4)}, ${group.longitude.toStringAsFixed(4)}',
-                        style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                        style: TextStyle(fontSize: 10, color: AppTheme.textSecondary(context)),
                       ),
                     ],
                   ),
@@ -979,7 +1001,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                     _selectedGroup = null;
                   });
                 },
-                child: const Icon(Icons.close_rounded, color: Colors.grey, size: 20),
+                child: Icon(Icons.close_rounded, color: AppTheme.textSecondary(context), size: 20),
               ),
             ],
           ),
@@ -991,9 +1013,9 @@ class MapViewScreenState extends State<MapViewScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFE6F4F1),
+                color: AppTheme.isDark(context) ? const Color(0xFF0F2925) : const Color(0xFFE6F4F1),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFC7F3E2)),
+                border: Border.all(color: AppTheme.isDark(context) ? const Color(0xFF14534A) : const Color(0xFFC7F3E2)),
               ),
               child: Row(
                 children: [
@@ -1002,7 +1024,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                   Expanded(
                     child: Text(
                       context.tr('no_cards_posted_map'),
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF0F172A), fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: 12, color: AppTheme.textPrimary(context), fontWeight: FontWeight.w500),
                     ),
                   ),
                   ElevatedButton(
@@ -1032,7 +1054,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                 shrinkWrap: true,
                 physics: const BouncingScrollPhysics(),
                 itemCount: group.cards.length,
-                separatorBuilder: (context, index) => const Divider(height: 12, color: Color(0xFFF1F5F9)),
+                separatorBuilder: (context, index) => Divider(height: 12, color: AppTheme.divider(context)),
                 itemBuilder: (context, index) {
                   final pin = group.cards[index];
                   return _buildSingleCardItem(pin);
@@ -1045,7 +1067,10 @@ class MapViewScreenState extends State<MapViewScreen> {
   }
 
   Widget _buildSingleCardItem(MapPinModel pin) {
-    const primaryDark = Color(0xFF094943);
+    final isDark = AppTheme.isDark(context);
+    final primaryColor = AppTheme.primary(context);
+    final distanceColor = isDark ? const Color(0xFF34D399) : const Color(0xFF094943);
+    final priceColor = isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534);
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -1062,15 +1087,15 @@ class MapViewScreenState extends State<MapViewScreen> {
                     errorBuilder: (context, error, stackTrace) => Container(
                       width: 56,
                       height: 56,
-                      color: const Color(0xFFE6F4F1),
-                      child: const Icon(Icons.work_outline_rounded, color: primaryDark, size: 24),
+                      color: isDark ? const Color(0xFF0F2925) : const Color(0xFFE6F4F1),
+                      child: Icon(Icons.work_outline_rounded, color: primaryColor, size: 24),
                     ),
                   )
                 : Container(
                     width: 56,
                     height: 56,
-                    color: const Color(0xFFE6F4F1),
-                    child: const Icon(Icons.work_outline_rounded, color: primaryDark, size: 24),
+                    color: isDark ? const Color(0xFF0F2925) : const Color(0xFFE6F4F1),
+                    child: Icon(Icons.work_outline_rounded, color: primaryColor, size: 24),
                   ),
           ),
           const SizedBox(width: 12),
@@ -1081,10 +1106,10 @@ class MapViewScreenState extends State<MapViewScreen> {
               children: [
                 Text(
                   pin.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
+                    color: AppTheme.textPrimary(context),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1092,24 +1117,24 @@ class MapViewScreenState extends State<MapViewScreen> {
                 const SizedBox(height: 3),
                 Row(
                   children: [
-                    const Icon(Icons.near_me_outlined, size: 12, color: primaryDark),
+                    Icon(Icons.near_me_outlined, size: 12, color: distanceColor),
                     const SizedBox(width: 4),
                     Text(
                       pin.getTrFormattedDistance(context),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: primaryDark,
+                        color: distanceColor,
                       ),
                     ),
                     if (pin.price != null && pin.price != 0) ...[
-                      const Text(' • ', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                      Text(' • ', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
                       Text(
                         pin.getTrFormattedPrice(context),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF166534),
+                          color: priceColor,
                         ),
                       ),
                     ],
@@ -1122,7 +1147,7 @@ class MapViewScreenState extends State<MapViewScreen> {
           ElevatedButton(
             onPressed: () => _navigateToCardDetail(pin),
             style: ElevatedButton.styleFrom(
-              backgroundColor: primaryDark,
+              backgroundColor: isDark ? const Color(0xFF0D9488) : const Color(0xFF094943),
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               shape: RoundedRectangleBorder(

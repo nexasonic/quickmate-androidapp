@@ -151,12 +151,13 @@ class PresenceService with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      startPeriodicPing();
-    } else if (state == AppLifecycleState.paused ||
-               state == AppLifecycleState.inactive ||
-               state == AppLifecycleState.detached) {
+      if (_pingTimer == null || !_pingTimer!.isActive) {
+        startPeriodicPing();
+      }
+    } else if (state == AppLifecycleState.detached) {
       stopPeriodicPing();
     }
+    // When paused or inactive (app minimized), the 30-second timer remains running in memory.
   }
 
   /// Update current location coordinates with high accuracy (up to 7 decimal places) and sync
@@ -243,6 +244,7 @@ class PresenceService with WidgetsBindingObserver {
 
         // If user is logged in, sync with database backend
         if (AuthService.isLoggedIn()) {
+          final bool showLocation = StorageService.getPrivacyShowLocation();
           final payload = {
             'latitude': currentLatitude,
             'longitude': currentLongitude,
@@ -250,9 +252,11 @@ class PresenceService with WidgetsBindingObserver {
             'lng': currentLongitude,
             'place_name': currentPlaceName,
             'location': currentPlaceName,
+            'show_location': showLocation,
+            'privacy_show_location': showLocation,
           };
 
-          debugPrint('[PresenceService] Syncing GPS ping to ${ApiConfig.baseUrl}/presence/ping: $currentLatitude, $currentLongitude ($currentPlaceName)');
+          debugPrint('[PresenceService] Syncing GPS ping to ${ApiConfig.baseUrl}/presence/ping: $currentLatitude, $currentLongitude ($currentPlaceName), show_location=$showLocation');
 
           final response = await ApiService.post(
             '${ApiConfig.baseUrl}/presence/ping',
@@ -271,6 +275,7 @@ class PresenceService with WidgetsBindingObserver {
         _notifyLocationChange(hasGps: false);
 
         if (AuthService.isLoggedIn()) {
+          final bool showLocation = StorageService.getPrivacyShowLocation();
           final payload = {
             'latitude': double.parse(currentLatitude.toStringAsFixed(7)),
             'longitude': double.parse(currentLongitude.toStringAsFixed(7)),
@@ -278,6 +283,8 @@ class PresenceService with WidgetsBindingObserver {
             'lng': double.parse(currentLongitude.toStringAsFixed(7)),
             'place_name': currentPlaceName,
             'location': currentPlaceName,
+            'show_location': showLocation,
+            'privacy_show_location': showLocation,
           };
 
           final response = await ApiService.post(

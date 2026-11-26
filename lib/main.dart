@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/app_language.dart';
 import 'core/app_theme.dart';
 import 'core/storage_service.dart';
+import 'services/background_location_service.dart';
 import 'splash_screen.dart';
 
 void main() async {
@@ -10,6 +11,9 @@ void main() async {
   await StorageService.init();
   initTheme();
   AppLanguage.initLanguage();
+
+  // Initialize and register 15-30 min silent background location task (WorkManager)
+  await BackgroundLocationManager.startPeriodicLocationTask();
 
   runApp(const MyApp());
 }

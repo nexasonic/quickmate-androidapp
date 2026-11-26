@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../chat_detail_screen.dart';
 import '../core/app_language.dart';
+import '../core/storage_service.dart';
 import '../models/chat_model.dart';
 import 'auth_service.dart';
 import 'chat_service.dart';
@@ -89,6 +90,7 @@ class ChatNotificationService {
 
     _notificationTimer = Timer.periodic(const Duration(seconds: 4), (_) async {
       if (!AuthService.isLoggedIn()) return;
+      if (!StorageService.getNotifMessages()) return;
 
       final conversations = await ChatService.fetchConversations();
       if (!context.mounted) return;
@@ -131,6 +133,8 @@ class ChatNotificationService {
   static Future<void> _showSystemNotification({
     required ConversationModel conversation,
   }) async {
+    if (!StorageService.getNotifMessages()) return;
+
     final androidDetails = AndroidNotificationDetails(
       'quickmate_chat_channel',
       AppLanguage.trCode('chat_notif_channel_name'),

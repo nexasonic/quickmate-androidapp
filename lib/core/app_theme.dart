@@ -32,6 +32,33 @@ String themeModeToString(ThemeMode mode) {
   }
 }
 
+int themeModeToInt(String mode) {
+  switch (mode.trim().toLowerCase()) {
+    case 'light':
+    case '1':
+      return 1;
+    case 'dark':
+    case '2':
+      return 2;
+    case 'system':
+    case '0':
+    default:
+      return 0;
+  }
+}
+
+String themeModeFromInt(int code) {
+  switch (code) {
+    case 1:
+      return 'Light';
+    case 2:
+      return 'Dark';
+    case 0:
+    default:
+      return 'System';
+  }
+}
+
 Future<void> updateAppTheme(String mode) async {
   await StorageService.saveThemeMode(mode);
   themeModeNotifier.value = themeModeFromString(mode);

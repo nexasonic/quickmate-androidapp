@@ -5,6 +5,7 @@ import '../core/app_language.dart';
 import '../core/storage_service.dart';
 import '../models/user_model.dart';
 import 'presence_service.dart';
+import 'profile_service.dart';
 
 class AuthService {
   static Future<ApiResponse> login({
@@ -30,6 +31,7 @@ class AuthService {
       }
       if (userMap != null) {
         await StorageService.saveUser(userMap);
+        await ProfileService.applySyncedSettings({'user': userMap});
       }
       PresenceService.startPeriodicPing();
       PresenceService.pingServer();
@@ -67,6 +69,7 @@ class AuthService {
       }
       if (userMap != null) {
         await StorageService.saveUser(userMap);
+        await ProfileService.applySyncedSettings({'user': userMap});
       }
       PresenceService.startPeriodicPing();
       PresenceService.pingServer();
@@ -104,6 +107,7 @@ class AuthService {
       }
       if (userMap != null) {
         await StorageService.saveUser(userMap);
+        await ProfileService.applySyncedSettings({'user': userMap});
       }
       PresenceService.startPeriodicPing();
       PresenceService.pingServer();

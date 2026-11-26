@@ -1,11 +1,42 @@
 import 'dart:io';
 import '../core/api_config.dart';
 import '../core/api_service.dart';
+import '../core/app_language.dart';
+import '../core/app_theme.dart';
 import '../core/storage_service.dart';
 import '../models/user_model.dart';
 import 'auth_service.dart';
 
 class ProfileService {
+  /// Hydrate local SharedPreferences, theme, and locale from server profile payload.
+  static Future<void> applySyncedSettings(Map<String, dynamic> dataMap) async {
+    final profile = dataMap['profile'] as Map<String, dynamic>? ?? {};
+    final userMap = dataMap['user'] as Map<String, dynamic>? ?? {};
+    final userModel = UserModel.fromJson(dataMap);
+
+    final hasShowLoc = dataMap.containsKey('show_location') || profile.containsKey('show_location') || userMap.containsKey('show_location');
+    if (hasShowLoc) {
+      await StorageService.savePrivacyShowLocation(userModel.showLocation);
+    }
+
+    if (profile.containsKey('notif_job_alerts') || userMap.containsKey('notif_job_alerts')) {
+      await StorageService.saveNotifJobAlerts(userModel.notifJobAlerts);
+    }
+    if (profile.containsKey('notif_messages') || userMap.containsKey('notif_messages')) {
+      await StorageService.saveNotifMessages(userModel.notifMessages);
+    }
+    if (profile.containsKey('notif_promotions') || userMap.containsKey('notif_promotions')) {
+      await StorageService.saveNotifPromotions(userModel.notifPromotions);
+    }
+
+    if (profile.containsKey('pref_theme') || userMap.containsKey('pref_theme')) {
+      await updateAppTheme(themeModeFromInt(userModel.prefTheme));
+    }
+    if (profile.containsKey('pref_language') || userMap.containsKey('pref_language')) {
+      await AppLanguage.setLanguage(AppLanguage.languageCodeFromInt(userModel.prefLanguage));
+    }
+  }
+
   /// Fetch user profile details from backend and update local session storage.
   static Future<UserModel?> fetchUserProfile() async {
     final response = await ApiService.get(ApiConfig.profile);
@@ -16,6 +47,7 @@ class ProfileService {
           : {};
       final userModel = UserModel.fromJson(dataMap);
       await StorageService.saveUser(userModel.toJson());
+      await applySyncedSettings(dataMap);
       return userModel;
     }
     return AuthService.getStoredUser();
@@ -32,7 +64,7 @@ class ProfileService {
     return null;
   }
 
-  /// Update user profile details.
+  /// Update user profile details & synced preference fields.
   static Future<ApiResponse> updateProfile({
     String? name,
     String? phone,
@@ -49,6 +81,13 @@ class ProfileService {
     String? instagram,
     String? workingHours,
     String? availabilityStatus,
+    bool? showLocation,
+    bool? notifJobAlerts,
+    bool? notifMessages,
+    bool? notifBookings,
+    bool? notifPromotions,
+    int? prefTheme,
+    int? prefLanguage,
   }) async {
     final body = <String, dynamic>{};
     if (name != null) body['name'] = name;
@@ -66,13 +105,21 @@ class ProfileService {
     if (instagram != null) body['instagram'] = instagram;
     if (workingHours != null) body['working_hours'] = workingHours;
     if (availabilityStatus != null) body['availability_status'] = availabilityStatus;
+    if (showLocation != null) body['show_location'] = showLocation;
+    if (notifJobAlerts != null) body['notif_job_alerts'] = notifJobAlerts;
+    if (notifMessages != null) body['notif_messages'] = notifMessages;
+    if (notifBookings != null) body['notif_bookings'] = notifBookings;
+    if (notifPromotions != null) body['notif_promotions'] = notifPromotions;
+    if (prefTheme != null) body['pref_theme'] = prefTheme;
+    if (prefLanguage != null) body['pref_language'] = prefLanguage;
 
     final response = await ApiService.put(ApiConfig.profile, body: body);
 
     if (response.success && response.data != null) {
-      final userMap = response.data['user'] as Map<String, dynamic>? ?? response.data;
-      if (userMap is Map<String, dynamic>) {
-        await StorageService.saveUser(userMap);
+      if (response.data is Map<String, dynamic>) {
+        final dataMap = response.data as Map<String, dynamic>;
+        final userModel = UserModel.fromJson(dataMap);
+        await StorageService.saveUser(userModel.toJson());
       }
     }
 

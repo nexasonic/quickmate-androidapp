@@ -1,5 +1,6 @@
 import '../core/api_config.dart';
 import '../core/app_language.dart';
+import '../core/app_theme.dart';
 
 class UserModel {
   final int id;
@@ -16,6 +17,13 @@ class UserModel {
   final String? location;
   final double? latitude;
   final double? longitude;
+  final bool showLocation;
+  final bool notifJobAlerts;
+  final bool notifMessages;
+  final bool notifBookings;
+  final bool notifPromotions;
+  final int prefTheme;
+  final int prefLanguage;
 
   UserModel({
     required this.id,
@@ -32,6 +40,13 @@ class UserModel {
     this.location,
     this.latitude,
     this.longitude,
+    this.showLocation = true,
+    this.notifJobAlerts = true,
+    this.notifMessages = true,
+    this.notifBookings = true,
+    this.notifPromotions = false,
+    this.prefTheme = 1,
+    this.prefLanguage = 1,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -60,8 +75,37 @@ class UserModel {
       return null;
     }
 
+    bool parseBoolFlag(dynamic val, bool fallback) {
+      if (val == null) return fallback;
+      if (val is bool) return val;
+      if (val is num) return val.toInt() != 0;
+      final s = val.toString().trim().toLowerCase();
+      if (s == '1' || s == 'true' || s == 'yes') return true;
+      if (s == '0' || s == 'false' || s == 'no' || s == 'hidden' || s == 'disabled') return false;
+      return fallback;
+    }
+
     final double? parsedLat = parseCoord(json['latitude']) ?? parseCoord(profile['latitude']) ?? parseCoord(userMap['latitude']);
     final double? parsedLng = parseCoord(json['longitude']) ?? parseCoord(profile['longitude']) ?? parseCoord(userMap['longitude']);
+
+    final bool parsedShowLoc = (json['show_location'] != false &&
+        json['show_location'] != 0 &&
+        json['privacy_show_location'] != false &&
+        json['privacy_show_location'] != 0 &&
+        profile['show_location'] != false &&
+        profile['show_location'] != 0 &&
+        userMap['show_location'] != false &&
+        userMap['show_location'] != 0);
+
+    final dynamic rawTheme = profile['pref_theme'] ?? json['pref_theme'] ?? userMap['pref_theme'];
+    final dynamic rawLang = profile['pref_language'] ?? json['pref_language'] ?? userMap['pref_language'];
+
+    final int parsedTheme = rawTheme is num
+        ? rawTheme.toInt()
+        : (rawTheme != null ? themeModeToInt(rawTheme.toString()) : 0);
+    final int parsedLang = rawLang is num
+        ? rawLang.toInt()
+        : (rawLang != null ? AppLanguage.languageCodeToInt(rawLang.toString()) : 1);
 
     return UserModel(
       id: rawId,
@@ -83,6 +127,13 @@ class UserModel {
       location: json['location']?.toString() ?? profile['location']?.toString() ?? userMap['location']?.toString(),
       latitude: parsedLat,
       longitude: parsedLng,
+      showLocation: parsedShowLoc,
+      notifJobAlerts: parseBoolFlag(profile['notif_job_alerts'] ?? json['notif_job_alerts'] ?? userMap['notif_job_alerts'], true),
+      notifMessages: parseBoolFlag(profile['notif_messages'] ?? json['notif_messages'] ?? userMap['notif_messages'], true),
+      notifBookings: parseBoolFlag(profile['notif_bookings'] ?? json['notif_bookings'] ?? userMap['notif_bookings'], true),
+      notifPromotions: parseBoolFlag(profile['notif_promotions'] ?? json['notif_promotions'] ?? userMap['notif_promotions'], false),
+      prefTheme: parsedTheme,
+      prefLanguage: parsedLang,
     );
   }
 
@@ -101,6 +152,13 @@ class UserModel {
       if (location != null) 'location': location,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
+      'show_location': showLocation,
+      'notif_job_alerts': notifJobAlerts,
+      'notif_messages': notifMessages,
+      'notif_bookings': notifBookings,
+      'notif_promotions': notifPromotions,
+      'pref_theme': prefTheme,
+      'pref_language': prefLanguage,
     };
   }
 }

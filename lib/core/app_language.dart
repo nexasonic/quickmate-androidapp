@@ -61,6 +61,54 @@ class AppLanguage {
     return supportedLanguages[code] ?? 'English';
   }
 
+  static int languageCodeToInt(String code) {
+    switch (code.trim().toLowerCase()) {
+      case 'hi':
+      case 'hindi':
+      case '2':
+        return 2;
+      case 'ml':
+      case 'malayalam':
+      case '3':
+        return 3;
+      case 'ta':
+      case 'tamil':
+      case '4':
+        return 4;
+      case 'te':
+      case 'telugu':
+      case '5':
+        return 5;
+      case 'kn':
+      case 'kannada':
+      case '6':
+        return 6;
+      case 'en':
+      case 'english':
+      case '1':
+      default:
+        return 1;
+    }
+  }
+
+  static String languageCodeFromInt(int id) {
+    switch (id) {
+      case 2:
+        return 'hi';
+      case 3:
+        return 'ml';
+      case 4:
+        return 'ta';
+      case 5:
+        return 'te';
+      case 6:
+        return 'kn';
+      case 1:
+      default:
+        return 'en';
+    }
+  }
+
   static String tr(BuildContext context, String key) {
     return trCode(key);
   }
@@ -322,6 +370,8 @@ class AppLanguage {
       'privacy_location': 'Privacy & Location',
       'show_location_nearby': 'Show Location to Nearby Users',
       'show_location_desc': 'Allow nearby users to see your distance',
+      'location_disabled_alert_title': 'Location Sharing Disabled',
+      'location_disabled_alert_desc': 'Your Live Work cards and location are hidden from nearby users.',
       'theme_set_to': 'Theme set to',
       'language_set_to': 'Language set to',
 
@@ -890,6 +940,8 @@ class AppLanguage {
       'privacy_location': 'गोपनीयता और स्थान',
       'show_location_nearby': 'आस-पास के उपयोगकर्ताओं को स्थान दिखाएं',
       'show_location_desc': 'आस-पास के उपयोगकर्ताओं को आपकी दूरी देखने दें',
+      'location_disabled_alert_title': 'स्थान साझाकरण अक्षम',
+      'location_disabled_alert_desc': 'आपके लाइव वर्क कार्ड और स्थान आस-पास के उपयोगकर्ताओं से छिपे हुए हैं।',
       'theme_set_to': 'थीम सेट की गई',
       'language_set_to': 'भाषा सेट की गई',
 
@@ -1458,6 +1510,8 @@ class AppLanguage {
       'privacy_location': 'സ്വകാര്യതയും ലൊക്കേഷനും',
       'show_location_nearby': 'ലൊക്കേഷൻ സമീപത്തുള്ളവർക്ക് കാണിക്കുക',
       'show_location_desc': 'മറ്റുള്ളവർക്ക് ദൂരം കാണാൻ അനുവാദം നൽകുക',
+      'location_disabled_alert_title': 'ലൊക്കേഷൻ ഷെയറിംഗ് നിർത്തിവെച്ചു',
+      'location_disabled_alert_desc': 'നിങ്ങളുടെ ലൈവ് വർക്ക് കാർഡുകളും ലൊക്കേഷനും മറ്റുള്ളവരിൽ നിന്ന് മറച്ചിരിക്കുന്നു.',
       'theme_set_to': 'തീം മാറ്റി',
       'language_set_to': 'ഭാഷ മാറ്റി',
 
@@ -2026,6 +2080,8 @@ class AppLanguage {
       'privacy_location': 'தனியுரிமை & இருப்பிடம்',
       'show_location_nearby': 'அருகிலுள்ள பயனர்களுக்கு இருப்பிடத்தைக் காட்டு',
       'show_location_desc': 'அருகிலுள்ள பயனர்கள் உங்கள் தூரத்தைப் பார்க்க அனுமதியுங்கள்',
+      'location_disabled_alert_title': 'இருப்பிடப் பகிர்வு முடக்கப்பட்டது',
+      'location_disabled_alert_desc': 'உங்கள் லைவ் வொர்க் கார்டுகளும் இருப்பிடமும் மற்றவர்களுக்குப் புலப்படாது.',
       'theme_set_to': 'தீம் மாற்றப்பட்டது',
       'language_set_to': 'மொழி மாற்றப்பட்டது',
 
@@ -2594,6 +2650,8 @@ class AppLanguage {
       'privacy_location': 'గోప్యత & స్థానం',
       'show_location_nearby': 'దగ్గరలోని యూజర్లకు స్థానాన్ని చూపించు',
       'show_location_desc': 'దగ్గరలోని యూజర్లు మీ దూరాన్ని చూడటానికి అనుమతించండి',
+      'location_disabled_alert_title': 'స్థాన భాగస్వామ్యం నిలిపివేయబడింది',
+      'location_disabled_alert_desc': 'మీ లైవ్ వర్క్ కార్డ్‌లు మరియు స్థానం దగ్గరలోని ఇతర యూజర్లకు కనిపించవు.',
       'theme_set_to': 'థీమ్ మార్చబడింది',
       'language_set_to': 'భాష మార్చబడింది',
 
@@ -3162,6 +3220,8 @@ class AppLanguage {
       'privacy_location': 'ಗೌಪ್ಯತೆ & ಸ್ಥಳ',
       'show_location_nearby': 'ಹತ್ತಿರದ ಬಳಕೆದಾರರಿಗೆ ಸ್ಥಳ ತೋರಿಸಿ',
       'show_location_desc': 'ಹತ್ತಿರದ ಬಳಕೆದಾರರಿಗೆ ನಿಮ್ಮ ದೂರವನ್ನು ನೋಡಲು ಅನುಮತಿಸಿ',
+      'location_disabled_alert_title': 'ಸ್ಥಳ ಹಂಚಿಕೆ ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ',
+      'location_disabled_alert_desc': 'ನಿಮ್ಮ ಲೈವ್ ವರ್ಕ್ ಕಾರ್ಡ್‌ಗಳು ಮತ್ತು ಸ್ಥಳವು ಹತ್ತಿರದ ಬಳಕೆದಾರರಿಂದ ಮರೆಮಾಡಲ್ಪಟ್ಟಿದೆ.',
       'theme_set_to': 'ಥೀಮ್ ಬದಲಾಯಿಸಲಾಗಿದೆ',
       'language_set_to': 'ಭಾಷೆ ಬದಲಾಯಿಸಲಾಗಿದೆ',
 

@@ -8,6 +8,12 @@ class StorageService {
   static const String _themeKey = 'app_theme_mode';
   static const String _languageKey = 'app_language_code';
 
+  // Push Notifications & Privacy Keys
+  static const String _notifJobAlertsKey = 'notif_job_alerts';
+  static const String _notifMessagesKey = 'notif_messages';
+  static const String _notifPromotionsKey = 'notif_promotions';
+  static const String _privacyShowLocationKey = 'privacy_show_location';
+
   static SharedPreferences? _prefs;
 
   static Future<void> init() async {
@@ -32,6 +38,43 @@ class StorageService {
 
   static String getThemeMode() {
     return _prefs?.getString(_themeKey) ?? 'System';
+  }
+
+  // Push Notifications & Privacy Preference Management
+  static Future<bool> saveNotifJobAlerts(bool value) async {
+    await init();
+    return await _prefs!.setBool(_notifJobAlertsKey, value);
+  }
+
+  static bool getNotifJobAlerts() {
+    return _prefs?.getBool(_notifJobAlertsKey) ?? true;
+  }
+
+  static Future<bool> saveNotifMessages(bool value) async {
+    await init();
+    return await _prefs!.setBool(_notifMessagesKey, value);
+  }
+
+  static bool getNotifMessages() {
+    return _prefs?.getBool(_notifMessagesKey) ?? true;
+  }
+
+  static Future<bool> saveNotifPromotions(bool value) async {
+    await init();
+    return await _prefs!.setBool(_notifPromotionsKey, value);
+  }
+
+  static bool getNotifPromotions() {
+    return _prefs?.getBool(_notifPromotionsKey) ?? true;
+  }
+
+  static Future<bool> savePrivacyShowLocation(bool value) async {
+    await init();
+    return await _prefs!.setBool(_privacyShowLocationKey, value);
+  }
+
+  static bool getPrivacyShowLocation() {
+    return _prefs?.getBool(_privacyShowLocationKey) ?? true;
   }
 
   // Token Management
