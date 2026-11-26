@@ -73,7 +73,7 @@ class MapPinModel {
         ? (json['distance_km'] as num).toDouble()
         : (calculateDistanceKm(lat1: userLat, lon1: userLng, lat2: lat, lon2: lng) ?? 0.0);
 
-    final userName = userMap['name']?.toString() ?? 'User';
+    final userName = userMap['name']?.toString() ?? AppLanguage.trCode('user_fallback');
 
     // Intelligently extract real card/work title
     final rawTitle = json['title']?.toString() ??
@@ -83,13 +83,13 @@ class MapPinModel {
         json['category_name']?.toString() ??
         json['category']?['name']?.toString();
 
-    String finalTitle = (rawTitle != null && rawTitle.isNotEmpty) ? rawTitle : 'Live Work Card';
+    String finalTitle = (rawTitle != null && rawTitle.isNotEmpty) ? rawTitle : AppLanguage.trCode('live_work_card');
     if (finalTitle.trim().toLowerCase() == userName.trim().toLowerCase()) {
       final categoryName = json['category_name']?.toString() ?? json['category']?['name']?.toString();
       if (categoryName != null && categoryName.isNotEmpty) {
         finalTitle = categoryName;
       } else {
-        finalTitle = 'Live Work Card';
+        finalTitle = AppLanguage.trCode('live_work_card');
       }
     }
 
@@ -128,14 +128,14 @@ class MapPinModel {
       id: card.id,
       userId: card.user?.id,
       type: 'live_work',
-      title: card.title.isNotEmpty ? card.title : (card.category?.name ?? 'Live Work Card'),
+      title: card.title.isNotEmpty ? card.title : (card.category?.name ?? AppLanguage.trCode('live_work_card')),
       latitude: cardLat,
       longitude: cardLng,
       distanceKm: dist,
-      price: card.price != null && card.price! > 0 ? card.price : (card.priceType ?? 'Negotiable'),
+      price: card.price != null && card.price! > 0 ? card.price : card.priceType,
       currency: card.currency,
       thumbnailUrl: card.thumbnailUrl ?? (card.images.isNotEmpty ? card.images.first : null),
-      userName: card.user?.name ?? 'User',
+      userName: card.user?.name ?? AppLanguage.trCode('user_fallback'),
       userAvatar: card.user?.avatarUrl,
     );
   }
@@ -143,6 +143,23 @@ class MapPinModel {
   String get formattedPrice {
     if (price == null || price == 0) return 'Negotiable';
     if (price is String) return price.toString();
+    if (price is num) {
+      final pVal = (price as num) % 1 == 0 ? (price as num).toInt().toString() : (price as num).toStringAsFixed(2);
+      return '$currency $pVal';
+    }
+    return '$currency $price';
+  }
+
+  String getTrFormattedPrice(BuildContext context) {
+    if (price == null || price == 0) return context.tr('negotiable');
+    if (price is String) {
+      final lower = price.toString().toLowerCase();
+      if (lower.contains('negotiable')) return context.tr('negotiable');
+      if (lower.contains('hour')) return context.tr('per_hour');
+      if (lower.contains('day')) return context.tr('per_day');
+      if (lower.contains('fixed')) return context.tr('fixed_price');
+      return price.toString();
+    }
     if (price is num) {
       final pVal = (price as num) % 1 == 0 ? (price as num).toInt().toString() : (price as num).toStringAsFixed(2);
       return '$currency $pVal';
@@ -158,6 +175,16 @@ class MapPinModel {
       return '${distanceKm.toStringAsFixed(1)} km away';
     }
     return 'Nearby';
+  }
+
+  String getTrFormattedDistance(BuildContext context) {
+    if (distanceKm > 0) {
+      if (distanceKm < 1.0) {
+        return '${(distanceKm * 1000).round()} ${context.tr('meters_away')}';
+      }
+      return '${distanceKm.toStringAsFixed(1)} ${context.tr('km_away')}';
+    }
+    return context.tr('near_you');
   }
 }
 
@@ -434,7 +461,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Real-time live worker radar',
+                                context.tr('realtime_worker_radar'),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: AppTheme.textSecondary(context),
@@ -581,9 +608,9 @@ class MapViewScreenState extends State<MapViewScreen> {
                                                       child: avatar == null || avatar.isEmpty
                                                           ? Text(
                                                               isYou
-                                                                  ? 'YOU'
+                                                                  ? context.tr('you')
                                                                   : (group.userName.isNotEmpty
-                                                                      ? group.userName.substring(0, 1).toUpperCase()
+                                                                      ? String.fromCharCode(group.userName.runes.first).toUpperCase()
                                                                       : 'U'),
                                                               style: const TextStyle(
                                                                 color: Colors.white,
@@ -637,7 +664,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                                                 ),
                                                 child: Text(
                                                   isYou
-                                                      ? (group.cardCount > 0 ? 'YOU (${group.cardCount})' : 'YOU')
+                                                      ? (group.cardCount > 0 ? '${context.tr('you')} (${group.cardCount})' : context.tr('you'))
                                                       : group.userName,
                                                   maxLines: 1,
                                                   overflow: TextOverflow.ellipsis,
@@ -896,7 +923,9 @@ class MapViewScreenState extends State<MapViewScreen> {
                         : null,
                     child: group.userAvatar == null || group.userAvatar!.isEmpty
                         ? Text(
-                            isYou ? 'Y' : (group.userName.isNotEmpty ? group.userName[0].toUpperCase() : 'U'),
+                            isYou
+                                ? String.fromCharCode(context.tr('you').runes.first).toUpperCase()
+                                : (group.userName.isNotEmpty ? String.fromCharCode(group.userName.runes.first).toUpperCase() : 'U'),
                             style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                           )
                         : null,
@@ -1066,7 +1095,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                     const Icon(Icons.near_me_outlined, size: 12, color: primaryDark),
                     const SizedBox(width: 4),
                     Text(
-                      pin.formattedDistance,
+                      pin.getTrFormattedDistance(context),
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -1076,7 +1105,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                     if (pin.price != null && pin.price != 0) ...[
                       const Text(' • ', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
                       Text(
-                        pin.formattedPrice,
+                        pin.getTrFormattedPrice(context),
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -1100,9 +1129,9 @@ class MapViewScreenState extends State<MapViewScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
-            child: const Text(
-              'View',
-              style: TextStyle(
+            child: Text(
+              context.tr('view'),
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,

@@ -1,6 +1,7 @@
 import 'package:google_sign_in/google_sign_in.dart';
 import '../core/api_config.dart';
 import '../core/api_service.dart';
+import '../core/app_language.dart';
 import '../core/storage_service.dart';
 import '../models/user_model.dart';
 import 'presence_service.dart';
@@ -119,7 +120,7 @@ class AuthService {
     } catch (e) {
       response = ApiResponse(
         success: false,
-        message: 'Logged out locally.',
+        message: AppLanguage.trCode('logged_out_success'),
         statusCode: 500,
       );
     } finally {

@@ -34,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (email.isEmpty || password.isEmpty) {
       AppDialogs.showToastModal(
         context,
-        message: 'Please enter both email and password.',
+        message: context.tr('enter_email_password'),
         icon: Icons.warning_amber_rounded,
         iconColor: Colors.orange,
         iconBgColor: const Color(0xFFFEF3C7),
@@ -69,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       AppDialogs.showToastModal(
         context,
-        message: response.message.isNotEmpty ? response.message : 'Login failed.',
+        message: response.message.isNotEmpty ? response.message : context.tr('login_failed'),
         icon: Icons.error_outline_rounded,
         iconColor: Colors.redAccent,
         iconBgColor: const Color(0xFFFEE2E2),
@@ -114,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
         } else {
           AppDialogs.showToastModal(
             context,
-            message: response.message.isNotEmpty ? response.message : 'Google sign in failed.',
+            message: response.message.isNotEmpty ? response.message : context.tr('google_signin_failed'),
             icon: Icons.error_outline_rounded,
             iconColor: Colors.redAccent,
             iconBgColor: const Color(0xFFFEE2E2),
@@ -134,11 +134,11 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       final String errStr = e.toString();
-      String userMsg = 'Google Sign-In failed.';
+      String userMsg = context.tr('google_signin_failed');
       if (errStr.contains('10')) {
-        userMsg = 'Developer Error (ApiException 10): Please add Android Client ID with package com.nexasonic.quickmate & SHA-1 in Google Cloud Console.';
+        userMsg = context.tr('google_signin_dev_error');
       } else {
-        userMsg = 'Google Sign-In error: $errStr';
+        userMsg = context.trParams('google_signin_error_msg', {'error': errStr});
       }
 
       AppDialogs.showToastModal(
@@ -198,18 +198,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           _buildLogo(),
                           const SizedBox(height: 15),
-                          const Text(
-                            'LOGIN',
-                            style: TextStyle(
+                          Text(
+                            context.tr('login').toUpperCase(),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.5,
                             ),
                           ),
-                          const Text(
-                            'Welcome Back',
-                            style: TextStyle(
+                          Text(
+                            context.tr('welcome_back'),
+                            style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 16,
                             ),
@@ -217,35 +217,35 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: 30),
                           _buildTextField(
                             controller: _emailController,
-                            hintText: 'Email or Phone',
+                            hintText: context.tr('email_or_phone'),
                             icon: Icons.phone_outlined,
                           ),
                           const SizedBox(height: 12),
                           _buildTextField(
                             controller: _passwordController,
-                            hintText: 'Password',
+                            hintText: context.tr('password'),
                             icon: Icons.lock_outline,
                             isPassword: true,
                           ),
                           const SizedBox(height: 20),
                           _buildPrimaryButton(
-                            text: 'Sign In',
+                            text: context.tr('sign_in'),
                             isLoading: _isLoading,
                             onPressed: _handleLogin,
                           ),
                           const SizedBox(height: 20),
                           // Sign in with Google button
                           _buildSocialButton(
-                            text: 'Sign in with Google',
+                            text: context.tr('sign_in_with_google'),
                             icon: Icons.g_mobiledata,
                             onPressed: _handleGoogleSignIn,
                           ),
                           const SizedBox(height: 15),
                           TextButton(
                             onPressed: () {},
-                            child: const Text(
-                              'Forgot Password?',
-                              style: TextStyle(color: Colors.white70, fontSize: 13),
+                            child: Text(
+                              context.tr('forgot_password'),
+                              style: const TextStyle(color: Colors.white70, fontSize: 13),
                             ),
                           ),
                           Row(

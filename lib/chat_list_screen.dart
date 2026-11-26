@@ -183,12 +183,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            'Sign In to Chat',
+            context.tr('sign_in_to_chat_title'),
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)),
           ),
           const SizedBox(height: 8),
           Text(
-            'Connect with live work service providers directly by logging into your account.',
+            context.tr('sign_in_to_chat_desc'),
             textAlign: TextAlign.center,
             style: TextStyle(color: AppTheme.textSecondary(context), fontSize: 14),
           ),
@@ -207,9 +207,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 backgroundColor: primaryDark,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               ),
-              child: const Text(
-                'Sign In Now',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+              child: Text(
+                context.tr('sign_in_now'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ),
           ),
@@ -226,12 +226,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
           Icon(Icons.chat_bubble_outline_rounded, size: 50, color: AppTheme.textSecondary(context)),
           const SizedBox(height: 12),
           Text(
-            'No conversations yet.',
+            context.tr('no_conversations_yet'),
             style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 4),
           Text(
-            'Start a chat from any Live Work card detail page!',
+            context.tr('start_chat_from_card'),
             style: TextStyle(color: AppTheme.textSecondary(context), fontSize: 12),
           ),
         ],

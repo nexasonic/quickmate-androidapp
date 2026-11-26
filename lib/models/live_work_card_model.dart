@@ -29,6 +29,37 @@ double? calculateDistanceKm({
   return earthRadiusKm * c;
 }
 
+String translateLastSeenHuman(BuildContext context, String? raw) {
+  if (raw == null || raw.trim().isEmpty) return context.tr('offline');
+  final cleaned = raw
+      .replaceAll('Last seen ', '')
+      .replaceAll('last seen ', '')
+      .replaceAll('seen ', '')
+      .replaceAll('Last ', '')
+      .trim();
+  final lower = cleaned.toLowerCase();
+  if (lower.isEmpty || lower == 'offline') return context.tr('offline');
+  if (lower.contains('just now') || lower.contains('moments ago') || lower.contains('sec')) {
+    return context.tr('just_now');
+  }
+  final numMatch = RegExp(r'\d+').stringMatch(lower);
+  if (numMatch != null) {
+    if (lower.contains('min') || RegExp(r'\d+\s*m\b').hasMatch(lower)) {
+      return '$numMatch ${context.tr('mins_ago')}';
+    }
+    if (lower.contains('hour') || lower.contains('hr') || RegExp(r'\d+\s*h\b').hasMatch(lower)) {
+      return '$numMatch ${context.tr('hours_ago')}';
+    }
+    if (lower.contains('day') || RegExp(r'\d+\s*d\b').hasMatch(lower)) {
+      return '$numMatch ${context.tr('days_ago')}';
+    }
+    if (lower.contains('month') || lower.contains('mo')) {
+      return '$numMatch ${context.tr('months_ago')}';
+    }
+  }
+  return cleaned;
+}
+
 String formatTimeAgoString(String? dateStr) {
   if (dateStr == null || dateStr.isEmpty) return 'Just now';
   try {
@@ -78,7 +109,7 @@ class CardReviewModel {
 
   factory CardReviewModel.fromJson(Map<String, dynamic> json) {
     final reviewer = json['reviewer'] as Map<String, dynamic>? ?? {};
-    final rawName = reviewer['name']?.toString() ?? json['name']?.toString() ?? json['reviewer_name']?.toString() ?? 'Reviewer';
+    final rawName = reviewer['name']?.toString() ?? json['name']?.toString() ?? json['reviewer_name']?.toString() ?? AppLanguage.trCode('reviewer_fallback');
     final rawAvatar = reviewer['avatar_url']?.toString() ?? json['avatar']?.toString() ?? json['reviewer_avatar']?.toString();
     final rawReviewerId = json['reviewer_id'] is int ? json['reviewer_id'] : (reviewer['id'] is int ? reviewer['id'] : null);
 
@@ -168,6 +199,49 @@ class LiveWorkCardModel {
     if (isExpired) return 'Expired';
     if (isPaused) return 'Paused';
     return 'Active';
+  }
+
+  String getTrStatusLabel(BuildContext context) {
+    if (isExpired) return context.tr('expired');
+    if (isPaused) return context.tr('paused');
+    return context.tr('active');
+  }
+
+  String getTrFormattedExpiresIn(BuildContext context, {bool shortOnly = false}) {
+    if (isExpired) return context.tr('expired');
+    DateTime? expDate;
+    if (expiresAt != null) {
+      expDate = DateTime.tryParse(expiresAt!);
+    }
+    if (expDate == null || expDate.isBefore(DateTime.now())) {
+      if (updatedAt != null || createdAt != null) {
+        final base = DateTime.tryParse(updatedAt ?? createdAt!);
+        if (base != null) {
+          expDate = base.add(const Duration(hours: 24));
+        }
+      }
+    }
+    final String timeStr;
+    if (expDate != null) {
+      final diff = expDate.difference(DateTime.now());
+      if (diff.isNegative) {
+        timeStr = context.tr('less_than_1m');
+      } else if (diff.inHours > 0) {
+        timeStr = '${diff.inHours}${context.tr('hours_short')} ${diff.inMinutes % 60}${context.tr('mins_short')}';
+      } else if (diff.inMinutes > 0) {
+        timeStr = '${diff.inMinutes}${context.tr('mins_short')}';
+      } else {
+        timeStr = context.tr('less_than_1m');
+      }
+    } else {
+      timeStr = '24${context.tr('hours_short')}';
+    }
+    if (shortOnly) return timeStr;
+    return context.trParams('expires_in_time', {'time': timeStr});
+  }
+
+  String getTrFormattedLastSeen(BuildContext context) {
+    return translateLastSeenHuman(context, user?.lastSeenHuman);
   }
 
   String get formattedExpiresIn {
@@ -322,7 +396,7 @@ class LiveWorkCardModel {
       } else if (diff.inDays < 30) {
         return '${diff.inDays} ${context.tr('days_ago')}';
       } else {
-        return '${(diff.inDays / 30).floor()} mo ago';
+        return '${(diff.inDays / 30).floor()} ${context.tr('months_ago')}';
       }
     } catch (_) {
       final str = rawDateStr.toLowerCase().trim();
@@ -337,6 +411,10 @@ class LiveWorkCardModel {
       if (str.contains('day') || str.contains('d ago')) {
         final num = RegExp(r'\d+').stringMatch(str) ?? '1';
         return '$num ${context.tr('days_ago')}';
+      }
+      if (str.contains('month') || str.contains('mo ago')) {
+        final num = RegExp(r'\d+').stringMatch(str) ?? '1';
+        return '$num ${context.tr('months_ago')}';
       }
       return str;
     }
@@ -502,7 +580,7 @@ class LiveWorkCardModel {
 
     return LiveWorkCardModel(
       id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
-      title: json['title'] ?? 'Live Work',
+      title: json['title'] ?? AppLanguage.trCode('live_work'),
       description: json['description'],
       price: json['price'] != null ? (json['price'] as num).toDouble() : null,
       priceType: json['price_type'],

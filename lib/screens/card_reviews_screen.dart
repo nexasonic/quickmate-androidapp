@@ -97,7 +97,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
     if (!AuthService.isLoggedIn()) {
       AppDialogs.showToastModal(
         context,
-        message: 'Please sign in to add or edit a review.',
+        message: context.tr('sign_in_to_review'),
         icon: Icons.lock_outline_rounded,
         iconColor: Colors.orange,
         iconBgColor: const Color(0xFFFEF3C7),
@@ -191,13 +191,16 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
                         if (text.isEmpty) {
                           AppDialogs.showToastModal(
                             dialogContext,
-                            message: 'Please enter a review text.',
+                            message: dialogContext.tr('enter_review_text'),
                             icon: Icons.warning_amber_rounded,
                             iconColor: Colors.orange,
                             iconBgColor: const Color(0xFFFEF3C7),
                           );
                           return;
                         }
+
+                        final justNowLabel = this.context.tr('just_now');
+                        final youLabel = this.context.tr('you');
 
                         setDialogState(() {
                           isSubmitting = true;
@@ -221,8 +224,8 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
                             reviewerId: currentUser?.id,
                             rating: selectedRating,
                             review: text,
-                            createdAt: 'Just now',
-                            reviewerName: currentUser?.name ?? 'You',
+                            createdAt: justNowLabel,
+                            reviewerName: currentUser?.name ?? youLabel,
                             reviewerAvatar: currentUser?.avatarUrl,
                             cardId: existing?.cardId ?? widget.cardId,
                             cardType: existing?.cardType,
@@ -238,17 +241,17 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
 
                           if (mounted) {
                             AppDialogs.showToastModal(
-                              context,
+                              this.context,
                               message: existing != null
-                                  ? 'Review updated successfully!'
-                                  : 'Review submitted! Thank you.',
+                                  ? this.context.tr('review_updated_success')
+                                  : this.context.tr('review_submitted_thanks'),
                             );
                           }
                         } else {
                           if (mounted) {
                             AppDialogs.showToastModal(
-                              context,
-                              message: response.message.isNotEmpty ? response.message : 'Failed to save review.',
+                              this.context,
+                              message: response.message.isNotEmpty ? response.message : this.context.tr('failed_save_review'),
                               icon: Icons.error_outline_rounded,
                               iconColor: Colors.redAccent,
                               iconBgColor: const Color(0xFFFEE2E2),
@@ -306,7 +309,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
         actions: [
           IconButton(
             icon: Icon(isEditing ? Icons.edit_note_rounded : Icons.rate_review_outlined, color: Colors.white),
-            tooltip: isEditing ? 'Edit Review' : 'Add Review',
+            tooltip: isEditing ? context.tr('edit_review') : context.tr('add_review'),
             onPressed: _showAddOrEditReviewDialog,
           ),
         ],
@@ -355,9 +358,9 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
                             _selectedFilterStar = 0;
                           });
                         },
-                        child: const Text(
-                          'Reset',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.redAccent),
+                        child: Text(
+                          context.tr('reset'),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.redAccent),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -394,7 +397,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
                     Icon(Icons.search_off_rounded, size: 48, color: AppTheme.textSecondary(context)),
                     const SizedBox(height: 12),
                     Text(
-                      'No reviews match your search.',
+                      context.tr('no_reviews_match'),
                       style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -693,7 +696,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
               if (isMyReview)
                 IconButton(
                   icon: Icon(Icons.edit_outlined, size: 18, color: primaryDark),
-                  tooltip: 'Edit Review',
+                  tooltip: context.tr('edit_review'),
                   onPressed: () => _showAddOrEditReviewDialog(r),
                 )
               else if (r.createdAt != null)

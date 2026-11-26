@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'app_language.dart';
 import 'storage_service.dart';
 
 class ApiResponse {
@@ -37,7 +38,9 @@ class ApiResponse {
       success: json['success'] ?? (statusCode >= 200 && statusCode < 300),
       message: msg.isNotEmpty
           ? msg
-          : (statusCode >= 200 && statusCode < 300 ? 'Success' : 'Request failed ($statusCode)'),
+          : (statusCode >= 200 && statusCode < 300
+              ? AppLanguage.trCode('success')
+              : AppLanguage.trCode('request_failed_code', params: {'code': '$statusCode'})),
       data: json['data'],
       statusCode: statusCode,
     );
@@ -72,8 +75,8 @@ class ApiService {
       return ApiResponse(
         success: response.statusCode >= 200 && response.statusCode < 300,
         message: response.statusCode >= 200 && response.statusCode < 300
-            ? 'Success'
-            : 'Server error (${response.statusCode})',
+            ? AppLanguage.trCode('success')
+            : AppLanguage.trCode('server_error_code', params: {'code': '${response.statusCode}'}),
         data: null,
         statusCode: response.statusCode,
       );
@@ -89,7 +92,7 @@ class ApiService {
     } catch (e) {
       return ApiResponse(
         success: false,
-        message: 'Network error: Unable to connect to server.',
+        message: AppLanguage.trCode('network_error_connect'),
         statusCode: 500,
       );
     }
@@ -108,7 +111,7 @@ class ApiService {
     } catch (e) {
       return ApiResponse(
         success: false,
-        message: 'Network error: Unable to connect to server.',
+        message: AppLanguage.trCode('network_error_connect'),
         statusCode: 500,
       );
     }
@@ -127,7 +130,7 @@ class ApiService {
     } catch (e) {
       return ApiResponse(
         success: false,
-        message: 'Network error: Unable to connect to server.',
+        message: AppLanguage.trCode('network_error_connect'),
         statusCode: 500,
       );
     }
@@ -146,7 +149,7 @@ class ApiService {
     } catch (e) {
       return ApiResponse(
         success: false,
-        message: 'Network error: Unable to connect to server.',
+        message: AppLanguage.trCode('network_error_connect'),
         statusCode: 500,
       );
     }
@@ -161,7 +164,7 @@ class ApiService {
     } catch (e) {
       return ApiResponse(
         success: false,
-        message: 'Network error: Unable to connect to server.',
+        message: AppLanguage.trCode('network_error_connect'),
         statusCode: 500,
       );
     }
@@ -200,7 +203,7 @@ class ApiService {
     } catch (e) {
       return ApiResponse(
         success: false,
-        message: 'Network error during upload.',
+        message: AppLanguage.trCode('network_error_upload'),
         statusCode: 500,
       );
     }

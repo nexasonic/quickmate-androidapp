@@ -91,13 +91,13 @@ class MyCardsScreenState extends State<MyCardsScreen> {
     if (response.success) {
       AppDialogs.showToastModal(
         context,
-        message: 'Status updated for "${card.title}"',
+        message: context.trParams('status_updated_for', {'title': card.title}),
       );
       _loadData();
     } else {
       AppDialogs.showToastModal(
         context,
-        message: response.message.isNotEmpty ? response.message : 'Failed to update status.',
+        message: response.message.isNotEmpty ? response.message : context.tr('failed_update_status'),
         icon: Icons.error_outline_rounded,
         iconColor: Colors.redAccent,
         iconBgColor: const Color(0xFFFEE2E2),
@@ -111,13 +111,13 @@ class MyCardsScreenState extends State<MyCardsScreen> {
     if (response.success) {
       AppDialogs.showToastModal(
         context,
-        message: 'Card updated & timer renewed for "${card.title}"!',
+        message: context.trParams('card_updated_renewed', {'title': card.title}),
       );
       _loadData();
     } else {
       AppDialogs.showToastModal(
         context,
-        message: response.message.isNotEmpty ? response.message : 'Card updated.',
+        message: response.message.isNotEmpty ? response.message : context.tr('card_updated'),
       );
       _loadData();
     }
@@ -128,17 +128,17 @@ class MyCardsScreenState extends State<MyCardsScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Live Work Card'),
-        content: Text('Are you sure you want to delete "${card.title}"?'),
+        title: Text(dialogContext.tr('delete_live_work_card')),
+        content: Text(dialogContext.trParams('delete_card_confirm', {'title': card.title})),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(dialogContext.tr('cancel'), style: const TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(dialogContext.tr('delete'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -150,7 +150,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
       if (response.success) {
         AppDialogs.showToastModal(
           context,
-          message: 'Card deleted successfully.',
+          message: context.tr('card_deleted_success'),
         );
         _loadData();
       }
@@ -262,7 +262,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
             if (modalPhotos.length >= 3) {
               AppDialogs.showToastModal(
                 context,
-                message: 'Maximum 3 photos allowed per card.',
+                message: context.tr('max_3_photos'),
                 icon: Icons.warning_amber_rounded,
                 iconColor: Colors.orange,
                 iconBgColor: const Color(0xFFFEF3C7),
@@ -382,9 +382,9 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                       _buildFieldLabel(context.tr('category').toUpperCase(), isRequired: true),
                       _buildModalDropdown<int>(
                         value: selectedCategoryId,
-                        hintText: 'Select category',
+                        hintText: context.tr('select_category'),
                         items: _categories.map((c) {
-                          return DropdownMenuItem<int>(value: c.id, child: Text(c.name));
+                          return DropdownMenuItem<int>(value: c.id, child: Text(c.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)));
                         }).toList(),
                         onChanged: (val) => setModalState(() => selectedCategoryId = val),
                       ),
@@ -402,12 +402,12 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                             _buildFieldLabel(context.tr('expiry_time'), isRequired: true),
                             _buildModalDropdown<String>(
                               value: selectedExpiry,
-                              hintText: 'Select expiry',
-                              items: const [
-                                DropdownMenuItem(value: '12 hours', child: Text('12 hours')),
-                                DropdownMenuItem(value: '24 hours (Default)', child: Text('24 hours (Default)')),
-                                DropdownMenuItem(value: '48 hours', child: Text('48 hours')),
-                                DropdownMenuItem(value: '7 days', child: Text('7 days')),
+                              hintText: context.tr('select_expiry'),
+                              items: [
+                                DropdownMenuItem(value: '12 hours', child: Text(context.tr('expiry_12_hours'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: '24 hours (Default)', child: Text(context.tr('expiry_24_hours_default'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: '48 hours', child: Text(context.tr('expiry_48_hours'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: '7 days', child: Text(context.tr('expiry_7_days'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
                               ],
                               onChanged: (val) {
                                 if (val != null) setModalState(() => selectedExpiry = val);
@@ -424,12 +424,12 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                             _buildFieldLabel(context.tr('budget_type'), isRequired: true),
                             _buildModalDropdown<String>(
                               value: selectedBudgetType,
-                              hintText: 'Select budget type',
-                              items: const [
-                                DropdownMenuItem(value: 'Negotiable', child: Text('Negotiable')),
-                                DropdownMenuItem(value: 'Fixed Price', child: Text('Fixed Price')),
-                                DropdownMenuItem(value: 'Per Hour', child: Text('Per Hour')),
-                                DropdownMenuItem(value: 'Per Day', child: Text('Per Day')),
+                              hintText: context.tr('select_expiry'),
+                              items: [
+                                DropdownMenuItem(value: 'Negotiable', child: Text(context.tr('negotiable'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'Fixed Price', child: Text(context.tr('fixed_price'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'Per Hour', child: Text(context.tr('budget_per_hour'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'Per Day', child: Text(context.tr('budget_per_day'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
                               ],
                               onChanged: (val) {
                                 if (val != null) setModalState(() => selectedBudgetType = val);
@@ -442,10 +442,10 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                   ),
                   if (selectedBudgetType != 'Negotiable') ...[
                     const SizedBox(height: 14),
-                    _buildFieldLabel('PRICE / AMOUNT (INR)', isRequired: true),
+                    _buildFieldLabel(context.tr('price_amount_inr'), isRequired: true),
                     _buildModalInput(
                       controller: priceController,
-                      hintText: 'e.g. 500',
+                      hintText: context.tr('price_hint_example'),
                       keyboardType: TextInputType.number,
                     ),
                   ],
@@ -476,7 +476,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                     children: [
                       _buildFieldLabel(context.tr('tags')),
                       Text(
-                        '${currentTags.length}/5 tags',
+                        context.trParams('tags_count', {'count': '${currentTags.length}'}),
                         style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                       ),
                     ],
@@ -533,7 +533,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                     children: [
                       _buildFieldLabel(context.tr('photos')),
                       Text(
-                        '${modalPhotos.length}/3 images',
+                        context.trParams('images_count', {'count': '${modalPhotos.length}'}),
                         style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                       ),
                     ],
@@ -590,7 +590,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
-                                        item.isMain ? '★ Main' : 'Set Main',
+                                        item.isMain ? context.tr('main_badge') : context.tr('set_main'),
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           color: Colors.white,
@@ -695,7 +695,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                                 if (title.isEmpty) {
                                   AppDialogs.showToastModal(
                                     context,
-                                    message: 'Please enter Task Title.',
+                                    message: context.tr('enter_task_title'),
                                     icon: Icons.warning_amber_rounded,
                                     iconColor: Colors.orange,
                                     iconBgColor: const Color(0xFFFEF3C7),
@@ -759,8 +759,8 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                                     AppDialogs.showToastModal(
                                       context,
                                       message: isEditing
-                                          ? 'Live Work Card updated!'
-                                          : 'Live Work Card published successfully!',
+                                          ? context.tr('card_updated_toast')
+                                          : context.tr('card_published_toast'),
                                     );
                                   }
                                   _loadData();
@@ -770,7 +770,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                                       context,
                                       message: response.message.isNotEmpty
                                           ? response.message
-                                          : (isEditing ? 'Update failed.' : 'Creation failed.'),
+                                          : (isEditing ? context.tr('update_failed') : context.tr('creation_failed')),
                                       icon: Icons.error_outline_rounded,
                                       iconColor: Colors.redAccent,
                                       iconBgColor: const Color(0xFFFEE2E2),
@@ -914,7 +914,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
       appBar: AppBar(
         backgroundColor: AppTheme.appBarBg(context),
         elevation: 0,
-        title: const Text('My Live Work Cards', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(context.tr('my_live_work_cards'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
       body: RefreshIndicator(
         onRefresh: _loadData,
@@ -941,12 +941,12 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'Sign In Required',
+                      context.tr('sign_in_required'),
                       style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Please sign in to manage, edit, pause or post your live work cards.',
+                      context.tr('sign_in_manage_cards'),
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 13, color: AppTheme.textSecondary(context), height: 1.4),
                     ),
@@ -965,7 +965,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                           }
                         },
                         icon: const Icon(Icons.login_rounded, color: Colors.white),
-                        label: const Text('Sign In / Register', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                        label: Text(context.tr('sign_in_register'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryDark,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1100,7 +1100,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                                   Icon(Icons.inventory_2_outlined, size: 48, color: AppTheme.textSecondary(context)),
                                   const SizedBox(height: 12),
                                   Text(
-                                    'No Live Work cards found.',
+                                    context.tr('no_live_work_cards_found'),
                                     style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.bold),
                                   ),
                                 ],
@@ -1120,7 +1120,10 @@ class MyCardsScreenState extends State<MyCardsScreen> {
 
                           Center(
                             child: Text(
-                              'Showing ${_filteredCards.length} of ${_allCards.length} cards',
+                              context.trParams('showing_cards_count', {
+                                'shown': '${_filteredCards.length}',
+                                'total': '${_allCards.length}',
+                              }),
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: Color(0xFF64748B),
@@ -1402,7 +1405,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        card.statusLabel,
+                        card.getTrStatusLabel(context),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -1456,7 +1459,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                       const Icon(Icons.access_time_rounded, color: Colors.white, size: 12),
                       const SizedBox(width: 4),
                       Text(
-                        card.formattedExpiresIn,
+                        card.getTrFormattedExpiresIn(context),
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,

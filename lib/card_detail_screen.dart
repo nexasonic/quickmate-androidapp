@@ -84,7 +84,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
     if (!AuthService.isLoggedIn()) {
       AppDialogs.showToastModal(
         context,
-        message: 'Please sign in to add or edit a review.',
+        message: context.tr('sign_in_to_review'),
         icon: Icons.lock_outline_rounded,
         iconColor: Colors.orange,
         iconBgColor: const Color(0xFFFEF3C7),
@@ -162,7 +162,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                         if (text.isEmpty) {
                           AppDialogs.showToastModal(
                             dialogContext,
-                            message: 'Please enter a review text.',
+                            message: dialogContext.tr('enter_review_text'),
                             icon: Icons.warning_amber_rounded,
                             iconColor: Colors.orange,
                             iconBgColor: const Color(0xFFFEF3C7),
@@ -174,13 +174,16 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                         if (ownerId == null) {
                           AppDialogs.showToastModal(
                             dialogContext,
-                            message: 'Card owner information unavailable.',
+                            message: dialogContext.tr('owner_info_unavailable'),
                             icon: Icons.warning_amber_rounded,
                             iconColor: Colors.orange,
                             iconBgColor: const Color(0xFFFEF3C7),
                           );
                           return;
                         }
+
+                        final justNowLabel = this.context.tr('just_now');
+                        final youLabel = this.context.tr('you');
 
                         setDialogState(() {
                           isSubmitting = true;
@@ -203,8 +206,8 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                             id: existingReview?.id ?? DateTime.now().millisecondsSinceEpoch,
                             rating: selectedRating,
                             review: text,
-                            createdAt: 'Just now',
-                            reviewerName: currentUser?.name ?? 'You',
+                            createdAt: justNowLabel,
+                            reviewerName: currentUser?.name ?? youLabel,
                             reviewerAvatar: currentUser?.avatarUrl,
                           );
 
@@ -217,18 +220,18 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
 
                           if (mounted) {
                             AppDialogs.showToastModal(
-                              context,
+                              this.context,
                               message: existingReview != null
-                                  ? 'Review updated successfully!'
-                                  : 'Review submitted! Thank you.',
+                                  ? this.context.tr('review_updated_success')
+                                  : this.context.tr('review_submitted_thanks'),
                             );
                           }
                           _fetchFullDetails();
                         } else {
                           if (mounted) {
                             AppDialogs.showToastModal(
-                              context,
-                              message: response.message.isNotEmpty ? response.message : 'Failed to save review.',
+                              this.context,
+                              message: response.message.isNotEmpty ? response.message : this.context.tr('failed_save_review'),
                               icon: Icons.error_outline_rounded,
                               iconColor: Colors.redAccent,
                               iconBgColor: const Color(0xFFFEE2E2),
@@ -273,7 +276,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
     if (!AuthService.isLoggedIn()) {
       AppDialogs.showLoginRequiredModal(
         context,
-        message: 'Please sign in to save cards to favorites.',
+        message: context.tr('sign_in_to_save_favorites'),
       );
       return;
     }
@@ -292,10 +295,10 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
     if (response.success) {
       AppDialogs.showSuccessModal(
         context,
-        title: newFavoriteState ? 'Saved to Favorites' : 'Removed from Favorites',
+        title: newFavoriteState ? context.tr('saved_to_favorites') : context.tr('removed_from_favorites'),
         message: newFavoriteState
-            ? 'This card has been added to your Saved Cards.'
-            : 'This card was removed from your Saved Cards.',
+            ? context.tr('added_to_saved_cards')
+            : context.tr('removed_from_saved_cards'),
         icon: newFavoriteState ? Icons.favorite_rounded : Icons.favorite_border_rounded,
         iconColor: newFavoriteState ? Colors.redAccent : Colors.grey,
       );
@@ -305,8 +308,8 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
       });
       AppDialogs.showSuccessModal(
         context,
-        title: 'Error',
-        message: response.message.isNotEmpty ? response.message : 'Failed to update favorites.',
+        title: context.tr('error'),
+        message: response.message.isNotEmpty ? response.message : context.tr('failed_update_favorites'),
         icon: Icons.error_outline_rounded,
         iconColor: Colors.redAccent,
       );
@@ -333,7 +336,9 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
       if (!mounted) return;
       AppDialogs.showToastModal(
         context,
-        message: 'Opening directions to ${_card.location ?? _card.user?.location ?? PresenceService.currentPlaceName}...',
+        message: context.trParams('opening_directions_to', {
+          'place': _card.location ?? _card.user?.location ?? PresenceService.currentPlaceName,
+        }),
       );
     }
   }
@@ -392,7 +397,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
             onPressed: () {
               AppDialogs.showToastModal(
                 context,
-                message: 'Link copied to clipboard!',
+                message: context.tr('link_copied'),
               );
             },
           ),
@@ -454,7 +459,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        _card.statusLabel,
+                        _card.getTrStatusLabel(context),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -518,7 +523,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    '${_card.location ?? _card.user?.location ?? PresenceService.currentPlaceName} • ${_card.getFormattedDistance(PresenceService.currentLatitude, PresenceService.currentLongitude)}',
+                    '${_card.location ?? _card.user?.location ?? PresenceService.currentPlaceName} • ${_card.getTrFormattedDistance(context, PresenceService.currentLatitude, PresenceService.currentLongitude)}',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -665,7 +670,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                   const Icon(Icons.directions_car_rounded, color: primaryDark, size: 16),
                   const SizedBox(width: 6),
                   Text(
-                    _card.category?.name ?? 'Driving',
+                    _card.category?.name ?? context.tr('driving'),
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -700,7 +705,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                   ),
                   const SizedBox(width: 5),
                   Text(
-                    (_card.user?.isOnline ?? _card.isActive) ? 'Online' : _card.formattedLastSeen,
+                    (_card.user?.isOnline ?? _card.isActive) ? context.tr('online') : _card.getTrFormattedLastSeen(context),
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -842,7 +847,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _card.category?.name ?? 'Driving',
+                  _card.category?.name ?? context.tr('driving'),
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -878,7 +883,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                   if (!AuthService.isLoggedIn()) {
                     AppDialogs.showToastModal(
                       context,
-                      message: 'Please sign in to start a chat.',
+                      message: context.tr('sign_in_to_chat'),
                       icon: Icons.lock_outline_rounded,
                       iconColor: Colors.orange,
                       iconBgColor: const Color(0xFFFEF3C7),
@@ -893,7 +898,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                   if (owner == null) {
                     AppDialogs.showToastModal(
                       context,
-                      message: 'Owner details unavailable.',
+                      message: context.tr('owner_details_unavailable'),
                       icon: Icons.warning_amber_rounded,
                       iconColor: Colors.orange,
                       iconBgColor: const Color(0xFFFEF3C7),
@@ -1006,7 +1011,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                           ),
                         ),
                         Text(
-                          _card.description ?? 'Available in work',
+                          _card.description ?? context.tr('available_in_work'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(fontSize: 12, color: AppTheme.textSecondary(context)),
@@ -1043,7 +1048,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   Widget _buildUserWhereIsBox() {
     final primaryDark = AppTheme.primary(context);
     final userLocation = _card.location ?? _card.user?.location ?? PresenceService.currentPlaceName;
-    final dist = _card.getFormattedDistance(PresenceService.currentLatitude, PresenceService.currentLongitude);
+    final dist = _card.getTrFormattedDistance(context, PresenceService.currentLatitude, PresenceService.currentLongitude);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -1085,9 +1090,9 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                         color: const Color(0xFF10B981),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text(
-                        'Live 30s Sync',
-                        style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.white),
+                      child: Text(
+                        context.tr('live_30s_sync'),
+                        style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                     ),
                   ],
@@ -1176,7 +1181,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                         const Icon(Icons.star_rounded, size: 13, color: Color(0xFFFFB800)),
                         const SizedBox(width: 3),
                         Text(
-                          '${userRating.toStringAsFixed(1)} ($userReviewsCount ${userReviewsCount == 1 ? 'review' : 'reviews'})',
+                          '${userRating.toStringAsFixed(1)} ($userReviewsCount ${userReviewsCount == 1 ? context.tr('review_singular') : context.tr('reviews')})',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -1192,7 +1197,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                         const SizedBox(width: 3),
                         Expanded(
                           child: Text(
-                            owner.accountType != null ? owner.accountType!.toUpperCase() : 'MEMBER',
+                            owner.accountType != null ? owner.accountType!.toUpperCase() : context.tr('member'),
                             style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context)),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1405,7 +1410,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                             color: Colors.black.withValues(alpha: 0.6),
                             child: Center(
                               child: Text(
-                                '+$extraCount\nMore',
+                                context.trParams('more_count', {'count': '$extraCount'}),
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: Colors.white,
@@ -1576,19 +1581,19 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 Icon(Icons.rate_review_outlined, color: AppTheme.textSecondary(context), size: 36),
                 const SizedBox(height: 8),
                 Text(
-                  'No reviews yet for this card.',
+                  context.tr('no_reviews_for_card'),
                   style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Be the first to share your experience!',
+                  context.tr('be_first_share_exp'),
                   style: TextStyle(color: AppTheme.textSecondary(context), fontSize: 12),
                 ),
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
                   onPressed: _showAddReviewDialog,
                   icon: const Icon(Icons.edit_outlined, color: Colors.white, size: 16),
-                  label: const Text('Add Review for Card', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                  label: Text(context.tr('add_review_for_card'), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryDark,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),

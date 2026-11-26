@@ -56,6 +56,21 @@ class DiscoverScreenState extends State<DiscoverScreen> {
     }
   }
 
+  String _getTranslatedSortOptionName(String sortOption) {
+    switch (sortOption) {
+      case 'Nearest':
+        return context.tr('nearest');
+      case 'Top Rated':
+        return context.tr('top_rated');
+      case 'Price: Low to High':
+        return context.tr('price_low_high');
+      case 'Price: High to Low':
+        return context.tr('price_high_low');
+      default:
+        return sortOption;
+    }
+  }
+
   final List<String> _sortOptions = [
     'Nearest',
     'Top Rated',
@@ -223,7 +238,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
     if (!AuthService.isLoggedIn()) {
       AppDialogs.showLoginRequiredModal(
         context,
-        message: 'Please sign in to save cards to favorites.',
+        message: context.tr('sign_in_to_save_favorites'),
         onLoginSuccess: _fetchCards,
       );
       return;
@@ -242,10 +257,10 @@ class DiscoverScreenState extends State<DiscoverScreen> {
     if (response.success) {
       AppDialogs.showSuccessModal(
         context,
-        title: newFavoriteState ? 'Saved to Favorites' : 'Removed from Favorites',
+        title: newFavoriteState ? context.tr('saved_to_favorites') : context.tr('removed_from_favorites'),
         message: newFavoriteState
-            ? 'This card has been added to your Saved Cards.'
-            : 'This card was removed from your Saved Cards.',
+            ? context.tr('added_to_saved_cards')
+            : context.tr('removed_from_saved_cards'),
         icon: newFavoriteState ? Icons.favorite_rounded : Icons.favorite_border_rounded,
         iconColor: newFavoriteState ? Colors.redAccent : Colors.grey,
       );
@@ -255,8 +270,8 @@ class DiscoverScreenState extends State<DiscoverScreen> {
       });
       AppDialogs.showSuccessModal(
         context,
-        title: 'Error',
-        message: response.message.isNotEmpty ? response.message : 'Failed to update favorites.',
+        title: context.tr('error'),
+        message: response.message.isNotEmpty ? response.message : context.tr('failed_update_favorites'),
         icon: Icons.error_outline_rounded,
         iconColor: Colors.redAccent,
       );
@@ -320,9 +335,9 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                               });
                               _fetchCards();
                             },
-                            child: const Text(
-                              'Clear Filter',
-                              style: TextStyle(
+                            child: Text(
+                              context.tr('clear_filter'),
+                              style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.redAccent,
@@ -826,7 +841,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        isOnline ? context.tr('online') : item.formattedLastSeen,
+                        isOnline ? context.tr('online') : item.getTrFormattedLastSeen(context),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 9,
@@ -926,7 +941,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              '• ${item.category?.name ?? "Driving"}',
+                              '• ${item.category?.name ?? context.tr('driving')}',
                               style: TextStyle(
                                 fontSize: 10,
                                 color: AppTheme.textSecondary(context),
@@ -1107,7 +1122,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Sort By',
+                    context.tr('sort_by'),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -1162,7 +1177,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            option,
+                            _getTranslatedSortOptionName(option),
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,

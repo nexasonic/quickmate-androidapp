@@ -180,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!AuthService.isLoggedIn()) {
       AppDialogs.showLoginRequiredModal(
         context,
-        message: 'Please sign in to save cards to favorites.',
+        message: context.tr('sign_in_to_save_favorites'),
         onLoginSuccess: _loadData,
       );
       return;
@@ -199,10 +199,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (response.success) {
       AppDialogs.showSuccessModal(
         context,
-        title: newFavoriteState ? 'Saved to Favorites' : 'Removed from Favorites',
+        title: newFavoriteState ? context.tr('saved_to_favorites') : context.tr('removed_from_favorites'),
         message: newFavoriteState
-            ? 'This card has been added to your Saved Cards.'
-            : 'This card was removed from your Saved Cards.',
+            ? context.tr('added_to_saved_cards')
+            : context.tr('removed_from_saved_cards'),
         icon: newFavoriteState ? Icons.favorite_rounded : Icons.favorite_border_rounded,
         iconColor: newFavoriteState ? Colors.redAccent : Colors.grey,
       );
@@ -212,8 +212,8 @@ class _HomeScreenState extends State<HomeScreen> {
       });
       AppDialogs.showSuccessModal(
         context,
-        title: 'Error',
-        message: response.message.isNotEmpty ? response.message : 'Failed to update favorites.',
+        title: context.tr('error'),
+        message: response.message.isNotEmpty ? response.message : context.tr('failed_update_favorites'),
         icon: Icons.error_outline_rounded,
         iconColor: Colors.redAccent,
       );
@@ -645,7 +645,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Icon(Icons.business_center_outlined, size: 48, color: AppTheme.textSecondary(context)),
                       const SizedBox(height: 12),
                       Text(
-                        'No Live Work cards available.',
+                        context.tr('no_live_work_cards'),
                         style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -755,7 +755,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        isOnline ? context.tr('online') : item.formattedLastSeen,
+                        isOnline ? context.tr('online') : item.getTrFormattedLastSeen(context),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 9,
@@ -855,7 +855,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              '• ${item.category?.name ?? "Driving"}',
+                              '• ${item.category?.name ?? context.tr('driving')}',
                               style: TextStyle(
                                 fontSize: 10,
                                 color: AppTheme.textSecondary(context),

@@ -48,7 +48,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     if (text.isEmpty) {
       AppDialogs.showToastModal(
         context,
-        message: 'Please enter your query or message.',
+        message: context.tr('enter_query_msg'),
         icon: Icons.warning_amber_rounded,
         iconColor: Colors.orange,
       );
@@ -67,7 +67,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
       });
       AppDialogs.showToastModal(
         context,
-        message: 'Support query submitted! Our team will get back to you shortly.',
+        message: context.tr('support_query_submitted'),
       );
     });
   }

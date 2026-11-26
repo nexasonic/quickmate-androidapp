@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/app_language.dart';
 import 'core/app_theme.dart';
 import 'core/storage_service.dart';
@@ -40,6 +41,9 @@ class MyApp extends StatelessWidget {
                 Locale('kn', ''),
               ],
               localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
                 FallbackMaterialLocalizationsDelegate(),
                 FallbackCupertinoLocalizationsDelegate(),
               ],

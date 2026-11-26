@@ -147,9 +147,9 @@ class AppDialogs {
                     elevation: 0,
                   ),
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text(
-                    'OK',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  child: Text(
+                    dialogContext.tr('ok'),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                 ),
               ),
@@ -192,7 +192,7 @@ class AppDialogs {
               ),
               const SizedBox(height: 16),
               Text(
-                'Sign In Required',
+                dialogContext.tr('sign_in_required'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,

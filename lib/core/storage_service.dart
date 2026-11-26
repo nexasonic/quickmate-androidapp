@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'app_language.dart';
 
 class StorageService {
   static const String _tokenKey = 'auth_token';
@@ -95,7 +96,7 @@ class StorageService {
       return {
         'latitude': lat,
         'longitude': lng,
-        'place_name': place ?? 'Location Available',
+        'place_name': place ?? AppLanguage.trCode('location_available'),
       };
     }
     return null;

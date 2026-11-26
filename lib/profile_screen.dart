@@ -89,10 +89,10 @@ class ProfileScreenState extends State<ProfileScreen> {
 
               AppDialogs.showToastModal(
                 context,
-                message: 'Logged out successfully.',
+                message: context.tr('logged_out_success'),
               );
             },
-            child: const Text('Log Out', style: TextStyle(color: Colors.white)),
+            child: Text(dialogContext.tr('logout'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -302,8 +302,8 @@ class ProfileScreenState extends State<ProfileScreen> {
     final primaryDark = AppTheme.primary(context);
     final bool loggedIn = AuthService.isLoggedIn();
 
-    final userName = loggedIn ? (_user?.name ?? 'User Profile') : 'Log In';
-    final userEmail = loggedIn ? (_user?.email ?? (_user?.phone ?? 'QuickMate User')) : 'Log in to manage your account';
+    final userName = loggedIn ? (_user?.name ?? context.tr('user_profile')) : context.tr('login');
+    final userEmail = loggedIn ? (_user?.email ?? (_user?.phone ?? context.tr('quickmate_user'))) : context.tr('login_manage_account');
     String? avatarUrl = _user?.avatarUrl;
     if (loggedIn && avatarUrl != null && avatarUrl.isNotEmpty) {
       avatarUrl = "${ApiConfig.fixImageUrl(avatarUrl)}?t=$_imageTimestamp";
@@ -386,8 +386,8 @@ class ProfileScreenState extends State<ProfileScreen> {
                     ),
                     child: Text(
                       loggedIn
-                          ? (_user?.isVerified == true ? 'VERIFIED USER' : 'ACTIVE USER')
-                          : 'TAP TO LOG IN',
+                          ? (_user?.isVerified == true ? context.tr('verified_user') : context.tr('active_user'))
+                          : context.tr('tap_to_log_in'),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -615,7 +615,7 @@ class ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         title: Text(
-          loggedIn ? 'Log Out' : 'Sign In / Register',
+          loggedIn ? context.tr('logout') : context.tr('sign_in_register'),
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,
@@ -626,8 +626,8 @@ class ProfileScreenState extends State<ProfileScreen> {
         ),
         subtitle: Text(
           loggedIn
-              ? 'Sign out of your account on this device'
-              : 'Sign in or create an account to post cards & chat',
+              ? context.tr('sign_out_device_desc')
+              : context.tr('sign_in_post_cards_desc'),
           style: TextStyle(
             fontSize: 12,
             color: AppTheme.textSecondary(context),

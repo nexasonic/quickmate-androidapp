@@ -63,13 +63,13 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
     if (response.success) {
       AppDialogs.showToastModal(
         context,
-        message: 'Removed "${card.title}" from saved cards.',
+        message: context.trParams('removed_from_saved_toast', {'title': card.title}),
       );
       _fetchSavedCards();
     } else {
       AppDialogs.showToastModal(
         context,
-        message: response.message.isNotEmpty ? response.message : 'Unable to remove card.',
+        message: response.message.isNotEmpty ? response.message : context.tr('unable_remove_card'),
         icon: Icons.error_outline_rounded,
         iconColor: Colors.redAccent,
       );
@@ -106,12 +106,12 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Sign In Required',
+                context.tr('sign_in_required'),
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)),
               ),
               const SizedBox(height: 8),
               Text(
-                'Please sign in to view and access your bookmarked live work cards.',
+                context.tr('sign_in_view_saved'),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13, color: AppTheme.textSecondary(context), height: 1.4),
               ),
@@ -130,7 +130,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                     }
                   },
                   icon: const Icon(Icons.login_rounded, color: Colors.white),
-                  label: const Text('Sign In / Register', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                  label: Text(context.tr('sign_in_register'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryDark,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -224,7 +224,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Bookmark live work listings you find interesting to easily view and contact providers anytime!',
+              context.tr('bookmark_interesting_desc'),
               textAlign: TextAlign.center,
               style: TextStyle(color: AppTheme.textSecondary(context), fontSize: 12, height: 1.4),
             ),
@@ -239,7 +239,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
     final isDark = AppTheme.isDark(context);
     final coverImage = card.thumbnailUrl ?? (card.images.isNotEmpty ? card.images.first : null);
     final owner = card.user;
-    final String providerName = owner?.name ?? 'Service Provider';
+    final String providerName = owner?.name ?? context.tr('service_provider');
     final String? providerAvatar = owner?.avatarUrl;
     final bool isProviderVerified = owner?.isVerified == true;
 
@@ -298,7 +298,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          card.formattedExpiresIn.replaceAll('Expires in ', ''),
+                          card.getTrFormattedExpiresIn(context, shortOnly: true),
                           style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                       ),
@@ -434,7 +434,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            card.statusLabel,
+                            card.getTrStatusLabel(context),
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
@@ -466,7 +466,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                         const Icon(Icons.star_rounded, size: 13, color: Color(0xFFFFB800)),
                         const SizedBox(width: 2),
                         Text(
-                          card.rating > 0 ? card.rating.toStringAsFixed(1) : 'New',
+                          card.rating > 0 ? card.rating.toStringAsFixed(1) : context.tr('new_badge'),
                           style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)),
                         ),
                       ],
@@ -515,7 +515,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                       if (!AuthService.isLoggedIn()) {
                         AppDialogs.showToastModal(
                           context,
-                          message: 'Please sign in to start a chat with this provider.',
+                          message: context.tr('sign_in_chat_provider'),
                           icon: Icons.lock_outline_rounded,
                           iconColor: Colors.orange,
                         );

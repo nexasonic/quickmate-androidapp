@@ -1,4 +1,5 @@
 import '../core/api_config.dart';
+import '../core/app_language.dart';
 
 class ConversationModel {
   final int id;
@@ -34,7 +35,7 @@ class ConversationModel {
     return ConversationModel(
       id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
       otherUserId: otherUser['id'] is int ? otherUser['id'] : int.tryParse(otherUser['id']?.toString() ?? '0') ?? 0,
-      otherUserName: otherUser['name'] ?? 'User',
+      otherUserName: otherUser['name'] ?? AppLanguage.trCode('user_fallback'),
       otherUserAvatar: rawAvatar != null ? ApiConfig.fixImageUrl(rawAvatar) : null,
       isOnline: otherUser['is_online'] == true || otherUser['is_online'] == 1,
       lastSeen: otherUser['last_seen'],

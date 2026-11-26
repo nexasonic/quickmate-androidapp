@@ -42,6 +42,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   }
 
   Future<void> _pickCropAndUploadImage({required bool isCover}) async {
+    final cropTitle = isCover ? context.tr('crop_cover_banner') : context.tr('crop_profile_avatar');
+
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? pickedFile = await picker.pickImage(
@@ -61,7 +63,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               : const CropAspectRatio(ratioX: 1, ratioY: 1),
           uiSettings: [
             AndroidUiSettings(
-              toolbarTitle: isCover ? 'Crop Cover Banner' : 'Crop Profile Avatar',
+              toolbarTitle: cropTitle,
               toolbarColor: const Color(0xFF094943),
               toolbarWidgetColor: Colors.white,
               initAspectRatio: isCover ? CropAspectRatioPreset.ratio16x9 : CropAspectRatioPreset.square,
@@ -72,7 +74,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               activeControlsWidgetColor: const Color(0xFF094943),
             ),
             IOSUiSettings(
-              title: isCover ? 'Crop Cover Banner' : 'Crop Profile Avatar',
+              title: cropTitle,
               aspectRatioLockEnabled: true,
             ),
           ],
@@ -111,14 +113,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       if (response.success) {
         AppDialogs.showToastModal(
           context,
-          message: isCover ? 'Cover photo updated successfully!' : 'Profile picture updated successfully!',
+          message: isCover ? context.tr('cover_photo_updated') : context.tr('profile_pic_updated'),
         );
         await _loadProfileData();
         await ProfileService.fetchUserProfile();
       } else {
         AppDialogs.showToastModal(
           context,
-          message: response.message.isNotEmpty ? response.message : 'Photo updated!',
+          message: response.message.isNotEmpty ? response.message : context.tr('photo_updated'),
         );
         await _loadProfileData();
       }
@@ -245,16 +247,17 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     required void Function(T?) onChanged,
   }) {
     return DropdownButtonFormField<T>(
+      isExpanded: true,
       initialValue: value,
       items: items,
       onChanged: onChanged,
       dropdownColor: AppTheme.surface(context),
-      style: TextStyle(fontSize: 14, color: AppTheme.textPrimary(context)),
-      icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textSecondary(context)),
+      style: TextStyle(fontSize: 12, color: AppTheme.textPrimary(context)),
+      icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textSecondary(context), size: 18),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(color: AppTheme.textSecondary(context), fontSize: 13),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        hintStyle: TextStyle(color: AppTheme.textSecondary(context), fontSize: 12),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         filled: true,
         fillColor: AppTheme.inputFill(context),
         enabledBorder: OutlineInputBorder(
@@ -410,10 +413,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     final headlineCtrl = TextEditingController(text: profileData['headline']?.toString() ?? '');
     final taglineCtrl = TextEditingController(text: profileData['tagline']?.toString() ?? '');
     final bioCtrl = TextEditingController(text: profileData['bio']?.toString() ?? '');
-    final languagesCtrl = TextEditingController(text: profileData['languages']?.toString() ?? 'English, Malayalam');
+    final languagesCtrl = TextEditingController(text: profileData['languages']?.toString() ?? context.tr('default_languages_value'));
     final locationCtrl = TextEditingController(text: profileData['location']?.toString() ?? PresenceService.currentPlaceName);
     final dobCtrl = TextEditingController(text: profileData['date_of_birth']?.toString() ?? '');
-    final workingHoursCtrl = TextEditingController(text: profileData['working_hours']?.toString() ?? 'Mon - Sat, 9:00 AM - 6:00 PM');
+    final workingHoursCtrl = TextEditingController(text: profileData['working_hours']?.toString() ?? context.tr('working_hours_hint'));
     final whatsappCtrl = TextEditingController(text: profileData['whatsapp']?.toString() ?? '');
 
     String selectedGender = profileData['gender']?.toString().toLowerCase() ?? 'male';
@@ -459,7 +462,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildFieldLabel(context.tr('full_name'), isRequired: true),
-                            _buildModalInput(controller: nameCtrl, hintText: 'JAISON PETER'),
+                            _buildModalInput(controller: nameCtrl, hintText: context.tr('full_name_hint')),
                           ],
                         ),
                       ),
@@ -469,7 +472,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildFieldLabel(context.tr('phone_number')),
-                            _buildModalInput(controller: phoneCtrl, hintText: '+91 98765 43210', keyboardType: TextInputType.phone),
+                            _buildModalInput(controller: phoneCtrl, hintText: context.tr('phone_hint'), keyboardType: TextInputType.phone),
                           ],
                         ),
                       ),
@@ -477,13 +480,13 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   ),
                   const SizedBox(height: 14),
                   _buildFieldLabel(context.tr('professional_headline')),
-                  _buildModalInput(controller: headlineCtrl, hintText: 'e.g. Software Engineer | Freelancer | Local Service Provider'),
+                  _buildModalInput(controller: headlineCtrl, hintText: context.tr('headline_full_hint')),
                   const SizedBox(height: 14),
                   _buildFieldLabel(context.tr('tagline_quote')),
-                  _buildModalInput(controller: taglineCtrl, hintText: 'e.g. Passionate about technology and community growth.'),
+                  _buildModalInput(controller: taglineCtrl, hintText: context.tr('tagline_full_hint')),
                   const SizedBox(height: 14),
                   _buildFieldLabel(context.tr('about_me')),
-                  _buildModalInput(controller: bioCtrl, hintText: 'Tell people about yourself, your work, and your goals...', maxLines: 4),
+                  _buildModalInput(controller: bioCtrl, hintText: context.tr('bio_full_hint'), maxLines: 4),
                   const SizedBox(height: 14),
                   Row(
                     children: [
@@ -492,7 +495,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildFieldLabel(context.tr('languages')),
-                            _buildModalInput(controller: languagesCtrl, hintText: 'e.g. English, Malayalam'),
+                            _buildModalInput(controller: languagesCtrl, hintText: context.tr('languages_hint')),
                           ],
                         ),
                       ),
@@ -502,7 +505,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildFieldLabel(context.tr('location')),
-                            _buildModalInput(controller: locationCtrl, hintText: 'Thodupuzha'),
+                            _buildModalInput(controller: locationCtrl, hintText: context.tr('location_hint')),
                           ],
                         ),
                       ),
@@ -518,11 +521,11 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                             _buildFieldLabel(context.tr('gender')),
                             _buildModalDropdown<String>(
                               value: selectedGender,
-                              hintText: 'Select gender',
+                              hintText: context.tr('select_gender'),
                               items: [
-                                DropdownMenuItem(value: 'male', child: Text(context.tr('male'))),
-                                DropdownMenuItem(value: 'female', child: Text(context.tr('female'))),
-                                DropdownMenuItem(value: 'other', child: Text(context.tr('other'))),
+                                DropdownMenuItem(value: 'male', child: Text(context.tr('male'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'female', child: Text(context.tr('female'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'other', child: Text(context.tr('other'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
                               ],
                               onChanged: (val) {
                                 if (val != null) setModalState(() => selectedGender = val);
@@ -539,7 +542,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                             _buildFieldLabel(context.tr('date_of_birth')),
                             _buildModalInput(
                               controller: dobCtrl,
-                              hintText: 'dd-mm-yyyy',
+                              hintText: context.tr('dob_hint'),
                               readOnly: true,
                               suffixIcon: const Icon(Icons.calendar_today_rounded, size: 18, color: Color(0xFF64748B)),
                               onTap: () => _selectDate(sheetContext, dobCtrl),
@@ -557,7 +560,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildFieldLabel(context.tr('working_hours')),
-                            _buildModalInput(controller: workingHoursCtrl, hintText: 'Mon - Sat, 9:00 AM - 6:00 PM'),
+                            _buildModalInput(controller: workingHoursCtrl, hintText: context.tr('working_hours_hint')),
                           ],
                         ),
                       ),
@@ -567,7 +570,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildFieldLabel(context.tr('whatsapp')),
-                            _buildModalInput(controller: whatsappCtrl, hintText: '+91 98765 43210', keyboardType: TextInputType.phone),
+                            _buildModalInput(controller: whatsappCtrl, hintText: context.tr('phone_hint'), keyboardType: TextInputType.phone),
                           ],
                         ),
                       ),
@@ -608,7 +611,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         if (mounted) {
                           AppDialogs.showToastModal(
                             context,
-                            message: 'Profile details updated!',
+                            message: context.tr('profile_details_updated'),
                           );
                         }
                         _loadProfileData();
@@ -616,7 +619,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         if (mounted) {
                           AppDialogs.showToastModal(
                             context,
-                            message: response.message.isNotEmpty ? response.message : 'Update failed.',
+                            message: response.message.isNotEmpty ? response.message : context.tr('update_failed'),
                             icon: Icons.error_outline_rounded,
                             iconColor: Colors.redAccent,
                             iconBgColor: const Color(0xFFFEE2E2),
@@ -677,7 +680,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   ),
                   const SizedBox(height: 16),
                   _buildFieldLabel(context.tr('job_title'), isRequired: true),
-                  _buildModalInput(controller: titleCtrl, hintText: 'e.g. Software Engineer, Electrician, Carpenter'),
+                  _buildModalInput(controller: titleCtrl, hintText: context.tr('job_title_hint')),
                   const SizedBox(height: 14),
                   Row(
                     children: [
@@ -686,7 +689,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildFieldLabel(context.tr('company_employer'), isRequired: true),
-                            _buildModalInput(controller: companyCtrl, hintText: 'e.g. TechCorp, Self-employed'),
+                            _buildModalInput(controller: companyCtrl, hintText: context.tr('company_hint')),
                           ],
                         ),
                       ),
@@ -698,14 +701,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                             _buildFieldLabel(context.tr('employment_type')),
                             _buildModalDropdown<String>(
                               value: selectedEmpType,
-                              hintText: 'Select type',
-                              items: const [
-                                DropdownMenuItem(value: 'Full-time', child: Text('Full-time')),
-                                DropdownMenuItem(value: 'Part-time', child: Text('Part-time')),
-                                DropdownMenuItem(value: 'Self-employed', child: Text('Self-employed')),
-                                DropdownMenuItem(value: 'Contract', child: Text('Contract')),
-                                DropdownMenuItem(value: 'Freelance', child: Text('Freelance')),
-                                DropdownMenuItem(value: 'Internship', child: Text('Internship')),
+                              hintText: context.tr('select_emp_type'),
+                              items: [
+                                DropdownMenuItem(value: 'Full-time', child: Text(context.tr('emp_full_time'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'Part-time', child: Text(context.tr('emp_part_time'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'Self-employed', child: Text(context.tr('emp_self_employed'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'Contract', child: Text(context.tr('emp_contract'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'Freelance', child: Text(context.tr('emp_freelance'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'Internship', child: Text(context.tr('emp_internship'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
                               ],
                               onChanged: (val) {
                                 if (val != null) setModalState(() => selectedEmpType = val);
@@ -776,12 +779,12 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   ),
                   const SizedBox(height: 14),
                   _buildFieldLabel(context.tr('location')),
-                  _buildModalInput(controller: locationCtrl, hintText: 'e.g. Kochi, Kerala · Remote · On-site'),
+                  _buildModalInput(controller: locationCtrl, hintText: context.tr('exp_location_hint')),
                   const SizedBox(height: 14),
-                  _buildFieldLabel(context.tr('description'), optionalText: 'optional'),
+                  _buildFieldLabel(context.tr('description'), optionalText: context.tr('optional')),
                   _buildModalInput(
                     controller: descCtrl,
-                    hintText: 'Describe your responsibilities, achievements or skills learned...',
+                    hintText: context.tr('exp_desc_hint'),
                     maxLines: 4,
                     onChanged: (_) => setModalState(() {}),
                   ),
@@ -822,7 +825,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
 
                       if (response.success) {
                         if (mounted) {
-                          AppDialogs.showToastModal(context, message: 'Work experience saved!');
+                          AppDialogs.showToastModal(context, message: context.tr('work_experience_saved'));
                         }
                         _loadProfileData();
                       }
@@ -880,7 +883,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   ),
                   const SizedBox(height: 16),
                   _buildFieldLabel(context.tr('school_college'), isRequired: true),
-                  _buildModalInput(controller: instCtrl, hintText: "e.g. University of Kerala, St. Xavier's College"),
+                  _buildModalInput(controller: instCtrl, hintText: context.tr('school_college_hint')),
                   const SizedBox(height: 14),
                   Row(
                     children: [
@@ -891,14 +894,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                             _buildFieldLabel(context.tr('degree_level')),
                             _buildModalDropdown<String>(
                               value: selectedDegree,
-                              hintText: 'Select degree',
-                              items: const [
-                                DropdownMenuItem(value: "Bachelor's", child: Text("Bachelor's")),
-                                DropdownMenuItem(value: "Master's", child: Text("Master's")),
-                                DropdownMenuItem(value: 'Diploma', child: Text('Diploma')),
-                                DropdownMenuItem(value: 'High School', child: Text('High School')),
-                                DropdownMenuItem(value: 'Doctorate', child: Text('Doctorate')),
-                                DropdownMenuItem(value: 'Certification', child: Text('Certification')),
+                              hintText: context.tr('select_degree'),
+                              items: [
+                                DropdownMenuItem(value: "Bachelor's", child: Text(context.tr('deg_bachelors'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: "Master's", child: Text(context.tr('deg_masters'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'Diploma', child: Text(context.tr('deg_diploma'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'High School', child: Text(context.tr('deg_high_school'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'Doctorate', child: Text(context.tr('deg_doctorate'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'Certification', child: Text(context.tr('deg_certification'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
                               ],
                               onChanged: (val) {
                                 if (val != null) setModalState(() => selectedDegree = val);
@@ -913,7 +916,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildFieldLabel(context.tr('field_of_study')),
-                            _buildModalInput(controller: fieldCtrl, hintText: 'e.g. Computer Science, Commerce'),
+                            _buildModalInput(controller: fieldCtrl, hintText: context.tr('field_of_study_hint')),
                           ],
                         ),
                       ),
@@ -949,7 +952,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildFieldLabel(context.tr('start_year')),
-                            _buildModalInput(controller: startYearCtrl, hintText: 'e.g. 2018', keyboardType: TextInputType.number),
+                            _buildModalInput(controller: startYearCtrl, hintText: context.tr('start_year_hint'), keyboardType: TextInputType.number),
                           ],
                         ),
                       ),
@@ -961,7 +964,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                             _buildFieldLabel(context.tr('passout_year')),
                             _buildModalInput(
                               controller: endYearCtrl,
-                              hintText: 'e.g. 2022',
+                              hintText: context.tr('passout_year_hint'),
                               readOnly: isCurrentStudy,
                               keyboardType: TextInputType.number,
                             ),
@@ -971,13 +974,13 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  _buildFieldLabel(context.tr('grade_percentage'), optionalText: 'optional'),
-                  _buildModalInput(controller: gradeCtrl, hintText: 'e.g. 8.5 CGPA, 85%, Distinction'),
+                  _buildFieldLabel(context.tr('grade_percentage'), optionalText: context.tr('optional')),
+                  _buildModalInput(controller: gradeCtrl, hintText: context.tr('grade_hint')),
                   const SizedBox(height: 14),
-                  _buildFieldLabel(context.tr('activities_description'), optionalText: 'optional'),
+                  _buildFieldLabel(context.tr('activities_description'), optionalText: context.tr('optional')),
                   _buildModalInput(
                     controller: descCtrl,
-                    hintText: 'Clubs, achievements, projects or activities during this period...',
+                    hintText: context.tr('edu_desc_hint'),
                     maxLines: 4,
                     onChanged: (_) => setModalState(() {}),
                   ),
@@ -1017,7 +1020,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
 
                       if (response.success) {
                         if (mounted) {
-                          AppDialogs.showToastModal(context, message: 'Education saved!');
+                          AppDialogs.showToastModal(context, message: context.tr('education_saved'));
                         }
                         _loadProfileData();
                       }
@@ -1071,7 +1074,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   ),
                   const SizedBox(height: 16),
                   _buildFieldLabel(context.tr('skill_name'), isRequired: true),
-                  _buildModalInput(controller: skillCtrl, hintText: 'e.g. Laravel, React, Graphic Design, Plumbing'),
+                  _buildModalInput(controller: skillCtrl, hintText: context.tr('skill_name_hint')),
                   const SizedBox(height: 14),
                   Row(
                     children: [
@@ -1079,16 +1082,16 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel(context.tr('proficiency_level'), optionalText: 'Optional'),
+                            _buildFieldLabel(context.tr('proficiency_level'), optionalText: context.tr('optional')),
                             _buildModalDropdown<String>(
                               value: selectedProficiency,
-                              hintText: 'Select proficiency...',
-                              items: const [
-                                DropdownMenuItem(value: 'Beginner', child: Text('Beginner')),
-                                DropdownMenuItem(value: 'Intermediate', child: Text('Intermediate')),
-                                DropdownMenuItem(value: 'Advanced', child: Text('Advanced')),
-                                DropdownMenuItem(value: 'Expert', child: Text('Expert')),
-                                DropdownMenuItem(value: 'Master', child: Text('Master')),
+                              hintText: context.tr('select_proficiency'),
+                              items: [
+                                DropdownMenuItem(value: 'Beginner', child: Text(context.tr('prof_beginner'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'Intermediate', child: Text(context.tr('prof_intermediate'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'Advanced', child: Text(context.tr('prof_advanced'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'Expert', child: Text(context.tr('prof_expert'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'Master', child: Text(context.tr('prof_master'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
                               ],
                               onChanged: (val) {
                                 if (val != null) setModalState(() => selectedProficiency = val);
@@ -1102,24 +1105,24 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel(context.tr('years_experience'), optionalText: 'Optional'),
-                            _buildModalInput(controller: expYearsCtrl, hintText: 'e.g. 3', keyboardType: TextInputType.number),
+                            _buildFieldLabel(context.tr('years_experience'), optionalText: context.tr('optional')),
+                            _buildModalInput(controller: expYearsCtrl, hintText: context.tr('years_exp_hint'), keyboardType: TextInputType.number),
                           ],
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 14),
-                  _buildFieldLabel(context.tr('short_description'), optionalText: 'Optional'),
+                  _buildFieldLabel(context.tr('short_description'), optionalText: context.tr('optional')),
                   _buildModalInput(
                     controller: descCtrl,
-                    hintText: 'Briefly describe your experience, tools used, or key accomplishments with this skill...',
+                    hintText: context.tr('skill_desc_hint'),
                     maxLines: 4,
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Add context on how you apply this skill.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                  Text(
+                    context.tr('skill_context_helper'),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
                   ),
                   const SizedBox(height: 20),
                   _buildModalActions(
@@ -1144,7 +1147,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
 
                       if (response.success) {
                         if (mounted) {
-                          AppDialogs.showToastModal(context, message: 'Skill saved!');
+                          AppDialogs.showToastModal(context, message: context.tr('skill_saved'));
                         }
                         _loadProfileData();
                       }
@@ -1175,7 +1178,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         verificationStatus == 'in_review';
 
     final String declineReason = profileData['verification_decline_reason']?.toString() ??
-        'Documents were unclear or did not meet requirements. Please submit clear photos.';
+        context.tr('default_decline_reason');
 
     return Container(
       width: double.infinity,
@@ -1262,14 +1265,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFFDE68A)),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.schedule_rounded, color: Color(0xFFD97706), size: 14),
-                  SizedBox(width: 6),
+                  const Icon(Icons.schedule_rounded, color: Color(0xFFD97706), size: 14),
+                  const SizedBox(width: 6),
                   Text(
-                    'Verification Pending',
-                    style: TextStyle(
+                    context.tr('verification_pending'),
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFFD97706),
@@ -1315,9 +1318,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Previous Request Declined:',
-                    style: TextStyle(
+                  Text(
+                    context.tr('previous_request_declined'),
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF991B1B),
@@ -1401,7 +1404,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 if (!mounted) return;
                 AppDialogs.showToastModal(
                   context,
-                  message: 'Selected photo is ${mb.toStringAsFixed(1)} MB. Maximum allowed size is 5 MB.',
+                  message: context.trParams('photo_size_exceeds_5mb', {'size': mb.toStringAsFixed(1)}),
                   icon: Icons.warning_amber_rounded,
                   iconColor: Colors.orange,
                   iconBgColor: const Color(0xFFFEF3C7),
@@ -1420,7 +1423,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               if (!mounted) return;
               AppDialogs.showToastModal(
                 context,
-                message: 'Error selecting document: $e',
+                message: context.trParams('error_selecting_doc', {'error': '$e'}),
                 icon: Icons.error_outline_rounded,
                 iconColor: Colors.redAccent,
                 iconBgColor: const Color(0xFFFEE2E2),
@@ -1445,30 +1448,30 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     icon: Icons.shield_outlined,
                     iconBgColor: const Color(0xFFE6F4F1),
                     iconColor: const Color(0xFF094943),
-                    title: 'Request Profile Verification',
-                    subtitle: 'Submit your government ID card to get verified',
+                    title: context.tr('request_profile_verification'),
+                    subtitle: context.tr('submit_govt_id_desc'),
                   ),
                   const SizedBox(height: 16),
-                  _buildFieldLabel('ID Card Type', isRequired: true),
+                  _buildFieldLabel(context.tr('id_card_type'), isRequired: true),
                   _buildModalDropdown<String>(
                     value: selectedIdType,
-                    hintText: 'Select ID Card Type',
-                    items: const [
-                      DropdownMenuItem(value: 'National ID Card', child: Text('National ID Card')),
-                      DropdownMenuItem(value: 'Aadhaar Card', child: Text('Aadhaar Card')),
-                      DropdownMenuItem(value: 'Passport', child: Text('Passport')),
-                      DropdownMenuItem(value: 'Driving License', child: Text('Driving License')),
-                      DropdownMenuItem(value: 'Voter ID Card', child: Text('Voter ID Card')),
+                    hintText: context.tr('select_id_card_type'),
+                    items: [
+                      DropdownMenuItem(value: 'National ID Card', child: Text(context.tr('id_national'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                      DropdownMenuItem(value: 'Aadhaar Card', child: Text(context.tr('id_aadhaar'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                      DropdownMenuItem(value: 'Passport', child: Text(context.tr('id_passport'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                      DropdownMenuItem(value: 'Driving License', child: Text(context.tr('id_driving_license'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                      DropdownMenuItem(value: 'Voter ID Card', child: Text(context.tr('id_voter'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
                     ],
                     onChanged: (val) {
                       if (val != null) setModalState(() => selectedIdType = val);
                     },
                   ),
                   const SizedBox(height: 14),
-                  _buildFieldLabel('ID Card Number', isRequired: true),
+                  _buildFieldLabel(context.tr('id_card_number'), isRequired: true),
                   _buildModalInput(
                     controller: idNumberCtrl,
-                    hintText: 'e.g. 12345-6789012-3 or A12345678',
+                    hintText: context.tr('id_card_number_hint'),
                   ),
                   const SizedBox(height: 14),
                   Row(
@@ -1478,7 +1481,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Upload Front Photo', isRequired: true),
+                            _buildFieldLabel(context.tr('upload_front_photo'), isRequired: true),
                             GestureDetector(
                               onTap: () => pickPhoto(true),
                               child: Container(
@@ -1526,14 +1529,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                                             child: const Icon(Icons.image_outlined, color: Color(0xFF3B82F6), size: 20),
                                           ),
                                           const SizedBox(height: 6),
-                                          const Text(
-                                            'Choose Front Photo',
-                                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                          Text(
+                                            context.tr('choose_front_photo'),
+                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
                                           ),
                                           const SizedBox(height: 2),
-                                          const Text(
-                                            'JPG, PNG up to 5MB',
-                                            style: TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                                          Text(
+                                            context.tr('jpg_png_5mb'),
+                                            style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
                                           ),
                                         ],
                                       ),
@@ -1548,7 +1551,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel('Upload Back Photo', isRequired: true),
+                            _buildFieldLabel(context.tr('upload_back_photo'), isRequired: true),
                             GestureDetector(
                               onTap: () => pickPhoto(false),
                               child: Container(
@@ -1596,14 +1599,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                                             child: const Icon(Icons.image_outlined, color: Color(0xFF3B82F6), size: 20),
                                           ),
                                           const SizedBox(height: 6),
-                                          const Text(
-                                            'Choose Back Photo',
-                                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                          Text(
+                                            context.tr('choose_back_photo'),
+                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
                                           ),
                                           const SizedBox(height: 2),
-                                          const Text(
-                                            'JPG, PNG up to 5MB',
-                                            style: TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                                          Text(
+                                            context.tr('jpg_png_5mb'),
+                                            style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
                                           ),
                                         ],
                                       ),
@@ -1625,13 +1628,13 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Icon(Icons.info_outline_rounded, color: Color(0xFFD97706), size: 18),
-                        SizedBox(width: 8),
+                      children: [
+                        const Icon(Icons.info_outline_rounded, color: Color(0xFFD97706), size: 18),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Please ensure that your ID card photos are clear, sharp, and all details are readable without reflections or blur. Sensitive documents are safely stored.',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF92400E), height: 1.3),
+                            context.tr('id_photo_guidelines'),
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF92400E), height: 1.3),
                           ),
                         ),
                       ],
@@ -1648,21 +1651,21 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Icon(Icons.payments_outlined, color: Color(0xFF094943), size: 18),
-                        SizedBox(width: 8),
+                      children: [
+                        const Icon(Icons.payments_outlined, color: Color(0xFF094943), size: 18),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text.rich(
                             TextSpan(
-                              text: 'A verification processing fee of ',
-                              style: TextStyle(fontSize: 11, color: Color(0xFF065F46), height: 1.3),
+                              text: context.tr('verification_fee_prefix'),
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF065F46), height: 1.3),
                               children: [
-                                TextSpan(
+                                const TextSpan(
                                   text: '₹2.00',
                                   style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
                                 ),
                                 TextSpan(
-                                  text: ' will be required via Razorpay upon submitting your documents.',
+                                  text: context.tr('verification_fee_suffix'),
                                 ),
                               ],
                             ),
@@ -1674,14 +1677,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   const SizedBox(height: 20),
                   _buildModalActions(
                     sheetContext,
-                    saveText: 'Proceed to Pay ₹2.00 & Submit',
+                    saveText: context.tr('proceed_pay_submit'),
                     isSubmitting: isSubmitting,
                     onSave: () async {
                       final idNumber = idNumberCtrl.text.trim();
                       if (idNumber.isEmpty) {
                         AppDialogs.showToastModal(
                           context,
-                          message: 'Please enter your ID Card Number.',
+                          message: context.tr('enter_id_number'),
                           icon: Icons.warning_amber_rounded,
                           iconColor: Colors.orange,
                           iconBgColor: const Color(0xFFFEF3C7),
@@ -1691,7 +1694,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                       if (frontPhoto == null) {
                         AppDialogs.showToastModal(
                           context,
-                          message: 'Please upload Front Photo of your ID card.',
+                          message: context.tr('upload_front_id_photo'),
                           icon: Icons.warning_amber_rounded,
                           iconColor: Colors.orange,
                           iconBgColor: const Color(0xFFFEF3C7),
@@ -1765,21 +1768,21 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.account_balance_wallet_outlined, color: Color(0xFF094943)),
-              SizedBox(width: 8),
-              Text('No UPI App Detected', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFF094943)),
+              const SizedBox(width: 8),
+              Expanded(child: Text(ctx.tr('no_upi_app_detected'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
             ],
           ),
-          content: const Text(
-            'Google Pay / PhonePe / Paytm is not installed on this device/emulator.\n\nWould you like to complete payment using Razorpay Test Payment Mode (₹2.00)?',
-            style: TextStyle(fontSize: 13, height: 1.4),
+          content: Text(
+            ctx.tr('no_upi_app_desc'),
+            style: const TextStyle(fontSize: 13, height: 1.4),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: Text(ctx.tr('cancel'), style: const TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
@@ -1787,7 +1790,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 backgroundColor: const Color(0xFF094943),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Pay ₹2.00 & Complete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(ctx.tr('pay_complete'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -1812,7 +1815,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       if (mounted) {
         AppDialogs.showToastModal(
           context,
-          message: 'Payment ₹2.00 ($paymentId) successful! Verification request submitted.',
+          message: context.trParams('payment_success_submitted', {'id': paymentId}),
         );
       }
       _loadProfileData();
@@ -1820,7 +1823,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       if (mounted) {
         AppDialogs.showToastModal(
           context,
-          message: 'Verification request submitted! Fee recorded and request under review.',
+          message: context.tr('verification_submitted_review'),
         );
       }
       _loadProfileData();
@@ -1866,16 +1869,16 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           child: const Icon(Icons.payment_rounded, color: Color(0xFF0284C7), size: 22),
                         ),
                         const SizedBox(width: 10),
-                        const Column(
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Razorpay / UPI Payment',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                              dialogContext.tr('razorpay_upi_payment'),
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
                             ),
                             Text(
-                              'QuickMate Verification Fee',
-                              style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                              dialogContext.tr('quickmate_verification_fee'),
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                             ),
                           ],
                         ),
@@ -1902,14 +1905,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Amount to Pay',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          Text(
+                            dialogContext.tr('amount_to_pay'),
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                           ),
                           const SizedBox(height: 2),
-                          Text(
+                          const Text(
                             '₹2.00',
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF094943)),
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF094943)),
                           ),
                         ],
                       ),
@@ -1919,24 +1922,24 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           color: const Color(0xFFDCFCE7),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
-                          'Razorpay UPI',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF166534)),
+                        child: Text(
+                          dialogContext.tr('razorpay_upi'),
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF166534)),
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Select Payment Method',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+                Text(
+                  dialogContext.tr('select_payment_method'),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
                 ),
                 const SizedBox(height: 10),
                 ListTile(
                   leading: const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFF094943)),
-                  title: const Text('Google Pay / PhonePe / Paytm / UPI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  subtitle: const Text('Opens installed GPay / PhonePe app for ₹2.00', style: TextStyle(fontSize: 11)),
+                  title: Text(dialogContext.tr('upi_apps_title'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  subtitle: Text(dialogContext.tr('upi_apps_subtitle'), style: const TextStyle(fontSize: 11)),
                   trailing: const Icon(Icons.open_in_new_rounded, color: Color(0xFF094943), size: 18),
                   tileColor: const Color(0xFFE6F4F1),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1975,9 +1978,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     ),
                     child: isProcessing
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'Open GPay / Pay ₹2.00 & Submit',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                        : Text(
+                            dialogContext.tr('open_gpay_pay_submit'),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
                   ),
                 ),
@@ -2018,9 +2021,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 child: Icon(Icons.lock_outline_rounded, size: 54, color: primaryDark),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Sign In Required',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+              Text(
+                context.tr('sign_in_required'),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
               ),
               const SizedBox(height: 8),
               Text(
@@ -2043,7 +2046,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     }
                   },
                   icon: const Icon(Icons.login_rounded, color: Colors.white),
-                  label: const Text('Sign In / Register', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                  label: Text(context.tr('sign_in_register'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryDark,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -2057,21 +2060,34 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     );
   }
 
+  String _getTranslatedGender(String raw) {
+    switch (raw.trim().toLowerCase()) {
+      case 'female':
+        return context.tr('female');
+      case 'other':
+        return context.tr('other');
+      case 'male':
+        return context.tr('male');
+      default:
+        return raw;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!AuthService.isLoggedIn()) {
       return _buildGuestPromptScreen(
-        'My Profile',
-        'Please sign in to view and manage your personal profile details.',
+        context.tr('my_profile'),
+        context.tr('sign_in_manage_profile'),
       );
     }
 
     const primaryDark = Color(0xFF094943);
     final profileData = _fullProfile?['profile'] as Map<String, dynamic>? ?? {};
 
-    final userName = _fullProfile?['name']?.toString() ?? _user?.name ?? 'MUSICAFE';
-    final userEmail = _fullProfile?['email']?.toString() ?? _user?.email ?? 'mcafe369@gmail.com';
-    final accountType = _fullProfile?['account_type']?.toString().toUpperCase() ?? 'FREELANCER';
+    final userName = _fullProfile?['name']?.toString() ?? _user?.name ?? context.tr('user_profile');
+    final userEmail = _fullProfile?['email']?.toString() ?? _user?.email ?? context.tr('not_provided');
+    final accountType = _fullProfile?['account_type']?.toString().toUpperCase() ?? context.tr('freelancer').toUpperCase();
     final isVerified = _fullProfile?['is_verified'] == true || _user?.isVerified == true;
 
     final userMap = _fullProfile?['user'] as Map<String, dynamic>? ?? {};
@@ -2099,14 +2115,18 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       coverUrl = "${ApiConfig.fixImageUrl(coverUrl)}?t=$_imageTimestamp";
     }
 
-    final headline = profileData['headline']?.toString() ?? 'Software engineer';
-    final tagline = profileData['tagline']?.toString() ?? 'Any Work';
+    final headline = profileData['headline']?.toString() ?? context.tr('software_engineer');
+    final tagline = profileData['tagline']?.toString() ?? context.tr('any_work');
     final location = profileData['location']?.toString() ?? PresenceService.currentPlaceName;
-    final bio = profileData['bio']?.toString() ?? 'Working Professional';
-    final gender = profileData['gender']?.toString().toUpperCase() ?? 'MALE';
-    final dob = profileData['date_of_birth']?.toString() ?? '08 Oct 2026';
-    final workingHours = profileData['working_hours']?.toString() ?? 'Mon - Sat, 9:00 AM - 6:00 PM';
-    final availabilityStatus = profileData['availability_status']?.toString() ?? 'Available for Work';
+    final bio = profileData['bio']?.toString() ?? context.tr('working_professional');
+    final rawGender = profileData['gender']?.toString().toLowerCase() ?? 'male';
+    final gender = _getTranslatedGender(rawGender).toUpperCase();
+    final languagesText = (profileData['languages']?.toString().isNotEmpty == true)
+        ? profileData['languages'].toString()
+        : context.tr('default_languages_value');
+    final dob = profileData['date_of_birth']?.toString() ?? context.tr('not_provided');
+    final workingHours = profileData['working_hours']?.toString() ?? context.tr('working_hours_hint');
+    final availabilityStatus = profileData['availability_status']?.toString() ?? context.tr('available_for_work');
 
     return Scaffold(
       backgroundColor: AppTheme.background(context),
@@ -2172,6 +2192,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                       primaryDark: primaryDark,
                       bio: bio,
                       location: location,
+                      languagesText: languagesText,
                       gender: gender,
                       dob: dob,
                       isVerified: isVerified,
@@ -2453,7 +2474,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     const Icon(Icons.star_rounded, size: 14, color: Color(0xFFFFB800)),
                     const SizedBox(width: 2),
                     Text(
-                      '5.0 (1 review)',
+                      '5.0 (1 ${context.tr('review_singular')})',
                       style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)),
                     ),
                   ],
@@ -2574,7 +2595,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     if (currentImages.length >= 6) {
       AppDialogs.showToastModal(
         context,
-        message: 'Maximum limit reached. Each user can upload up to 6 gallery images. Please delete an image first.',
+        message: context.tr('max_gallery_limit'),
         icon: Icons.warning_amber_rounded,
         iconColor: Colors.orange,
         iconBgColor: const Color(0xFFFEF3C7),
@@ -2599,7 +2620,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         if (!mounted) return;
         AppDialogs.showToastModal(
           context,
-          message: 'Selected image is ${fileSizeInMB.toStringAsFixed(2)} MB. Maximum allowed size is 1 MB. Please choose a smaller image.',
+          message: context.trParams('gallery_size_exceeds_1mb', {'size': fileSizeInMB.toStringAsFixed(2)}),
           icon: Icons.error_outline_rounded,
           iconColor: Colors.redAccent,
           iconBgColor: const Color(0xFFFEE2E2),
@@ -2610,7 +2631,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       if (!mounted) return;
       AppDialogs.showToastModal(
         context,
-        message: 'Uploading gallery image...',
+        message: context.tr('uploading_gallery_image'),
         icon: Icons.cloud_upload_outlined,
         iconColor: const Color(0xFF094943),
         iconBgColor: const Color(0xFFE6F4F1),
@@ -2624,13 +2645,13 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       if (response.success) {
         AppDialogs.showToastModal(
           context,
-          message: 'Gallery photo uploaded successfully!',
+          message: context.tr('gallery_uploaded_success'),
         );
         _loadProfileData();
       } else {
         AppDialogs.showToastModal(
           context,
-          message: response.message.isNotEmpty ? response.message : 'Photo added to gallery!',
+          message: response.message.isNotEmpty ? response.message : context.tr('photo_added_gallery'),
         );
         _loadProfileData();
       }
@@ -2639,7 +2660,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       if (e.code == 'channel-error' || e.message?.contains('ImagePickerApi') == true) {
         AppDialogs.showToastModal(
           context,
-          message: 'Please restart/rebuild the app to register the image_picker plugin channel on Android.',
+          message: context.tr('rebuild_image_picker_msg'),
           icon: Icons.warning_amber_rounded,
           iconColor: Colors.orange,
           iconBgColor: const Color(0xFFFEF3C7),
@@ -2647,7 +2668,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       } else {
         AppDialogs.showToastModal(
           context,
-          message: 'Permission error selecting image: ${e.message}',
+          message: context.trParams('permission_error_image', {'error': e.message ?? ''}),
           icon: Icons.error_outline_rounded,
           iconColor: Colors.redAccent,
           iconBgColor: const Color(0xFFFEE2E2),
@@ -2657,7 +2678,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       if (!mounted) return;
       AppDialogs.showToastModal(
         context,
-        message: 'Error selecting image: $e',
+        message: context.trParams('error_selecting_image', {'error': '$e'}),
         icon: Icons.error_outline_rounded,
         iconColor: Colors.redAccent,
         iconBgColor: const Color(0xFFFEE2E2),
@@ -2774,18 +2795,18 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: const Color(0xFFCBD5E1)),
                 ),
-                child: const Column(
+                child: Column(
                   children: [
-                    Icon(Icons.add_photo_alternate_rounded, size: 36, color: primaryDark),
-                    SizedBox(height: 8),
+                    const Icon(Icons.add_photo_alternate_rounded, size: 36, color: primaryDark),
+                    const SizedBox(height: 8),
                     Text(
-                      'Tap to select gallery image',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                      context.tr('tap_select_gallery'),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
-                      'Max 1 MB file size',
-                      style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      context.tr('max_1mb_size'),
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                     ),
                   ],
                 ),
@@ -2810,14 +2831,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: const Color(0xFFCBD5E1)),
                         ),
-                        child: const Column(
+                        child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.add_photo_alternate_rounded, color: primaryDark, size: 28),
-                            SizedBox(height: 4),
+                            const Icon(Icons.add_photo_alternate_rounded, color: primaryDark, size: 28),
+                            const SizedBox(height: 4),
                             Text(
-                              'Add Photo',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryDark),
+                              context.tr('add_photo'),
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryDark),
                             ),
                           ],
                         ),
@@ -2910,18 +2931,18 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         child: Image.network(
                           images[index],
                           fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => const Column(
+                          errorBuilder: (context, error, stackTrace) => Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.broken_image_rounded,
                                 color: Colors.white54,
                                 size: 80,
                               ),
-                              SizedBox(height: 12),
+                              const SizedBox(height: 12),
                               Text(
-                                'Unable to load image',
-                                style: TextStyle(color: Colors.white70),
+                                context.tr('unable_load_image'),
+                                style: const TextStyle(color: Colors.white70),
                               ),
                             ],
                           ),
@@ -2972,6 +2993,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     required Color primaryDark,
     required String bio,
     required String location,
+    required String languagesText,
     required String gender,
     required String dob,
     required bool isVerified,
@@ -3002,7 +3024,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             children: [
               Expanded(child: _buildInfoBadge(Icons.access_time_rounded, '1 ${context.tr('year')}', context.tr('experience'))),
               const SizedBox(width: 10),
-              Expanded(child: _buildInfoBadge(Icons.translate_rounded, 'English, Malayalam', context.tr('languages'))),
+              Expanded(child: _buildInfoBadge(Icons.translate_rounded, languagesText, context.tr('languages'))),
             ],
           ),
           const SizedBox(height: 10),
@@ -3010,7 +3032,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             children: [
               Expanded(child: _buildInfoBadge(Icons.location_on_outlined, location, context.tr('location'))),
               const SizedBox(width: 10),
-              Expanded(child: _buildInfoBadge(Icons.person_outline, gender == 'MALE' ? context.tr('male').toUpperCase() : gender, context.tr('gender'))),
+              Expanded(child: _buildInfoBadge(Icons.person_outline, gender, context.tr('gender'))),
             ],
           ),
           const SizedBox(height: 10),
@@ -3178,8 +3200,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(exp['job_title']?.toString() ?? 'Role', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
-                          Text(exp['company']?.toString() ?? 'Company', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
+                          Text(exp['job_title']?.toString() ?? context.tr('role_fallback'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
+                          Text(exp['company']?.toString() ?? context.tr('company_fallback'), style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
                         ],
                       ),
                     ),
@@ -3242,8 +3264,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(edu['degree']?.toString() ?? 'Degree', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
-                          Text(edu['institution']?.toString() ?? 'Institution', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
+                          Text(edu['degree']?.toString() ?? context.tr('degree_fallback'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
+                          Text(edu['institution']?.toString() ?? context.tr('institution_fallback'), style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
                         ],
                       ),
                     ),
@@ -3299,7 +3321,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               children: _skills.map((s) {
                 return Chip(
                   label: Text(
-                    s['name']?.toString() ?? 'Skill',
+                    s['name']?.toString() ?? context.tr('skill_fallback'),
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,

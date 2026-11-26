@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import '../core/api_config.dart';
 import '../core/api_service.dart';
+import '../core/app_language.dart';
 import '../core/storage_service.dart';
 import 'auth_service.dart';
 
@@ -177,7 +178,7 @@ class PresenceService with WidgetsBindingObserver {
     if (_lastGeocodedLat != null && _lastGeocodedLng != null) {
       final latDiff = (lat - _lastGeocodedLat!).abs();
       final lngDiff = (lng - _lastGeocodedLng!).abs();
-      if (latDiff < 0.001 && lngDiff < 0.001 && currentPlaceName.isNotEmpty && currentPlaceName != 'Location Available') {
+      if (latDiff < 0.001 && lngDiff < 0.001 && currentPlaceName.isNotEmpty && currentPlaceName != 'Location Available' && currentPlaceName != AppLanguage.trCode('location_available')) {
         return currentPlaceName;
       }
     }
@@ -209,7 +210,7 @@ class PresenceService with WidgetsBindingObserver {
       }
     } catch (_) {}
 
-    return currentPlaceName.isNotEmpty ? currentPlaceName : 'Location Available';
+    return currentPlaceName.isNotEmpty ? currentPlaceName : AppLanguage.trCode('location_available');
   }
 
   /// Send presence ping with high precision latitude, longitude, and place_name every 30s

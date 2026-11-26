@@ -65,37 +65,49 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
     }
   }
 
+  String _getTranslatedGender(String raw) {
+    switch (raw.trim().toLowerCase()) {
+      case 'female':
+        return context.tr('female');
+      case 'other':
+        return context.tr('other');
+      case 'male':
+        return context.tr('male');
+      default:
+        return raw;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const primaryDark = Color(0xFF094943);
     final profileData = _fullProfile?['profile'] as Map<String, dynamic>? ?? {};
 
     final userName = _fullProfile?['name']?.toString() ?? widget.user.name;
-    final userEmail = _fullProfile?['email']?.toString() ?? widget.user.email ?? 'Not provided';
-    final userPhone = _fullProfile?['phone']?.toString() ?? widget.user.phone ?? 'Not provided';
-    final accountType = _fullProfile?['account_type']?.toString().toUpperCase() ?? widget.user.accountType?.toUpperCase() ?? 'MEMBER';
+    final userEmail = _fullProfile?['email']?.toString() ?? widget.user.email ?? context.tr('not_provided');
+    final userPhone = _fullProfile?['phone']?.toString() ?? widget.user.phone ?? context.tr('not_provided');
+    final accountType = _fullProfile?['account_type']?.toString().toUpperCase() ?? widget.user.accountType?.toUpperCase() ?? context.tr('member');
     final isVerified = _fullProfile?['is_verified'] == true || widget.user.isVerified;
     final avatarUrl = profileData['avatar_url']?.toString() ?? widget.user.avatarUrl;
     final coverPhotoUrl = profileData['cover_photo_url']?.toString();
 
-    final headline = profileData['headline']?.toString() ?? 'Service Provider';
-    final tagline = profileData['tagline']?.toString() ?? 'Any Work';
+    final headline = profileData['headline']?.toString() ?? context.tr('service_provider');
+    final tagline = profileData['tagline']?.toString() ?? context.tr('any_work');
     final location = profileData['location']?.toString() ?? widget.user.location ?? PresenceService.currentPlaceName;
-    final bio = profileData['bio']?.toString() ?? 'Working Professional';
-    final gender = profileData['gender']?.toString().toUpperCase() ?? 'MALE';
-    final dob = profileData['date_of_birth']?.toString() ?? '08 Oct 2026';
-    final workingHours = profileData['working_hours']?.toString() ?? 'Mon - Sat, 9:00 AM - 6:00 PM';
-    final availabilityStatus = profileData['availability_status']?.toString() ?? 'Available for Work';
+    final bio = profileData['bio']?.toString() ?? context.tr('working_professional');
+    final rawGender = profileData['gender']?.toString().toLowerCase() ?? 'male';
+    final gender = _getTranslatedGender(rawGender).toUpperCase();
+    final languagesText = (profileData['languages']?.toString().isNotEmpty == true)
+        ? profileData['languages'].toString()
+        : context.tr('default_languages_value');
+    final dob = profileData['date_of_birth']?.toString() ?? context.tr('not_provided');
+    final workingHours = profileData['working_hours']?.toString() ?? context.tr('working_hours_hint');
+    final availabilityStatus = profileData['availability_status']?.toString() ?? context.tr('available_for_work');
     final rating = _fullProfile?['rating'] != null ? (_fullProfile!['rating'] as num).toDouble() : 5.0;
     final reviewsCount = _fullProfile?['reviews_count'] != null ? (_fullProfile!['reviews_count'] as num).toInt() : 1;
 
     final isOnline = profileData['is_online'] == true || widget.user.isOnline;
-    final lastSeenRaw = profileData['last_seen_human']?.toString() ?? 'Offline';
-    final lastSeenHuman = lastSeenRaw
-        .replaceAll('Last seen ', '')
-        .replaceAll('seen ', '')
-        .replaceAll('Last ', '')
-        .trim();
+    final lastSeenHuman = translateLastSeenHuman(context, profileData['last_seen_human']?.toString());
 
     return Scaffold(
       backgroundColor: AppTheme.background(context),
@@ -149,6 +161,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                     primaryDark: primaryDark,
                     bio: bio,
                     location: location,
+                    languagesText: languagesText,
                     gender: gender,
                     dob: dob,
                     isVerified: isVerified,
@@ -451,7 +464,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            isVerified ? 'VERIFIED' : 'NOT VERIFIED',
+                            isVerified ? context.tr('verified').toUpperCase() : context.tr('not_verified').toUpperCase(),
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
@@ -481,7 +494,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                     const Icon(Icons.star_rounded, size: 14, color: Color(0xFFFFB800)),
                     const SizedBox(width: 2),
                     Text(
-                      '${rating.toStringAsFixed(1)} ($reviewsCount ${reviewsCount == 1 ? 'review' : 'reviews'})',
+                      '${rating.toStringAsFixed(1)} ($reviewsCount ${reviewsCount == 1 ? context.tr('review_singular') : context.tr('reviews')})',
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)),
                     ),
                   ],
@@ -511,7 +524,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        isOnline ? 'Online Now' : lastSeenHuman,
+                        isOnline ? context.tr('online_now') : lastSeenHuman,
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -618,7 +631,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
               ),
               const SizedBox(width: 10),
               Text(
-                'User Gallery (${images.length})',
+                '${context.tr('user_gallery')} (${images.length})',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -661,7 +674,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                               color: Colors.black.withValues(alpha: 0.65),
                               child: Center(
                                 child: Text(
-                                  '+$extraCount\nMore',
+                                  context.trParams('more_count', {'count': '$extraCount'}),
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                     color: Colors.white,
@@ -711,18 +724,18 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                         child: Image.network(
                           images[index],
                           fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => const Column(
+                          errorBuilder: (context, error, stackTrace) => Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.broken_image_rounded,
                                 color: Colors.white54,
                                 size: 80,
                               ),
-                              SizedBox(height: 12),
+                              const SizedBox(height: 12),
                               Text(
-                                'Unable to load image',
-                                style: TextStyle(color: Colors.white70),
+                                context.tr('unable_load_image'),
+                                style: const TextStyle(color: Colors.white70),
                               ),
                             ],
                           ),
@@ -788,7 +801,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
     if (!AuthService.isLoggedIn()) {
       AppDialogs.showToastModal(
         context,
-        message: 'Please sign in to add or edit a review.',
+        message: context.tr('sign_in_to_review'),
         icon: Icons.lock_outline_rounded,
         iconColor: Colors.orange,
         iconBgColor: const Color(0xFFFEF3C7),
@@ -807,7 +820,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
     if (currentUser?.id == widget.user.id) {
       AppDialogs.showToastModal(
         context,
-        message: 'You cannot review your own profile.',
+        message: context.tr('cannot_review_own_profile'),
         icon: Icons.error_outline_rounded,
         iconColor: Colors.redAccent,
         iconBgColor: const Color(0xFFFEE2E2),
@@ -825,11 +838,15 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
         builder: (context, setDialogState) {
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Text(existingReview != null ? 'Edit Review for ${widget.user.name}' : 'Rate & Review ${widget.user.name}'),
+            title: Text(
+              existingReview != null
+                  ? dialogContext.trParams('edit_review_for', {'name': widget.user.name})
+                  : dialogContext.trParams('rate_review_for', {'name': widget.user.name}),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Rate your experience:'),
+                Text(dialogContext.tr('rate_your_experience')),
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -853,9 +870,9 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                 TextField(
                   controller: reviewController,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    hintText: 'Write your experience with this service provider...',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    hintText: dialogContext.tr('write_provider_exp_hint'),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
               ],
@@ -863,7 +880,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
+                child: Text(dialogContext.tr('cancel')),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -877,7 +894,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                         if (text.isEmpty) {
                           AppDialogs.showToastModal(
                             dialogContext,
-                            message: 'Please enter a review text.',
+                            message: dialogContext.tr('enter_review_text'),
                             icon: Icons.warning_amber_rounded,
                             iconColor: Colors.orange,
                             iconBgColor: const Color(0xFFFEF3C7),
@@ -903,18 +920,18 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                         if (response.success) {
                           if (mounted) {
                             AppDialogs.showToastModal(
-                              context,
+                              this.context,
                               message: existingReview != null
-                                  ? 'Review updated successfully!'
-                                  : 'Review submitted successfully!',
+                                  ? this.context.tr('review_updated_success')
+                                  : this.context.tr('review_submitted_success'),
                             );
                           }
                           _fetchPublicProfile();
                         } else {
                           if (mounted) {
                             AppDialogs.showToastModal(
-                              context,
-                              message: response.message.isNotEmpty ? response.message : 'Failed to save review.',
+                              this.context,
+                              message: response.message.isNotEmpty ? response.message : this.context.tr('failed_save_review'),
                               icon: Icons.error_outline_rounded,
                               iconColor: Colors.redAccent,
                               iconBgColor: const Color(0xFFFEE2E2),
@@ -928,7 +945,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                         height: 18,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                       )
-                    : Text(existingReview != null ? 'Update Review' : 'Submit Review',
+                    : Text(existingReview != null ? dialogContext.tr('update_review') : dialogContext.tr('submit_review'),
                         style: const TextStyle(color: Colors.white)),
               ),
             ],
@@ -942,6 +959,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
     const primaryDark = Color(0xFF094943);
     final reviews = _extractUserReviews();
     final currentUser = AuthService.getStoredUser();
+    final totalReviewsCount = reviewsCount > reviews.length ? reviewsCount : reviews.length;
 
     final displayReviews = reviews.take(2).toList();
 
@@ -963,7 +981,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                   const Icon(Icons.star_rounded, color: Color(0xFFFFB800), size: 22),
                   const SizedBox(width: 6),
                   Text(
-                    'User Reviews (${reviewsCount > reviews.length ? reviewsCount : reviews.length})',
+                    '${context.tr('user_reviews')} ($totalReviewsCount)',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -990,13 +1008,13 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                     _fetchPublicProfile();
                   },
                   child: Row(
-                    children: const [
+                    children: [
                       Text(
-                        'View All',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: primaryDark),
+                        context.tr('view_all'),
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: primaryDark),
                       ),
-                      SizedBox(width: 2),
-                      Icon(Icons.arrow_forward_rounded, size: 14, color: primaryDark),
+                      const SizedBox(width: 2),
+                      const Icon(Icons.arrow_forward_rounded, size: 14, color: primaryDark),
                     ],
                   ),
                 ),
@@ -1040,7 +1058,10 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Based on ${reviewsCount > reviews.length ? reviewsCount : reviews.length} user ${reviewsCount == 1 ? 'review' : 'reviews'}',
+                  context.trParams('based_on_reviews', {
+                    'count': '$totalReviewsCount',
+                    'label': reviewsCount == 1 ? context.tr('review_singular') : context.tr('reviews'),
+                  }),
                   style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                 ),
               ],
@@ -1058,17 +1079,17 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Column(
-                children: const [
-                  Icon(Icons.rate_review_outlined, color: Colors.grey, size: 32),
-                  SizedBox(height: 6),
+                children: [
+                  const Icon(Icons.rate_review_outlined, color: Colors.grey, size: 32),
+                  const SizedBox(height: 6),
                   Text(
-                    'No reviews yet for this user.',
-                    style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13),
+                    context.tr('no_reviews_for_user'),
+                    style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    'Be the first to leave a review!',
-                    style: TextStyle(color: Colors.grey, fontSize: 11),
+                    context.tr('be_first_leave_review'),
+                    style: const TextStyle(color: Colors.grey, fontSize: 11),
                   ),
                 ],
               ),
@@ -1150,12 +1171,12 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    Icon(Icons.edit_outlined, size: 12, color: primaryDark),
-                                    SizedBox(width: 3),
+                                  children: [
+                                    const Icon(Icons.edit_outlined, size: 12, color: primaryDark),
+                                    const SizedBox(width: 3),
                                     Text(
-                                      'Edit',
-                                      style: TextStyle(
+                                      context.tr('edit'),
+                                      style: const TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
                                         color: primaryDark,
@@ -1181,7 +1202,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            'For: ${r.cardTitle}',
+                            '${context.tr('for')}: ${r.cardTitle}',
                             style: const TextStyle(fontSize: 10, color: Color(0xFF475569), fontWeight: FontWeight.w500),
                           ),
                         ),
@@ -1221,7 +1242,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                 },
                 icon: const Icon(Icons.rate_review_outlined, color: primaryDark, size: 16),
                 label: Text(
-                  'View All ${reviews.length} User Reviews',
+                  context.trParams('view_all_user_reviews', {'count': '${reviews.length}'}),
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryDark),
                 ),
                 style: OutlinedButton.styleFrom(
@@ -1279,6 +1300,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
     required Color primaryDark,
     required String bio,
     required String location,
+    required String languagesText,
     required String gender,
     required String dob,
     required bool isVerified,
@@ -1301,9 +1323,9 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
           // Equal Size Grid Row 1
           Row(
             children: [
-              Expanded(child: _buildInfoBadge(Icons.access_time_rounded, '1 Year', context.tr('experience'))),
+              Expanded(child: _buildInfoBadge(Icons.access_time_rounded, '1 ${context.tr('year')}', context.tr('experience'))),
               const SizedBox(width: 10),
-              Expanded(child: _buildInfoBadge(Icons.translate_rounded, 'English, Malayalam', context.tr('languages'))),
+              Expanded(child: _buildInfoBadge(Icons.translate_rounded, languagesText, context.tr('languages'))),
             ],
           ),
           const SizedBox(height: 10),
@@ -1417,7 +1439,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              context.tr('available_for_work'),
+              status == 'Available for Work' ? context.tr('available_for_work') : status,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
@@ -1449,7 +1471,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Experience (${_experiences.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
+          Text('${context.tr('experience')} (${_experiences.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
           const SizedBox(height: 8),
           ..._experiences.map((exp) {
             return Container(
@@ -1466,8 +1488,8 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(exp['job_title']?.toString() ?? 'Role', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
-                        Text(exp['company']?.toString() ?? 'Company', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
+                        Text(exp['job_title']?.toString() ?? context.tr('role_fallback'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
+                        Text(exp['company']?.toString() ?? context.tr('company_fallback'), style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
                       ],
                     ),
                   ),
@@ -1491,7 +1513,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Education (${_educations.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
+          Text('${context.tr('education')} (${_educations.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
           const SizedBox(height: 8),
           ..._educations.map((edu) {
             return Container(
@@ -1508,8 +1530,8 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(edu['degree']?.toString() ?? 'Degree', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
-                        Text(edu['institution']?.toString() ?? 'Institution', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
+                        Text(edu['degree']?.toString() ?? context.tr('degree_fallback'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary(context))),
+                        Text(edu['institution']?.toString() ?? context.tr('institution_fallback'), style: TextStyle(fontSize: 11, color: AppTheme.textSecondary(context))),
                       ],
                     ),
                   ),
@@ -1535,7 +1557,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Skills & Expertise (${_skills.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
+          Text('${context.tr('skills_expertise')} (${_skills.length})', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -1543,7 +1565,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
             children: _skills.map((s) {
               return Chip(
                 label: Text(
-                  s['name']?.toString() ?? 'Skill',
+                  s['name']?.toString() ?? context.tr('skill_fallback'),
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -1576,18 +1598,18 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Contact Information', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
+          Text(context.tr('contact_information'), style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context))),
           const SizedBox(height: 12),
-          _buildContactRow(Icons.email_outlined, 'Email Address', email),
+          _buildContactRow(Icons.email_outlined, context.tr('email_address'), email),
           const SizedBox(height: 10),
-          _buildContactRow(Icons.phone_outlined, 'Phone Number', phone),
+          _buildContactRow(Icons.phone_outlined, context.tr('phone_number'), phone),
           if (profileData['whatsapp'] != null && profileData['whatsapp'].toString().isNotEmpty) ...[
             const SizedBox(height: 10),
-            _buildContactRow(Icons.chat_outlined, 'WhatsApp', profileData['whatsapp'].toString()),
+            _buildContactRow(Icons.chat_outlined, context.tr('whatsapp'), profileData['whatsapp'].toString()),
           ],
           if (profileData['website'] != null && profileData['website'].toString().isNotEmpty) ...[
             const SizedBox(height: 10),
-            _buildContactRow(Icons.language_outlined, 'Website', profileData['website'].toString()),
+            _buildContactRow(Icons.language_outlined, context.tr('website'), profileData['website'].toString()),
           ],
         ],
       ),

@@ -181,7 +181,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     if (_conversationId == null) {
       AppDialogs.showToastModal(
         context,
-        message: 'Unable to start conversation.',
+        message: context.tr('unable_start_convo'),
         icon: Icons.error_outline_rounded,
         iconColor: Colors.redAccent,
         iconBgColor: const Color(0xFFFEE2E2),
@@ -259,7 +259,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 26),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Chat', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(context.tr('chat'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
       body: Center(
         child: Padding(
@@ -277,12 +277,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Sign In Required',
+                context.tr('sign_in_required'),
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary(context)),
               ),
               const SizedBox(height: 8),
               Text(
-                'Please sign in to start a direct message conversation with service providers.',
+                context.tr('sign_in_dm_desc'),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13, color: AppTheme.textSecondary(context), height: 1.4),
               ),
@@ -301,7 +301,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     }
                   },
                   icon: const Icon(Icons.login_rounded, color: Colors.white),
-                  label: const Text('Sign In / Register', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                  label: Text(context.tr('sign_in_register'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryDark,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -323,7 +323,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     final primaryDark = AppTheme.primary(context);
     final avatar = widget.chatData['avatar']?.toString();
-    final name = widget.chatData['name']?.toString() ?? 'Chat';
+    final name = widget.chatData['name']?.toString() ?? context.tr('chat');
 
     return Scaffold(
       backgroundColor: AppTheme.background(context),
@@ -437,7 +437,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                 const Icon(Icons.chat_bubble_outline_rounded, size: 48, color: Colors.grey),
                                 const SizedBox(height: 10),
                                 Text(
-                                  'Say hello to $name!',
+                                  context.trParams('say_hello_to', {'name': name}),
                                   style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
                                 ),
                               ],
@@ -466,9 +466,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Widget _buildWorkCardBubble(Map<String, dynamic>? meta) {
     final primaryDark = AppTheme.primary(context);
     final isDark = AppTheme.isDark(context);
-    final title = meta?['title']?.toString() ?? 'Work Card';
+    final title = meta?['title']?.toString() ?? context.tr('work_card');
     final subtitle = meta?['subtitle']?.toString() ?? '';
-    final badge = meta?['badge']?.toString() ?? 'Live Work';
+    final badge = meta?['badge']?.toString() ?? context.tr('live_work');
     final budget = meta?['budget']?.toString();
     final location = meta?['location']?.toString();
     final description = meta?['description']?.toString();

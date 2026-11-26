@@ -38,7 +38,7 @@ class _SignupScreenState extends State<SignupScreen> {
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
       AppDialogs.showToastModal(
         context,
-        message: 'Please fill in all required fields.',
+        message: context.tr('fill_required_fields'),
         icon: Icons.warning_amber_rounded,
         iconColor: Colors.orange,
         iconBgColor: const Color(0xFFFEF3C7),
@@ -76,7 +76,7 @@ class _SignupScreenState extends State<SignupScreen> {
     } else {
       AppDialogs.showToastModal(
         context,
-        message: response.message.isNotEmpty ? response.message : 'Registration failed.',
+        message: response.message.isNotEmpty ? response.message : context.tr('registration_failed'),
         icon: Icons.error_outline_rounded,
         iconColor: Colors.redAccent,
         iconBgColor: const Color(0xFFFEE2E2),
@@ -131,18 +131,18 @@ class _SignupScreenState extends State<SignupScreen> {
                         children: [
                           _buildLogo(),
                           const SizedBox(height: 15),
-                          const Text(
-                            'SIGN UP',
-                            style: TextStyle(
+                          Text(
+                            context.tr('signup').toUpperCase(),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.5,
                             ),
                           ),
-                          const Text(
-                            'Create your account',
-                            style: TextStyle(
+                          Text(
+                            context.tr('create_your_account'),
+                            style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 16,
                             ),
@@ -150,31 +150,31 @@ class _SignupScreenState extends State<SignupScreen> {
                           const SizedBox(height: 25),
                           _buildTextField(
                             controller: _nameController,
-                            hintText: 'Full Name',
+                            hintText: context.tr('full_name'),
                             icon: Icons.person_outline,
                           ),
                           const SizedBox(height: 10),
                           _buildTextField(
                             controller: _emailController,
-                            hintText: 'Email Address',
+                            hintText: context.tr('email_address'),
                             icon: Icons.email_outlined,
                           ),
                           const SizedBox(height: 10),
                           _buildTextField(
                             controller: _phoneController,
-                            hintText: 'Phone Number (Optional)',
+                            hintText: context.tr('phone_optional'),
                             icon: Icons.phone_outlined,
                           ),
                           const SizedBox(height: 10),
                           _buildTextField(
                             controller: _passwordController,
-                            hintText: 'Password',
+                            hintText: context.tr('password'),
                             icon: Icons.lock_outline,
                             isPassword: true,
                           ),
                           const SizedBox(height: 20),
                           _buildPrimaryButton(
-                            text: 'Sign Up',
+                            text: context.tr('signup'),
                             isLoading: _isLoading,
                             onPressed: _handleSignup,
                           ),

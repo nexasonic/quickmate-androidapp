@@ -1,4 +1,5 @@
 import '../core/api_config.dart';
+import '../core/app_language.dart';
 
 class UserModel {
   final int id;
@@ -64,7 +65,7 @@ class UserModel {
 
     return UserModel(
       id: rawId,
-      name: json['name'] ?? userMap['name'] ?? 'User Profile',
+      name: json['name'] ?? userMap['name'] ?? AppLanguage.trCode('user_profile'),
       email: json['email'] ?? userMap['email'],
       phone: json['phone'] ?? userMap['phone'],
       accountType: json['account_type'] ?? userMap['account_type'],
