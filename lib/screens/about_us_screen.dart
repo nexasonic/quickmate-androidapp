@@ -21,9 +21,15 @@ class AboutUsScreen extends StatelessWidget {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await Future.delayed(const Duration(milliseconds: 400));
+        },
+        color: primaryDark,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20),
+          child: Column(
           children: [
             const SizedBox(height: 10),
 
@@ -45,7 +51,13 @@ class AboutUsScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.hexagon_outlined, size: 50, color: Colors.white),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.hexagon_outlined, size: 50, color: Colors.white),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 14),
                   const Text(
@@ -163,6 +175,7 @@ class AboutUsScreen extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 

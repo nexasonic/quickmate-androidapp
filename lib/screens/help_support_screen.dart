@@ -89,9 +89,16 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await Future.delayed(const Duration(milliseconds: 400));
+          if (mounted) setState(() {});
+        },
+        color: primaryDark,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // FAQs Section
@@ -213,6 +220,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }

@@ -49,6 +49,10 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>QuickMate needs access to your location to find nearby live work cards and update your location every 30 seconds.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>QuickMate needs access to your location to display your active work card position.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

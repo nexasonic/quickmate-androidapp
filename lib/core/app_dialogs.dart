@@ -147,6 +147,7 @@ class AppDialogs {
   static void showLoginRequiredModal(
     BuildContext context, {
     required String message,
+    VoidCallback? onLoginSuccess,
   }) {
     showDialog(
       context: context,
@@ -201,12 +202,15 @@ class AppDialogs {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
                       elevation: 0,
                     ),
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(dialogContext);
-                      Navigator.push(
+                      final result = await Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const LoginScreen()),
                       );
+                      if (result == true && onLoginSuccess != null) {
+                        onLoginSuccess();
+                      }
                     },
                     child: const Text('Sign In', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ),

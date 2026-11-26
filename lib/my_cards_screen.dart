@@ -9,6 +9,7 @@ import 'models/live_work_card_model.dart';
 import 'services/auth_service.dart';
 import 'services/live_work_service.dart';
 import 'services/my_live_work_service.dart';
+import 'services/presence_service.dart';
 
 class CardPhotoItem {
   final String? networkUrl;
@@ -29,14 +30,16 @@ class MyCardsScreen extends StatefulWidget {
   const MyCardsScreen({super.key});
 
   @override
-  State<MyCardsScreen> createState() => _MyCardsScreenState();
+  State<MyCardsScreen> createState() => MyCardsScreenState();
 }
 
-class _MyCardsScreenState extends State<MyCardsScreen> {
+class MyCardsScreenState extends State<MyCardsScreen> {
   int _selectedStatusTab = 0; // 0: All Status, 1: Active, 2: Paused, 3: Expired
   bool _isLoading = true;
   List<LiveWorkCardModel> _allCards = [];
   List<CategoryModel> _categories = [];
+
+  Future<void> refresh() => _loadData();
 
   @override
   void initState() {
@@ -195,7 +198,6 @@ class _MyCardsScreenState extends State<MyCardsScreen> {
     final bool isEditing = cardToEdit != null;
 
     final titleController = TextEditingController(text: cardToEdit?.title ?? '');
-    final locationController = TextEditingController(text: cardToEdit?.location ?? 'Thodupuzha');
     final descController = TextEditingController(text: cardToEdit?.description ?? '');
     final priceController = TextEditingController(
       text: cardToEdit?.price != null && cardToEdit!.price! > 0
@@ -371,37 +373,18 @@ class _MyCardsScreenState extends State<MyCardsScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Category & Location Row
-                  Row(
+                  // Category Field
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildFieldLabel('CATEGORY', isRequired: true),
-                            _buildModalDropdown<int>(
-                              value: selectedCategoryId,
-                              hintText: 'Select category',
-                              items: _categories.map((c) {
-                                return DropdownMenuItem<int>(value: c.id, child: Text(c.name));
-                              }).toList(),
-                              onChanged: (val) => setModalState(() => selectedCategoryId = val),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildFieldLabel('LOCATION', isRequired: true),
-                            _buildModalInput(
-                              controller: locationController,
-                              hintText: 'e.g. Kochi, Kerala',
-                            ),
-                          ],
-                        ),
+                      _buildFieldLabel('CATEGORY', isRequired: true),
+                      _buildModalDropdown<int>(
+                        value: selectedCategoryId,
+                        hintText: 'Select category',
+                        items: _categories.map((c) {
+                          return DropdownMenuItem<int>(value: c.id, child: Text(c.name));
+                        }).toList(),
+                        onChanged: (val) => setModalState(() => selectedCategoryId = val),
                       ),
                     ],
                   ),
@@ -738,7 +721,7 @@ class _MyCardsScreenState extends State<MyCardsScreen> {
                                     description: descController.text.trim(),
                                     price: priceVal,
                                     priceType: apiPriceType,
-                                    location: locationController.text.trim(),
+                                    location: cardToEdit.location ?? PresenceService.currentPlaceName,
                                     expiryTime: selectedExpiry,
                                     tags: currentTags,
                                     images: filesToSend.isNotEmpty ? filesToSend : null,
@@ -750,7 +733,7 @@ class _MyCardsScreenState extends State<MyCardsScreen> {
                                     description: descController.text.trim(),
                                     price: priceVal,
                                     priceType: apiPriceType,
-                                    location: locationController.text.trim(),
+                                    location: PresenceService.currentPlaceName,
                                     expiryTime: selectedExpiry,
                                     tags: currentTags,
                                     images: filesToSend.isNotEmpty ? filesToSend : null,
@@ -922,54 +905,66 @@ class _MyCardsScreenState extends State<MyCardsScreen> {
         elevation: 0,
         title: const Text('My Live Work Cards', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(22),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE6F4F1),
-                  shape: BoxShape.circle,
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        color: primaryDark,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Container(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height - kToolbarHeight - MediaQuery.of(context).padding.top,
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(22),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE6F4F1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.lock_outline_rounded, size: 54, color: primaryDark),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Sign In Required',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Please sign in to manage, edit, pause or post your live work cards.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
+                    ),
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          );
+                          if (result == true) {
+                            _loadData();
+                          }
+                        },
+                        icon: const Icon(Icons.login_rounded, color: Colors.white),
+                        label: const Text('Sign In / Register', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryDark,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.lock_outline_rounded, size: 54, color: primaryDark),
               ),
-              const SizedBox(height: 20),
-              const Text(
-                'Sign In Required',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Please sign in to manage, edit, pause or post your live work cards.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
-              ),
-              const SizedBox(height: 28),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const LoginScreen()),
-                    );
-                    if (result == true) {
-                      _loadData();
-                    }
-                  },
-                  icon: const Icon(Icons.login_rounded, color: Colors.white),
-                  label: const Text('Sign In / Register', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryDark,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

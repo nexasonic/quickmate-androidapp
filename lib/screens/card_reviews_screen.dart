@@ -86,7 +86,12 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
     return widget.averageRating;
   }
 
-  void _showAddOrEditReviewDialog([CardReviewModel? targetReview]) {
+  Future<void> _refreshReviews() async {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  void _showAddOrEditReviewDialog([CardReviewModel? targetReview]) async {
     if (!AuthService.isLoggedIn()) {
       AppDialogs.showToastModal(
         context,
@@ -95,10 +100,13 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
         iconColor: Colors.orange,
         iconBgColor: const Color(0xFFFEF3C7),
       );
-      Navigator.push(
+      final result = await Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
+      if (result == true) {
+        _refreshReviews();
+      }
       return;
     }
 
@@ -285,9 +293,13 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      body: RefreshIndicator(
+        onRefresh: _refreshReviews,
+        color: primaryDark,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Rating Summary Card
@@ -378,6 +390,7 @@ class _CardReviewsScreenState extends State<CardReviewsScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 

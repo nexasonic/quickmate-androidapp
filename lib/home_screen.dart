@@ -35,6 +35,11 @@ class _HomeScreenState extends State<HomeScreen> {
   CategoryModel? _selectedCategory;
   bool _isLoading = true;
 
+  final GlobalKey<DiscoverScreenState> _discoverKey = GlobalKey<DiscoverScreenState>();
+  final GlobalKey<MyCardsScreenState> _myCardsKey = GlobalKey<MyCardsScreenState>();
+  final GlobalKey<MapViewScreenState> _mapKey = GlobalKey<MapViewScreenState>();
+  final GlobalKey<ProfileScreenState> _profileKey = GlobalKey<ProfileScreenState>();
+
   final TextEditingController _homeSearchController = TextEditingController();
   String _searchQuery = '';
 
@@ -44,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _selectedIndex = widget.initialIndex;
     _loadData();
     PresenceService.startPeriodicPing();
+    PresenceService.locationNotifier.addListener(_onLocationUpdated);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -52,8 +58,15 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _onLocationUpdated() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   void dispose() {
+    PresenceService.locationNotifier.removeListener(_onLocationUpdated);
     _homeSearchController.dispose();
     super.dispose();
   }
@@ -63,6 +76,31 @@ class _HomeScreenState extends State<HomeScreen> {
       _searchQuery = _homeSearchController.text;
       _selectedIndex = 1; // Switch to Discover tab for search results
     });
+    _discoverKey.currentState?.refresh();
+  }
+
+  void _onTabSelected(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        _loadData();
+        break;
+      case 1:
+        _discoverKey.currentState?.refresh();
+        break;
+      case 2:
+        _myCardsKey.currentState?.refresh();
+        break;
+      case 3:
+        _mapKey.currentState?.refresh();
+        break;
+      case 4:
+        _profileKey.currentState?.refresh();
+        break;
+    }
   }
 
   Future<void> _loadData() async {
@@ -72,7 +110,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
     _currentUser = AuthService.getStoredUser();
 
-    final homeData = await LiveWorkService.fetchHomeData();
+    // Ensure device GPS location is fresh before querying home feed
+    await PresenceService.pingServer();
+
+    final homeData = await LiveWorkService.fetchHomeData(
+      lat: PresenceService.currentLatitude,
+      lng: PresenceService.currentLongitude,
+    );
     final profile = await ProfileService.fetchUserProfile();
 
     if (!mounted) return;
@@ -86,10 +130,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<LiveWorkCardModel> get _displayedLiveWorks {
-    List<LiveWorkCardModel> list = _liveWorks;
+    List<LiveWorkCardModel> list = List.from(_liveWorks);
     if (_selectedCategory != null) {
       list = list.where((c) => c.category?.id == _selectedCategory!.id).toList();
     }
+    list.sort((a, b) {
+      final userLat = PresenceService.currentLatitude;
+      final userLng = PresenceService.currentLongitude;
+
+      double getDist(LiveWorkCardModel card) {
+        if (card.distanceKm != null && card.distanceKm! > 0) return card.distanceKm!;
+        if (card.latitude != null && card.longitude != null) {
+          final d = calculateDistanceKm(lat1: userLat, lon1: userLng, lat2: card.latitude, lon2: card.longitude);
+          if (d != null) return d;
+        }
+        return 999999.0;
+      }
+
+      return getDist(a).compareTo(getDist(b));
+    });
     return list.take(6).toList(); // Show only nearest 6 cards max
   }
 
@@ -102,12 +161,13 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _buildOriginalHomeView(),
           DiscoverScreen(
+            key: _discoverKey,
             initialCategory: _selectedCategory,
             initialSearch: _searchQuery,
           ),
-          const MyCardsScreen(),
-          const MapViewScreen(),
-          const ProfileScreen(),
+          MyCardsScreen(key: _myCardsKey),
+          MapViewScreen(key: _mapKey),
+          ProfileScreen(key: _profileKey),
         ],
       ),
       bottomNavigationBar: _buildBottomNavBar(),
@@ -119,6 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
       AppDialogs.showLoginRequiredModal(
         context,
         message: 'Please sign in to save cards to favorites.',
+        onLoginSuccess: _loadData,
       );
       return;
     }
@@ -835,17 +896,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       // Location & Calculated Distance
                       Row(
                         children: [
-                          const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF64748B)),
+                          const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF094943)),
                           const SizedBox(width: 3),
                           Expanded(
                             child: Text(
-                              '${item.location ?? "Thodupuzha"} • $distStr',
+                              '${item.location ?? item.user?.location ?? PresenceService.currentPlaceName} • $distStr',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontSize: 9,
-                                color: Color(0xFF64748B),
-                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF094943),
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
@@ -946,11 +1007,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const inactiveColor = Color(0xFF64748B);
 
     return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-      },
+      onTap: () => _onTabSelected(index),
       borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),

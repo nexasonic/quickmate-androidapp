@@ -1,7 +1,18 @@
 class ApiConfig {
-  // Base API URL (Default to Android Emulator loopback, adaptable for physical/web)
-  static const String baseUrl = 'http://10.0.2.2:8000/api/v1';
-  static const String storageUrl = 'http://10.0.2.2:8000/storage/';
+  // Toggle between Local Server (10.0.2.2:8000) and Production (quickmate.nexasonic.com)
+  static const bool useLocalServer = false;
+
+  // Local Server Endpoints (10.0.2.2 loopback for Android Emulator)
+  static const String localBaseUrl = 'http://10.0.2.2:8000/api/v1';
+  static const String localStorageUrl = 'http://10.0.2.2:8000/storage/';
+
+  // Production Endpoints
+  static const String prodBaseUrl = 'https://quickmate.nexasonic.com/api/v1';
+  static const String prodStorageUrl = 'https://quickmate.nexasonic.com/storage/';
+
+  // Active Base API & Storage URL
+  static const String baseUrl = useLocalServer ? localBaseUrl : prodBaseUrl;
+  static const String storageUrl = useLocalServer ? localStorageUrl : prodStorageUrl;
 
   // Auth Endpoints
   static const String login = '$baseUrl/auth/login';
@@ -45,21 +56,44 @@ class ApiConfig {
   static String sendMessage(int id) => '$baseUrl/chat/conversations/$id/messages';
   static const String unreadChatCount = '$baseUrl/chat/unread-count';
 
-  // Helper to replace 127.0.0.1 / localhost with 10.0.2.2 for Android Emulator image URLs
+  // Helper to normalize image URLs for Local Server & Production
   static String fixImageUrl(String? url) {
     if (url == null || url.isEmpty) return '';
     var formatted = url.trim();
-    if (formatted.contains('127.0.0.1:8000')) {
-      formatted = formatted.replaceAll('127.0.0.1:8000', '10.0.2.2:8000');
-    }
-    if (formatted.contains('localhost:8000')) {
-      formatted = formatted.replaceAll('localhost:8000', '10.0.2.2:8000');
-    }
-    if (!formatted.startsWith('http://') && !formatted.startsWith('https://')) {
-      if (formatted.startsWith('/')) {
-        formatted = 'http://10.0.2.2:8000$formatted';
-      } else {
-        formatted = '$storageUrl$formatted';
+
+    if (useLocalServer) {
+      if (formatted.contains('127.0.0.1:8000')) {
+        formatted = formatted.replaceAll('127.0.0.1:8000', '10.0.2.2:8000');
+      }
+      if (formatted.contains('localhost:8000')) {
+        formatted = formatted.replaceAll('localhost:8000', '10.0.2.2:8000');
+      }
+      if (!formatted.startsWith('http://') && !formatted.startsWith('https://')) {
+        if (formatted.startsWith('/')) {
+          formatted = 'http://10.0.2.2:8000$formatted';
+        } else {
+          formatted = '$storageUrl$formatted';
+        }
+      }
+    } else {
+      if (formatted.contains('127.0.0.1:8000')) {
+        formatted = formatted.replaceAll('http://127.0.0.1:8000', 'https://quickmate.nexasonic.com')
+                             .replaceAll('127.0.0.1:8000', 'quickmate.nexasonic.com');
+      }
+      if (formatted.contains('localhost:8000')) {
+        formatted = formatted.replaceAll('http://localhost:8000', 'https://quickmate.nexasonic.com')
+                             .replaceAll('localhost:8000', 'quickmate.nexasonic.com');
+      }
+      if (formatted.contains('10.0.2.2:8000')) {
+        formatted = formatted.replaceAll('http://10.0.2.2:8000', 'https://quickmate.nexasonic.com')
+                             .replaceAll('10.0.2.2:8000', 'quickmate.nexasonic.com');
+      }
+      if (!formatted.startsWith('http://') && !formatted.startsWith('https://')) {
+        if (formatted.startsWith('/')) {
+          formatted = 'https://quickmate.nexasonic.com$formatted';
+        } else {
+          formatted = '$storageUrl$formatted';
+        }
       }
     }
     return formatted;

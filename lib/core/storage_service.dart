@@ -52,6 +52,33 @@ class StorageService {
     return await _prefs!.remove(_userKey);
   }
 
+  // Guest / Unauthenticated Live GPS Location Cache
+  static const String _latKey = 'guest_latitude';
+  static const String _lngKey = 'guest_longitude';
+  static const String _placeKey = 'guest_place_name';
+
+  static Future<void> saveGuestLocation(double lat, double lng, String placeName) async {
+    await init();
+    await _prefs?.setDouble(_latKey, lat);
+    await _prefs?.setDouble(_lngKey, lng);
+    await _prefs?.setString(_placeKey, placeName);
+  }
+
+  static Map<String, dynamic>? getGuestLocation() {
+    final lat = _prefs?.getDouble(_latKey);
+    final lng = _prefs?.getDouble(_lngKey);
+    final place = _prefs?.getString(_placeKey);
+
+    if (lat != null && lng != null) {
+      return {
+        'latitude': lat,
+        'longitude': lng,
+        'place_name': place ?? 'Location Available',
+      };
+    }
+    return null;
+  }
+
   // Clear Session
   static Future<void> clearSession() async {
     await init();

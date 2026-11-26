@@ -499,7 +499,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                 child: SizedBox(
                   height: 36,
                   child: OutlinedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
                       if (!AuthService.isLoggedIn()) {
                         AppDialogs.showToastModal(
                           context,
@@ -508,10 +508,13 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                           iconColor: Colors.orange,
                           iconBgColor: const Color(0xFFFEF3C7),
                         );
-                        Navigator.push(
+                        final result = await Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => const LoginScreen()),
                         );
+                        if (result == true) {
+                          _fetchSavedCards();
+                        }
                         return;
                       }
 

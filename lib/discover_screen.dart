@@ -21,12 +21,14 @@ class DiscoverScreen extends StatefulWidget {
   });
 
   @override
-  State<DiscoverScreen> createState() => _DiscoverScreenState();
+  State<DiscoverScreen> createState() => DiscoverScreenState();
 }
 
-class _DiscoverScreenState extends State<DiscoverScreen> {
+class DiscoverScreenState extends State<DiscoverScreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounceTimer;
+
+  Future<void> refresh() => _fetchCards();
 
   CategoryModel? _selectedCategory;
   String _selectedSort = 'Nearest';
@@ -45,6 +47,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   ];
 
   @override
+  @override
   void initState() {
     super.initState();
     _selectedCategory = widget.initialCategory;
@@ -52,7 +55,14 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       _searchController.text = widget.initialSearch!;
     }
     _currentUser = AuthService.getStoredUser();
+    PresenceService.locationNotifier.addListener(_onLocationUpdated);
     _loadInitialData();
+  }
+
+  void _onLocationUpdated() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -92,6 +102,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
   @override
   void dispose() {
+    PresenceService.locationNotifier.removeListener(_onLocationUpdated);
     _debounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
@@ -128,7 +139,60 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       search: _searchController.text,
       categoryId: _selectedCategory?.id,
       sort: backendSort,
+      lat: PresenceService.currentLatitude,
+      lng: PresenceService.currentLongitude,
     );
+
+    double getCardDistance(LiveWorkCardModel card) {
+      if (card.distanceKm != null && card.distanceKm! > 0) {
+        return card.distanceKm!;
+      }
+      final userLat = PresenceService.currentLatitude;
+      final userLng = PresenceService.currentLongitude;
+      if (card.latitude != null && card.longitude != null) {
+        final calc = calculateDistanceKm(
+          lat1: userLat,
+          lon1: userLng,
+          lat2: card.latitude,
+          lon2: card.longitude,
+        );
+        if (calc != null) return calc;
+      }
+      return 999999.0;
+    }
+
+    fetchedCards.sort((a, b) {
+      if (_selectedSort == 'Nearest') {
+        final distA = getCardDistance(a);
+        final distB = getCardDistance(b);
+        final cmp = distA.compareTo(distB);
+        if (cmp != 0) return cmp;
+        return b.rating.compareTo(a.rating);
+      } else if (_selectedSort == 'Top Rated') {
+        final cmp = b.rating.compareTo(a.rating);
+        if (cmp != 0) return cmp;
+        final distA = getCardDistance(a);
+        final distB = getCardDistance(b);
+        return distA.compareTo(distB);
+      } else if (_selectedSort == 'Price: Low to High') {
+        final priceA = (a.price != null && a.price! > 0) ? a.price! : double.infinity;
+        final priceB = (b.price != null && b.price! > 0) ? b.price! : double.infinity;
+        final cmp = priceA.compareTo(priceB);
+        if (cmp != 0) return cmp;
+        final distA = getCardDistance(a);
+        final distB = getCardDistance(b);
+        return distA.compareTo(distB);
+      } else if (_selectedSort == 'Price: High to Low') {
+        final priceA = (a.price != null && a.price! > 0) ? a.price! : -1.0;
+        final priceB = (b.price != null && b.price! > 0) ? b.price! : -1.0;
+        final cmp = priceB.compareTo(priceA);
+        if (cmp != 0) return cmp;
+        final distA = getCardDistance(a);
+        final distB = getCardDistance(b);
+        return distA.compareTo(distB);
+      }
+      return 0;
+    });
 
     if (!mounted) return;
 
@@ -143,6 +207,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       AppDialogs.showLoginRequiredModal(
         context,
         message: 'Please sign in to save cards to favorites.',
+        onLoginSuccess: _fetchCards,
       );
       return;
     }
@@ -900,17 +965,17 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                       // Location & Calculated Distance
                       Row(
                         children: [
-                          const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF64748B)),
+                          const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF094943)),
                           const SizedBox(width: 3),
                           Expanded(
                             child: Text(
-                              '${item.location ?? "Thodupuzha"} • $distStr',
+                              '${item.location ?? item.user?.location ?? PresenceService.currentPlaceName} • $distStr',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontSize: 9,
-                                color: Color(0xFF64748B),
-                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF094943),
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),

@@ -10,6 +10,7 @@ import '../core/app_dialogs.dart';
 import '../login_screen.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../services/presence_service.dart';
 import '../services/profile_service.dart';
 import 'saved_cards_screen.dart';
 
@@ -406,7 +407,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     final taglineCtrl = TextEditingController(text: profileData['tagline']?.toString() ?? '');
     final bioCtrl = TextEditingController(text: profileData['bio']?.toString() ?? '');
     final languagesCtrl = TextEditingController(text: profileData['languages']?.toString() ?? 'English, Malayalam');
-    final locationCtrl = TextEditingController(text: profileData['location']?.toString() ?? 'Thodupuzha');
+    final locationCtrl = TextEditingController(text: profileData['location']?.toString() ?? PresenceService.currentPlaceName);
     final dobCtrl = TextEditingController(text: profileData['date_of_birth']?.toString() ?? '');
     final workingHoursCtrl = TextEditingController(text: profileData['working_hours']?.toString() ?? 'Mon - Sat, 9:00 AM - 6:00 PM');
     final whatsappCtrl = TextEditingController(text: profileData['whatsapp']?.toString() ?? '');
@@ -2090,7 +2091,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
 
     final headline = profileData['headline']?.toString() ?? 'Software engineer';
     final tagline = profileData['tagline']?.toString() ?? 'Any Work';
-    final location = profileData['location']?.toString() ?? 'Thodupuzha';
+    final location = profileData['location']?.toString() ?? PresenceService.currentPlaceName;
     final bio = profileData['bio']?.toString() ?? 'Working Professional';
     final gender = profileData['gender']?.toString().toUpperCase() ?? 'MALE';
     final dob = profileData['date_of_birth']?.toString() ?? '08 Oct 2026';
@@ -2125,68 +2126,73 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: primaryDark))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Profile Header Banner Card
-                  _buildProfileHeaderCard(
-                    primaryDark: primaryDark,
-                    userName: userName,
-                    headline: headline,
-                    location: location,
-                    tagline: tagline,
-                    accountType: accountType,
-                    isVerified: isVerified,
-                    avatarUrl: avatarUrl,
-                    coverUrl: coverUrl,
-                  ),
-                  const SizedBox(height: 16),
+          : RefreshIndicator(
+              onRefresh: _loadProfileData,
+              color: primaryDark,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Profile Header Banner Card
+                    _buildProfileHeaderCard(
+                      primaryDark: primaryDark,
+                      userName: userName,
+                      headline: headline,
+                      location: location,
+                      tagline: tagline,
+                      accountType: accountType,
+                      isVerified: isVerified,
+                      avatarUrl: avatarUrl,
+                      coverUrl: coverUrl,
+                    ),
+                    const SizedBox(height: 16),
 
-                  // Quick Stats Row (Cards Posted, Reviews, Rating)
-                  _buildQuickStatsRow(primaryDark),
-                  const SizedBox(height: 16),
+                    // Quick Stats Row (Cards Posted, Reviews, Rating)
+                    _buildQuickStatsRow(primaryDark),
+                    const SizedBox(height: 16),
 
-                  // Profile Verification Card (Positioned top of About Me if profile is not verified)
-                  _buildProfileVerificationTopCard(primaryDark, profileData, isVerified),
-                  const SizedBox(height: 16),
+                    // Profile Verification Card (Positioned top of About Me if profile is not verified)
+                    _buildProfileVerificationTopCard(primaryDark, profileData, isVerified),
+                    const SizedBox(height: 16),
 
-                  // About Me & Quick Info Grid Section
-                  _buildAboutMeCard(
-                    primaryDark: primaryDark,
-                    bio: bio,
-                    location: location,
-                    gender: gender,
-                    dob: dob,
-                    isVerified: isVerified,
-                  ),
-                  const SizedBox(height: 16),
+                    // About Me & Quick Info Grid Section
+                    _buildAboutMeCard(
+                      primaryDark: primaryDark,
+                      bio: bio,
+                      location: location,
+                      gender: gender,
+                      dob: dob,
+                      isVerified: isVerified,
+                    ),
+                    const SizedBox(height: 16),
 
-                  // Availability & Working Hours
-                  _buildAvailabilityCard(primaryDark, availabilityStatus, workingHours),
-                  const SizedBox(height: 16),
+                    // Availability & Working Hours
+                    _buildAvailabilityCard(primaryDark, availabilityStatus, workingHours),
+                    const SizedBox(height: 16),
 
-                  // Work Experience Section
-                  _buildExperienceSection(primaryDark),
-                  const SizedBox(height: 16),
+                    // Work Experience Section
+                    _buildExperienceSection(primaryDark),
+                    const SizedBox(height: 16),
 
-                  // Education Section
-                  _buildEducationSection(primaryDark),
-                  const SizedBox(height: 16),
+                    // Education Section
+                    _buildEducationSection(primaryDark),
+                    const SizedBox(height: 16),
 
-                  // Skills & Expertise Section
-                  _buildSkillsSection(primaryDark),
-                  const SizedBox(height: 16),
+                    // Skills & Expertise Section
+                    _buildSkillsSection(primaryDark),
+                    const SizedBox(height: 16),
 
-                  // Social Links & Verification Badges
-                  _buildVerificationAndSocialCard(primaryDark, userEmail, profileData),
-                  const SizedBox(height: 16),
+                    // Social Links & Verification Badges
+                    _buildVerificationAndSocialCard(primaryDark, userEmail, profileData),
+                    const SizedBox(height: 16),
 
-                  // User Gallery Section
-                  _buildGallerySection(),
-                  const SizedBox(height: 24),
-                ],
+                    // User Gallery Section
+                    _buildGallerySection(),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
     );

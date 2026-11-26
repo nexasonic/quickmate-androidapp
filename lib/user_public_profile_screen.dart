@@ -9,6 +9,7 @@ import 'models/user_model.dart';
 import 'screens/card_reviews_screen.dart';
 import 'services/auth_service.dart';
 import 'services/live_work_service.dart';
+import 'services/presence_service.dart';
 
 class UserPublicProfileScreen extends StatefulWidget {
   final UserModel user;
@@ -77,7 +78,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
 
     final headline = profileData['headline']?.toString() ?? 'Service Provider';
     final tagline = profileData['tagline']?.toString() ?? 'Any Work';
-    final location = profileData['location']?.toString() ?? 'Thodupuzha';
+    final location = profileData['location']?.toString() ?? widget.user.location ?? PresenceService.currentPlaceName;
     final bio = profileData['bio']?.toString() ?? 'Working Professional';
     final gender = profileData['gender']?.toString().toUpperCase() ?? 'MALE';
     final dob = profileData['date_of_birth']?.toString() ?? '08 Oct 2026';
@@ -110,9 +111,13 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: primaryDark))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
+          : RefreshIndicator(
+              onRefresh: _fetchPublicProfile,
+              color: primaryDark,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Profile Header Banner Card with Cover Photo
@@ -225,6 +230,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                 ],
               ),
             ),
+          ),
     );
   }
 
@@ -776,7 +782,7 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
     return list;
   }
 
-  void _showAddOrEditReviewDialog(CardReviewModel? existingReview) {
+  void _showAddOrEditReviewDialog(CardReviewModel? existingReview) async {
     if (!AuthService.isLoggedIn()) {
       AppDialogs.showToastModal(
         context,
@@ -785,10 +791,13 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
         iconColor: Colors.orange,
         iconBgColor: const Color(0xFFFEF3C7),
       );
-      Navigator.push(
+      final result = await Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
+      if (result == true) {
+        _fetchPublicProfile();
+      }
       return;
     }
 

@@ -32,10 +32,24 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   final int _selectedNavIndex = 1; // Default to Discover active tab
 
   @override
+  @override
   void initState() {
     super.initState();
     _card = widget.card;
+    PresenceService.locationNotifier.addListener(_onLocationUpdated);
     _fetchFullDetails();
+  }
+
+  void _onLocationUpdated() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    PresenceService.locationNotifier.removeListener(_onLocationUpdated);
+    super.dispose();
   }
 
   Future<void> _fetchFullDetails() async {
@@ -64,7 +78,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
 
   bool get _hasUserReviewed => _existingUserReview != null;
 
-  void _showAddReviewDialog() {
+  void _showAddReviewDialog() async {
     if (!AuthService.isLoggedIn()) {
       AppDialogs.showToastModal(
         context,
@@ -73,10 +87,13 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
         iconColor: Colors.orange,
         iconBgColor: const Color(0xFFFEF3C7),
       );
-      Navigator.push(
+      final result = await Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
+      if (result == true) {
+        _fetchFullDetails();
+      }
       return;
     }
 
@@ -299,7 +316,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
     if (_card.latitude != null && _card.longitude != null) {
       query = '${_card.latitude},${_card.longitude}';
     } else {
-      query = Uri.encodeComponent(_card.location ?? 'Thodupuzha');
+      query = Uri.encodeComponent(_card.location ?? _card.user?.location ?? PresenceService.currentPlaceName);
     }
 
     final Uri googleMapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
@@ -314,7 +331,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
       if (!mounted) return;
       AppDialogs.showToastModal(
         context,
-        message: 'Opening directions to ${_card.location ?? "Thodupuzha"}...',
+        message: 'Opening directions to ${_card.location ?? _card.user?.location ?? PresenceService.currentPlaceName}...',
       );
     }
   }
@@ -383,9 +400,13 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-        child: Column(
+      body: RefreshIndicator(
+        onRefresh: _fetchFullDetails,
+        color: primaryDark,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Hero Image Card Container with Category & Title Overlay
@@ -477,18 +498,25 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A)),
                 ),
                 const SizedBox(height: 12, child: VerticalDivider(width: 16, color: Colors.grey)),
-                const Icon(Icons.location_on_outlined, size: 16, color: Color(0xFF64748B)),
+                const Icon(Icons.location_on_outlined, size: 16, color: Color(0xFF094943)),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    '${_card.location ?? "Thodupuzha"} • ${_card.getFormattedDistance(PresenceService.currentLatitude, PresenceService.currentLongitude)}',
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                    '${_card.location ?? _card.user?.location ?? PresenceService.currentPlaceName} • ${_card.getFormattedDistance(PresenceService.currentLatitude, PresenceService.currentLongitude)}',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF094943)),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
+
+            const SizedBox(height: 16),
+
+            // Live User Location "Where User Is" Card Box
+            _buildUserWhereIsBox(),
+
+            const SizedBox(height: 16),
 
             const SizedBox(height: 16),
 
@@ -524,6 +552,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
           ],
         ),
       ),
+    ),
 
       // Integrated Bottom Bar (Actions + Navigation Panel)
       bottomNavigationBar: Column(
@@ -964,6 +993,75 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserWhereIsBox() {
+    const primaryDark = Color(0xFF094943);
+    final userLocation = _card.location ?? _card.user?.location ?? PresenceService.currentPlaceName;
+    final dist = _card.getFormattedDistance(PresenceService.currentLatitude, PresenceService.currentLongitude);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE6F4F1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFC7F3E2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: primaryDark,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.my_location_rounded, color: Colors.white, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'USER WHEREABOUTS',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: primaryDark,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Live 30s Sync',
+                        style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$userLocation • $dist',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

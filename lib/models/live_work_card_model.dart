@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import '../core/api_config.dart';
+import '../services/presence_service.dart';
 import 'category_model.dart';
 import 'user_model.dart';
 
@@ -221,32 +222,42 @@ class LiveWorkCardModel {
   }
 
   String getFormattedDistance([double? userLat, double? userLng]) {
+    final curLat = userLat ?? PresenceService.currentLatitude;
+    final curLng = userLng ?? PresenceService.currentLongitude;
+
+    final targetLat = latitude ?? user?.latitude;
+    final targetLng = longitude ?? user?.longitude;
+
     double? km = distanceKm;
 
-    if (km == null && userLat != null && userLng != null) {
-      final targetLat = latitude;
-      final targetLng = longitude;
-      if (targetLat != null && targetLng != null) {
-        km = calculateDistanceKm(
-          lat1: userLat,
-          lon1: userLng,
-          lat2: targetLat,
-          lon2: targetLng,
-        );
-      }
+    if ((km == null || km == 0) && curLat != 0 && curLng != 0 && targetLat != null && targetLng != null && targetLat != 0 && targetLng != 0) {
+      km = calculateDistanceKm(
+        lat1: curLat,
+        lon1: curLng,
+        lat2: targetLat,
+        lon2: targetLng,
+      );
     }
 
-    if (km != null) {
+    if (km != null && km > 0) {
       if (km < 1.0) {
         return '${(km * 1000).round()} m away';
       }
       return '${km.toStringAsFixed(1)} km away';
     }
 
-    return location ?? 'Nearby';
+    final locStr = location ?? user?.location;
+    return (locStr != null && locStr.isNotEmpty) ? locStr : 'Nearby';
   }
 
   String get formattedDistance => getFormattedDistance();
+
+  /// Formatted string describing user location
+  String getUserWhereIs([double? userLat, double? userLng]) {
+    final loc = location ?? user?.location ?? PresenceService.currentPlaceName;
+    final dist = getFormattedDistance(userLat, userLng);
+    return '$loc • $dist';
+  }
 
   factory LiveWorkCardModel.fromJson(Map<String, dynamic> json) {
     // Extract media URLs
@@ -379,6 +390,24 @@ class LiveWorkCardModel {
       return int.tryParse(str) ?? 1;
     }
 
+    final parsedUser = json['user'] != null && json['user'] is Map<String, dynamic>
+        ? UserModel.fromJson(json['user'])
+        : null;
+
+    double? parseCoord(dynamic val) {
+      if (val == null) return null;
+      if (val is num) return val.toDouble() != 0 ? val.toDouble() : null;
+      if (val is String) {
+        final d = double.tryParse(val);
+        return d != null && d != 0 ? d : null;
+      }
+      return null;
+    }
+
+    final double? cardLat = parseCoord(json['latitude']) ?? parseCoord(json['lat']) ?? parsedUser?.latitude;
+    final double? cardLng = parseCoord(json['longitude']) ?? parseCoord(json['lng']) ?? parsedUser?.longitude;
+    final String? cardLocation = json['location']?.toString() ?? parsedUser?.location;
+
     return LiveWorkCardModel(
       id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
       title: json['title'] ?? 'Live Work',
@@ -387,9 +416,9 @@ class LiveWorkCardModel {
       priceType: json['price_type'],
       priceUnit: json['price_unit'],
       currency: json['currency'] ?? 'INR',
-      location: json['location'],
-      latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,
-      longitude: json['longitude'] != null ? (json['longitude'] as num).toDouble() : null,
+      location: cardLocation,
+      latitude: cardLat,
+      longitude: cardLng,
       distanceKm: json['distance_km'] != null ? (json['distance_km'] as num).toDouble() : null,
       status: parseStatus(json['status'] ?? json['status_code'] ?? json['status_name']),
       viewsCount: json['views_count'] is int ? json['views_count'] : int.tryParse(json['views_count'].toString()) ?? 0,
@@ -403,9 +432,7 @@ class LiveWorkCardModel {
       category: json['category'] != null && json['category'] is Map<String, dynamic>
           ? CategoryModel.fromJson(json['category'])
           : null,
-      user: json['user'] != null && json['user'] is Map<String, dynamic>
-          ? UserModel.fromJson(json['user'])
-          : null,
+      user: parsedUser,
       isFavorite: json['is_favorite'] == true || json['is_favorite'] == 1,
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

@@ -16,10 +16,10 @@ class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State<ProfileScreen> createState() => ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class ProfileScreenState extends State<ProfileScreen> {
   UserModel? _user;
   int _imageTimestamp = DateTime.now().millisecondsSinceEpoch;
 
@@ -28,6 +28,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _loadProfile();
   }
+
+  Future<void> refresh() => _loadProfile();
 
   Future<void> _loadProfile() async {
     _user = AuthService.getStoredUser();
@@ -115,9 +117,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
 
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
-              child: Column(
+            child: RefreshIndicator(
+              onRefresh: _loadProfile,
+              color: primaryDark,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
@@ -154,6 +160,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       title: 'My Profile',
                       subtitle: 'View and update your personal details',
                       onTap: () async {
+                        if (!AuthService.isLoggedIn()) {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          );
+                          if (result == true) _loadProfile();
+                          return;
+                        }
                         await Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => const MyProfileScreen()),
@@ -167,7 +181,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       iconColor: const Color(0xFF0284C7),
                       title: 'My Live Work Cards',
                       subtitle: 'Manage your active live work cards',
-                      onTap: () {
+                      onTap: () async {
+                        if (!AuthService.isLoggedIn()) {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          );
+                          if (result == true) _loadProfile();
+                          return;
+                        }
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => const MyCardsScreen()),
@@ -180,7 +202,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       iconColor: const Color(0xFF7C3AED),
                       title: 'Saved Cards',
                       subtitle: 'Quick access to bookmarked live work cards',
-                      onTap: () {
+                      onTap: () async {
+                        if (!AuthService.isLoggedIn()) {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          );
+                          if (result == true) _loadProfile();
+                          return;
+                        }
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => const SavedCardsScreen()),
@@ -240,6 +270,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
+        ),
         ],
       ),
     );
@@ -247,77 +278,104 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildUserInfoCard(BuildContext context) {
     const primaryDark = Color(0xFF094943);
-    final userName = _user?.name ?? 'User Profile';
-    final userEmail = _user?.email ?? (_user?.phone ?? 'QuickMate User');
+    final bool loggedIn = AuthService.isLoggedIn();
+
+    final userName = loggedIn ? (_user?.name ?? 'User Profile') : 'Log In';
+    final userEmail = loggedIn ? (_user?.email ?? (_user?.phone ?? 'QuickMate User')) : 'Log in to manage your account';
     String? avatarUrl = _user?.avatarUrl;
-    if (avatarUrl != null && avatarUrl.isNotEmpty) {
+    if (loggedIn && avatarUrl != null && avatarUrl.isNotEmpty) {
       avatarUrl = "${ApiConfig.fixImageUrl(avatarUrl)}?t=$_imageTimestamp";
+    } else {
+      avatarUrl = null;
     }
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: primaryDark,
-            backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-            child: avatarUrl == null || avatarUrl.isEmpty
-                ? const Icon(Icons.person, color: Colors.white, size: 30)
-                : null,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  userName,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  userEmail,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDCFCE7),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    _user?.isVerified == true ? 'VERIFIED USER' : 'ACTIVE USER',
+    return InkWell(
+      onTap: () async {
+        if (!loggedIn) {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+          );
+          if (result == true) {
+            _loadProfile();
+          }
+        } else {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const MyProfileScreen()),
+          );
+          _loadProfile();
+        }
+      },
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 30,
+              backgroundColor: primaryDark,
+              backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+              child: avatarUrl == null || avatarUrl.isEmpty
+                  ? Icon(loggedIn ? Icons.person : Icons.login_rounded, color: Colors.white, size: 28)
+                  : null,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    userName,
                     style: const TextStyle(
-                      fontSize: 10,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF166534),
+                      color: Color(0xFF0F172A),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    userEmail,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: loggedIn ? const Color(0xFFDCFCE7) : const Color(0xFFE0F2FE),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      loggedIn
+                          ? (_user?.isVerified == true ? 'VERIFIED USER' : 'ACTIVE USER')
+                          : 'TAP TO LOG IN',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: loggedIn ? const Color(0xFF166534) : const Color(0xFF0284C7),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+          ],
+        ),
       ),
     );
   }
@@ -325,14 +383,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildStatCardsRow(BuildContext context) {
     return Row(
       children: [
-        _buildStatCard('Live Works', 'Active', onTap: () {
+        _buildStatCard('Live Works', 'Active', onTap: () async {
+          if (!AuthService.isLoggedIn()) {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+            );
+            if (result == true) _loadProfile();
+            return;
+          }
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const MyCardsScreen()),
           );
         }),
         const SizedBox(width: 10),
-        _buildStatCard('Saved Cards', 'View All', onTap: () {
+        _buildStatCard('Saved Cards', 'View All', onTap: () async {
+          if (!AuthService.isLoggedIn()) {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+            );
+            if (result == true) _loadProfile();
+            return;
+          }
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const SavedCardsScreen()),
@@ -466,14 +540,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         border: Border.all(color: loggedIn ? const Color(0xFFFEE2E2) : const Color(0xFFDCFCE7)),
       ),
       child: ListTile(
-        onTap: () {
+        onTap: () async {
           if (loggedIn) {
             _showLogoutDialog(context);
           } else {
-            Navigator.push(
+            final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const LoginScreen()),
             );
+            if (result == true) {
+              _loadProfile();
+            }
           }
         },
         leading: Container(
