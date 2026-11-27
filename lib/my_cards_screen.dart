@@ -173,8 +173,8 @@ class MyCardsScreenState extends State<MyCardsScreen> {
     }
   }
 
-  String _normalizeBudgetType(String? raw) {
-    if (raw == null || raw.isEmpty) return 'Negotiable';
+  String? _normalizeBudgetType(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
     final lower = raw.trim().toLowerCase();
     if (lower == 'fixed' || lower == 'fixed_price' || lower == 'fixed price') {
       return 'Fixed Price';
@@ -185,7 +185,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
     } else if (lower == 'negotiable') {
       return 'Negotiable';
     }
-    return 'Negotiable';
+    return null;
   }
 
   String _normalizeExpiryTime(String? raw) {
@@ -217,12 +217,9 @@ class MyCardsScreenState extends State<MyCardsScreen> {
         selectedCategoryId = match.first.id;
       }
     }
-    if (selectedCategoryId == null && _categories.isNotEmpty) {
-      selectedCategoryId = _categories.first.id;
-    }
 
     String selectedExpiry = _normalizeExpiryTime(cardToEdit?.expiresAt);
-    String selectedBudgetType = _normalizeBudgetType(cardToEdit?.priceType);
+    String? selectedBudgetType = _normalizeBudgetType(cardToEdit?.priceType);
 
     final List<String> currentTags = List<String>.from(cardToEdit?.tags ?? []);
     final List<CardPhotoItem> modalPhotos = [];
@@ -262,6 +259,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
     }
 
     bool isSubmitting = false;
+    bool triedSubmit = false;
 
     showModalBottomSheet(
       context: context,
@@ -411,13 +409,38 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildFieldLabel(context.tr('category').toUpperCase(), isRequired: true),
-                      _buildModalDropdown<int>(
-                        value: selectedCategoryId,
-                        hintText: context.tr('select_category'),
-                        items: _categories.map((c) {
-                          return DropdownMenuItem<int>(value: c.id, child: Text(c.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)));
-                        }).toList(),
-                        onChanged: (val) => setModalState(() => selectedCategoryId = val),
+                      _buildCategorySelectorField(
+                        selectedName: selectedCategoryId != null
+                            ? (_categories
+                                    .where((c) => c.id == selectedCategoryId)
+                                    .map((c) => c.name)
+                                    .firstOrNull ??
+                                (cardToEdit?.category?.id == selectedCategoryId ? cardToEdit?.category?.name : null))
+                            : null,
+                        placeholder: context.tr('choose_one'),
+                        hasError: triedSubmit && selectedCategoryId == null,
+                        onTap: () async {
+                          FocusScope.of(modalContext).unfocus();
+                          final pickedId = await Navigator.of(modalContext).push<int>(
+                            MaterialPageRoute(
+                              fullscreenDialog: true,
+                              builder: (_) => _CategoryPickerFullScreen(
+                                categories: _categories,
+                                selectedCategoryId: selectedCategoryId,
+                                onCategoriesLoaded: (loaded) {
+                                  if (mounted) {
+                                    setState(() {
+                                      _categories = loaded;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          );
+                          if (pickedId != null && modalContext.mounted) {
+                            setModalState(() => selectedCategoryId = pickedId);
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -455,7 +478,8 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                             _buildFieldLabel(context.tr('budget_type'), isRequired: true),
                             _buildModalDropdown<String>(
                               value: selectedBudgetType,
-                              hintText: context.tr('select_expiry'),
+                              hintText: context.tr('choose_one'),
+                              hasError: triedSubmit && selectedBudgetType == null,
                               items: [
                                 DropdownMenuItem(value: 'Negotiable', child: Text(context.tr('negotiable'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
                                 DropdownMenuItem(value: 'Fixed Price', child: Text(context.tr('fixed_price'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
@@ -471,7 +495,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                       ),
                     ],
                   ),
-                  if (selectedBudgetType != 'Negotiable') ...[
+                  if (selectedBudgetType != null && selectedBudgetType != 'Negotiable') ...[
                     const SizedBox(height: 14),
                     _buildFieldLabel(context.tr('price_amount_inr'), isRequired: true),
                     _buildModalInput(
@@ -735,6 +759,32 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                                   );
                                   return;
                                 }
+                                if (selectedCategoryId == null) {
+                                  setModalState(() {
+                                    triedSubmit = true;
+                                  });
+                                  AppDialogs.showToastModal(
+                                    context,
+                                    message: context.tr('please_select_category'),
+                                    icon: Icons.warning_amber_rounded,
+                                    iconColor: Colors.orange,
+                                    iconBgColor: const Color(0xFFFEF3C7),
+                                  );
+                                  return;
+                                }
+                                if (selectedBudgetType == null) {
+                                  setModalState(() {
+                                    triedSubmit = true;
+                                  });
+                                  AppDialogs.showToastModal(
+                                    context,
+                                    message: context.tr('please_select_budget_type'),
+                                    icon: Icons.warning_amber_rounded,
+                                    iconColor: Colors.orange,
+                                    iconBgColor: const Color(0xFFFEF3C7),
+                                  );
+                                  return;
+                                }
 
                                 setModalState(() {
                                   isSubmitting = true;
@@ -762,7 +812,7 @@ class MyCardsScreenState extends State<MyCardsScreen> {
                                 }
 
                                 ApiResponse response;
-                                final apiPriceType = _formatBudgetTypeForApi(selectedBudgetType);
+                                final apiPriceType = _formatBudgetTypeForApi(selectedBudgetType!);
 
                                 if (isEditing) {
                                   response = await MyLiveWorkService.updateLiveWorkCard(
@@ -919,14 +969,66 @@ class MyCardsScreenState extends State<MyCardsScreen> {
     );
   }
 
+  Widget _buildCategorySelectorField({
+    required String? selectedName,
+    required String placeholder,
+    required bool hasError,
+    required VoidCallback onTap,
+  }) {
+    final bool hasValue = selectedName != null && selectedName.isNotEmpty;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppTheme.inputFill(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: hasError ? Colors.redAccent : AppTheme.border(context),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                hasValue ? selectedName : placeholder,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: hasValue ? 13 : 12,
+                  color: hasValue ? AppTheme.textPrimary(context) : AppTheme.textSecondary(context),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: AppTheme.textSecondary(context),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildModalDropdown<T>({
     required T? value,
     required String hintText,
     required List<DropdownMenuItem<T>> items,
     required void Function(T?) onChanged,
+    bool hasError = false,
   }) {
     return DropdownButtonFormField<T>(
       initialValue: value,
+      hint: Text(
+        hintText,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(color: AppTheme.textSecondary(context), fontSize: 12),
+      ),
       items: items,
       onChanged: onChanged,
       isExpanded: true,
@@ -934,18 +1036,19 @@ class MyCardsScreenState extends State<MyCardsScreen> {
       style: TextStyle(fontSize: 12, color: AppTheme.textPrimary(context)),
       icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textSecondary(context), size: 20),
       decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: TextStyle(color: AppTheme.textSecondary(context), fontSize: 12),
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         filled: true,
         fillColor: AppTheme.inputFill(context),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppTheme.border(context)),
+          borderSide: BorderSide(color: hasError ? Colors.redAccent : AppTheme.border(context)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF094943), width: 1.5),
+          borderSide: BorderSide(
+            color: hasError ? Colors.redAccent : const Color(0xFF094943),
+            width: 1.5,
+          ),
         ),
       ),
     );
@@ -1799,6 +1902,236 @@ class MyCardsScreenState extends State<MyCardsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CategoryPickerFullScreen extends StatefulWidget {
+  final List<CategoryModel> categories;
+  final int? selectedCategoryId;
+  final ValueChanged<List<CategoryModel>>? onCategoriesLoaded;
+
+  const _CategoryPickerFullScreen({
+    required this.categories,
+    this.selectedCategoryId,
+    this.onCategoriesLoaded,
+  });
+
+  @override
+  State<_CategoryPickerFullScreen> createState() => _CategoryPickerFullScreenState();
+}
+
+class _CategoryPickerFullScreenState extends State<_CategoryPickerFullScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  late List<CategoryModel> _categories;
+  bool _isLoading = false;
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _categories = List<CategoryModel>.from(widget.categories);
+    if (_categories.isEmpty) {
+      _loadCategories();
+    }
+  }
+
+  Future<void> _loadCategories() async {
+    setState(() => _isLoading = true);
+    final loaded = await LiveWorkService.fetchCategories();
+    if (!mounted) return;
+    setState(() {
+      _categories = loaded;
+      _isLoading = false;
+    });
+    if (loaded.isNotEmpty) {
+      widget.onCategoriesLoaded?.call(loaded);
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryDark = AppTheme.primary(context);
+    final filtered = _query.isEmpty
+        ? _categories
+        : _categories.where((c) => c.name.toLowerCase().contains(_query.toLowerCase())).toList();
+
+    return Scaffold(
+      backgroundColor: AppTheme.background(context),
+      appBar: AppBar(
+        backgroundColor: AppTheme.surface(context),
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: Icon(Icons.close_rounded, color: AppTheme.textPrimary(context)),
+        ),
+        title: Text(
+          context.tr('select_category'),
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textPrimary(context),
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(height: 1, color: AppTheme.divider(context)),
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: TextField(
+                controller: _searchController,
+                style: TextStyle(fontSize: 14, color: AppTheme.textPrimary(context)),
+                onChanged: (value) => setState(() => _query = value.trim()),
+                decoration: InputDecoration(
+                  hintText: context.tr('search_categories_hint'),
+                  hintStyle: TextStyle(color: AppTheme.textSecondary(context), fontSize: 13),
+                  prefixIcon: Icon(Icons.search_rounded, color: AppTheme.textSecondary(context), size: 20),
+                  suffixIcon: _query.isNotEmpty
+                      ? IconButton(
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _query = '');
+                          },
+                          icon: Icon(Icons.close_rounded, color: AppTheme.textSecondary(context), size: 18),
+                        )
+                      : null,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  filled: true,
+                  fillColor: AppTheme.surface(context),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppTheme.border(context)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: primaryDark, width: 1.5),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: _isLoading
+                  ? Center(child: CircularProgressIndicator(color: primaryDark))
+                  : filtered.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.category_outlined, size: 48, color: AppTheme.textSecondary(context)),
+                                const SizedBox(height: 12),
+                                Text(
+                                  context.tr('no_categories_found'),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textSecondary(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 2, 16, 24),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 10),
+                          itemBuilder: (context, index) {
+                            final cat = filtered[index];
+                            final bool isSelected = cat.id == widget.selectedCategoryId;
+                            return Material(
+                              color: isSelected
+                                  ? primaryDark.withValues(alpha: AppTheme.isDark(context) ? 0.22 : 0.08)
+                                  : AppTheme.surface(context),
+                              borderRadius: BorderRadius.circular(14),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(14),
+                                onTap: () => Navigator.pop(context, cat.id),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: isSelected ? primaryDark : AppTheme.border(context),
+                                      width: isSelected ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.isDark(context)
+                                              ? const Color(0xFF134E4A)
+                                              : const Color(0xFFE6F4F1),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: cat.imageUrl != null && cat.imageUrl!.isNotEmpty
+                                            ? ClipRRect(
+                                                borderRadius: BorderRadius.circular(10),
+                                                child: Image.network(
+                                                  cat.imageUrl!,
+                                                  width: 40,
+                                                  height: 40,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (_, _, _) => Icon(
+                                                    Icons.work_outline_rounded,
+                                                    color: primaryDark,
+                                                    size: 20,
+                                                  ),
+                                                ),
+                                              )
+                                            : Icon(
+                                                Icons.work_outline_rounded,
+                                                color: primaryDark,
+                                                size: 20,
+                                              ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          cat.name,
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                            color: AppTheme.textPrimary(context),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Icon(
+                                        isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                                        color: isSelected
+                                            ? primaryDark
+                                            : AppTheme.textSecondary(context).withValues(alpha: 0.45),
+                                        size: 22,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+            ),
+          ],
+        ),
       ),
     );
   }

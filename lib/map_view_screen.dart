@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -10,7 +11,6 @@ import 'core/app_theme.dart';
 import 'models/live_work_card_model.dart';
 import 'my_cards_screen.dart';
 import 'services/auth_service.dart';
-import 'services/live_work_service.dart';
 import 'services/presence_service.dart';
 
 class MapPinModel {
@@ -243,6 +243,8 @@ class MapViewScreenState extends State<MapViewScreen> {
   LatLng _centerLocation = const LatLng(9.8920, 76.7190); // Default location
   double _currentZoom = 13.5;
 
+  Timer? _cameraDebounceTimer;
+
   @override
   void initState() {
     super.initState();
@@ -258,56 +260,68 @@ class MapViewScreenState extends State<MapViewScreen> {
     }
   }
 
+  void _onPositionChanged(MapCamera camera, bool hasGesture) {
+    _currentZoom = camera.zoom;
+    if (hasGesture) {
+      _cameraDebounceTimer?.cancel();
+      _cameraDebounceTimer = Timer(const Duration(milliseconds: 400), () {
+        if (mounted) {
+          _fetchMapPins(bounds: camera.visibleBounds, isCameraMove: true);
+        }
+      });
+    }
+  }
+
   @override
   void dispose() {
     PresenceService.locationNotifier.removeListener(_onLocationUpdated);
+    _cameraDebounceTimer?.cancel();
     _mapController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchMapPins() async {
-    setState(() {
-      _isLoading = true;
-    });
+  Future<void> _fetchMapPins({LatLngBounds? bounds, bool isCameraMove = false}) async {
+    if (!isCameraMove) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     final lat = PresenceService.currentLatitude;
     final lng = PresenceService.currentLongitude;
-    _centerLocation = LatLng(lat, lng);
+    if (!isCameraMove) {
+      _centerLocation = LatLng(lat, lng);
+    }
 
-    // Fetch both full live work cards feed & map API response in parallel to retrieve ALL cards per user
-    final results = await Future.wait([
-      LiveWorkService.fetchLiveWorkCards(lat: lat, lng: lng),
-      ApiService.get(
-        '${ApiConfig.baseUrl}/map/cards?lat=$lat&lng=$lng&radius=500&type=live_work',
-        withAuth: false,
-      ),
-    ]);
+    String mapApiUrl;
+    if (bounds != null) {
+      final swLat = bounds.southWest.latitude;
+      final swLng = bounds.southWest.longitude;
+      final neLat = bounds.northEast.latitude;
+      final neLng = bounds.northEast.longitude;
+      mapApiUrl = '${ApiConfig.baseUrl}/map/cards?sw_lat=$swLat&sw_lng=$swLng&ne_lat=$neLat&ne_lng=$neLng&zoom=$_currentZoom&type=live_work';
+    } else {
+      mapApiUrl = '${ApiConfig.baseUrl}/map/cards?lat=$lat&lng=$lng&radius=500&type=live_work';
+    }
+
+    final mapResponse = await ApiService.get(
+      mapApiUrl,
+      withAuth: false,
+    );
 
     if (!mounted) return;
 
-    final List<LiveWorkCardModel> liveWorkCards = results[0] as List<LiveWorkCardModel>;
-    final ApiResponse mapResponse = results[1] as ApiResponse;
-
     final Map<int, MapPinModel> allPinsMap = {};
 
-    // 1. Process LiveWorkService cards (retrieves ALL active live work cards per user)
-    for (final card in liveWorkCards) {
-      final pin = MapPinModel.fromLiveWorkCard(card, lat, lng);
-      allPinsMap[pin.id] = pin;
-    }
-
-    // 2. Process Map API pins (merge any additional pins or center location returned)
     if (mapResponse.success && mapResponse.data != null) {
       final data = mapResponse.data as Map<String, dynamic>;
       final List list = data['pins'] is List ? data['pins'] : [];
       for (final item in list) {
         final pin = MapPinModel.fromJson(item as Map<String, dynamic>);
-        if (!allPinsMap.containsKey(pin.id)) {
-          allPinsMap[pin.id] = pin;
-        }
+        allPinsMap[pin.id] = pin;
       }
 
-      if (data['center'] != null && data['center'] is Map) {
+      if (!isCameraMove && data['center'] != null && data['center'] is Map) {
         final centerLat = (data['center']['latitude'] as num?)?.toDouble();
         final centerLng = (data['center']['longitude'] as num?)?.toDouble();
         if (centerLat != null && centerLng != null && centerLat != 0) {
@@ -327,7 +341,6 @@ class MapViewScreenState extends State<MapViewScreen> {
           ((pin.userId != null && pin.userId == currentUser.id) ||
            (pin.userName.toLowerCase() == currentUser.name.toLowerCase()));
 
-      // Privacy Hiding: If pin belongs to another user and pin.showLocation == false, hide their pin and cards from other users
       if (!isCurrentUser && !pin.showLocation) {
         continue;
       }
@@ -335,7 +348,6 @@ class MapViewScreenState extends State<MapViewScreen> {
       final displayName = isCurrentUser ? 'YOU' : pin.userName;
       final displayAvatar = isCurrentUser ? (currentUser.avatarUrl ?? pin.userAvatar) : pin.userAvatar;
 
-      // Group ALL cards created by the same user under 1 user key
       final key = isCurrentUser
           ? 'you_group'
           : (pin.userId != null ? 'user_${pin.userId}' : 'user_${displayName.toLowerCase()}');
@@ -357,7 +369,6 @@ class MapViewScreenState extends State<MapViewScreen> {
       }
     }
 
-    // Ensure a "YOU" location circle marker is always present on the map (for both guest and logged in users)
     if (!groupsMap.containsKey('you_group')) {
       groupsMap['you_group'] = UserMapPinGroup(
         userId: currentUser?.id,
@@ -376,8 +387,7 @@ class MapViewScreenState extends State<MapViewScreen> {
       _pins = parsedPins;
       _userGroups = groupsList;
 
-      // Auto-select YOU group if available, else first group
-      if (_userGroups.isNotEmpty) {
+      if (_userGroups.isNotEmpty && (_selectedGroup == null || !isCameraMove)) {
         final youGroup = _userGroups.firstWhere(
           (g) => g.isCurrentUser || g.userName == 'YOU',
           orElse: () => _userGroups.first,
@@ -387,7 +397,9 @@ class MapViewScreenState extends State<MapViewScreen> {
       _isLoading = false;
     });
 
-    _fitMapBounds();
+    if (!isCameraMove) {
+      _fitMapBounds();
+    }
   }
 
   void _zoomIn() {
@@ -564,6 +576,7 @@ class MapViewScreenState extends State<MapViewScreen> {
                                   initialZoom: _currentZoom,
                                   minZoom: 3.0,
                                   maxZoom: 18.0,
+                                  onPositionChanged: _onPositionChanged,
                                 ),
                                 children: [
                                   TileLayer(
@@ -933,75 +946,86 @@ class MapViewScreenState extends State<MapViewScreen> {
         children: [
           // Header Row with User Info & Card Count
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: primaryDark,
-                    backgroundImage: group.userAvatar != null && group.userAvatar!.isNotEmpty
-                        ? NetworkImage(group.userAvatar!)
-                        : null,
-                    child: group.userAvatar == null || group.userAvatar!.isEmpty
-                        ? Text(
-                            isYou
-                                ? String.fromCharCode(context.tr('you').runes.first).toUpperCase()
-                                : (group.userName.isNotEmpty ? String.fromCharCode(group.userName.runes.first).toUpperCase() : 'U'),
-                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                          )
-                        : null,
-                  ),
-                  const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+              Expanded(
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: primaryDark,
+                      backgroundImage: group.userAvatar != null && group.userAvatar!.isNotEmpty
+                          ? NetworkImage(group.userAvatar!)
+                          : null,
+                      child: group.userAvatar == null || group.userAvatar!.isEmpty
+                          ? Text(
+                              isYou
+                                  ? String.fromCharCode(context.tr('you').runes.first).toUpperCase()
+                                  : (group.userName.isNotEmpty ? String.fromCharCode(group.userName.runes.first).toUpperCase() : 'U'),
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 6,
+                            runSpacing: 2,
+                            children: [
+                              Text(
+                                isYou
+                                    ? '${context.tr('you')} (${group.cardCount} ${context.tr('cards')})'
+                                    : '${group.userName} (${group.cardCount} ${context.tr('cards')})',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textPrimary(context),
+                                ),
+                              ),
+                              if (isYou)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF10B981),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    context.tr('your_location'),
+                                    style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.white),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 1),
                           Text(
                             isYou
-                                ? '${context.tr('you')} (${group.cardCount} ${context.tr('cards')})'
-                                : '${group.userName} (${group.cardCount} ${context.tr('cards')})',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.textPrimary(context),
-                            ),
+                                ? '${context.tr('live_location')}: ${PresenceService.currentPlaceName}'
+                                : '${group.latitude.toStringAsFixed(4)}, ${group.longitude.toStringAsFixed(4)}',
+                            style: TextStyle(fontSize: 10, color: AppTheme.textSecondary(context)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          if (isYou) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF10B981),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                context.tr('your_location'),
-                                style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.white),
-                              ),
-                            ),
-                          ],
                         ],
                       ),
-                      const SizedBox(height: 1),
-                      Text(
-                        isYou
-                            ? '${context.tr('live_location')}: ${PresenceService.currentPlaceName}'
-                            : '${group.latitude.toStringAsFixed(4)}, ${group.longitude.toStringAsFixed(4)}',
-                        style: TextStyle(fontSize: 10, color: AppTheme.textSecondary(context)),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: () {
                   setState(() {
                     _selectedGroup = null;
                   });
                 },
-                child: Icon(Icons.close_rounded, color: AppTheme.textSecondary(context), size: 20),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(Icons.close_rounded, color: AppTheme.textSecondary(context), size: 20),
+                ),
               ),
             ],
           ),

@@ -46,6 +46,11 @@ class DiscoverScreenState extends State<DiscoverScreen> {
   String _selectedSort = 'Nearest';
   bool _showSortBottomSheet = false;
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _currentPage = 1;
+
+  final ScrollController _scrollController = ScrollController();
 
   List<CategoryModel> _categories = [];
   List<LiveWorkCardModel> _cards = [];
@@ -89,7 +94,6 @@ class DiscoverScreenState extends State<DiscoverScreen> {
   ];
 
   @override
-  @override
   void initState() {
     super.initState();
     _selectedCategory = widget.initialCategory;
@@ -98,7 +102,17 @@ class DiscoverScreenState extends State<DiscoverScreen> {
     }
     _currentUser = AuthService.getStoredUser();
     PresenceService.locationNotifier.addListener(_onLocationUpdated);
+    _scrollController.addListener(_onScroll);
     _loadInitialData();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    if (currentScroll >= maxScroll * 0.8) {
+      _fetchNextPage();
+    }
   }
 
   void _onLocationUpdated() {
@@ -145,6 +159,8 @@ class DiscoverScreenState extends State<DiscoverScreen> {
   @override
   void dispose() {
     PresenceService.locationNotifier.removeListener(_onLocationUpdated);
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _debounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
@@ -161,10 +177,19 @@ class DiscoverScreenState extends State<DiscoverScreen> {
     await _fetchCards();
   }
 
-  Future<void> _fetchCards() async {
-    setState(() {
-      _isLoading = true;
-    });
+  Future<void> _fetchCards({bool isNextPage = false}) async {
+    if (isNextPage) {
+      if (_isLoadingMore || !_hasMore) return;
+      setState(() {
+        _isLoadingMore = true;
+      });
+    } else {
+      setState(() {
+        _isLoading = true;
+        _currentPage = 1;
+        _hasMore = true;
+      });
+    }
 
     String? backendSort;
     if (_selectedSort == 'Nearest') {
@@ -177,71 +202,37 @@ class DiscoverScreenState extends State<DiscoverScreen> {
       backendSort = 'price_high';
     }
 
-    final fetchedCards = await LiveWorkService.fetchLiveWorkCards(
+    final targetPage = isNextPage ? (_currentPage + 1) : 1;
+
+    final paginatedResult = await LiveWorkService.fetchLiveWorkCardsPaginated(
       search: _searchController.text,
       categoryId: _selectedCategory?.id,
       sort: backendSort,
       lat: PresenceService.currentLatitude,
       lng: PresenceService.currentLongitude,
+      page: targetPage,
+      perPage: 15,
     );
-
-    double getCardDistance(LiveWorkCardModel card) {
-      if (card.distanceKm != null && card.distanceKm! > 0) {
-        return card.distanceKm!;
-      }
-      final userLat = PresenceService.currentLatitude;
-      final userLng = PresenceService.currentLongitude;
-      if (card.latitude != null && card.longitude != null) {
-        final calc = calculateDistanceKm(
-          lat1: userLat,
-          lon1: userLng,
-          lat2: card.latitude,
-          lon2: card.longitude,
-        );
-        if (calc != null) return calc;
-      }
-      return 999999.0;
-    }
-
-    fetchedCards.sort((a, b) {
-      if (_selectedSort == 'Nearest') {
-        final distA = getCardDistance(a);
-        final distB = getCardDistance(b);
-        final cmp = distA.compareTo(distB);
-        if (cmp != 0) return cmp;
-        return b.rating.compareTo(a.rating);
-      } else if (_selectedSort == 'Top Rated') {
-        final cmp = b.rating.compareTo(a.rating);
-        if (cmp != 0) return cmp;
-        final distA = getCardDistance(a);
-        final distB = getCardDistance(b);
-        return distA.compareTo(distB);
-      } else if (_selectedSort == 'Price: Low to High') {
-        final priceA = (a.price != null && a.price! > 0) ? a.price! : double.infinity;
-        final priceB = (b.price != null && b.price! > 0) ? b.price! : double.infinity;
-        final cmp = priceA.compareTo(priceB);
-        if (cmp != 0) return cmp;
-        final distA = getCardDistance(a);
-        final distB = getCardDistance(b);
-        return distA.compareTo(distB);
-      } else if (_selectedSort == 'Price: High to Low') {
-        final priceA = (a.price != null && a.price! > 0) ? a.price! : -1.0;
-        final priceB = (b.price != null && b.price! > 0) ? b.price! : -1.0;
-        final cmp = priceB.compareTo(priceA);
-        if (cmp != 0) return cmp;
-        final distA = getCardDistance(a);
-        final distB = getCardDistance(b);
-        return distA.compareTo(distB);
-      }
-      return 0;
-    });
 
     if (!mounted) return;
 
     setState(() {
-      _cards = fetchedCards;
-      _isLoading = false;
+      if (isNextPage) {
+        _cards.addAll(paginatedResult.cards);
+        _currentPage = paginatedResult.currentPage;
+        _hasMore = paginatedResult.hasMore;
+        _isLoadingMore = false;
+      } else {
+        _cards = paginatedResult.cards;
+        _currentPage = paginatedResult.currentPage;
+        _hasMore = paginatedResult.hasMore;
+        _isLoading = false;
+      }
     });
+  }
+
+  Future<void> _fetchNextPage() async {
+    await _fetchCards(isNextPage: true);
   }
 
   Future<void> _toggleBookmark(LiveWorkCardModel card) async {
@@ -301,6 +292,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
               onRefresh: _fetchCards,
               color: primaryDark,
               child: SingleChildScrollView(
+                controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
                 child: Column(
@@ -388,34 +380,45 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                         ),
                       )
                     else
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _cards.length,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.57,
-                          crossAxisSpacing: 14,
-                          mainAxisSpacing: 14,
-                        ),
-                        itemBuilder: (context, index) {
-                          final item = _cards[index];
-                          return GestureDetector(
-                            onTap: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => CardDetailScreen(
-                                    card: item,
-                                    cardType: item.category?.type ?? 'live-work',
-                                  ),
-                                ),
+                      Column(
+                        children: [
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _cards.length,
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 0.72,
+                              crossAxisSpacing: 14,
+                              mainAxisSpacing: 14,
+                            ),
+                            itemBuilder: (context, index) {
+                              final item = _cards[index];
+                              return GestureDetector(
+                                onTap: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CardDetailScreen(
+                                        card: item,
+                                        cardType: item.category?.type ?? 'live-work',
+                                      ),
+                                    ),
+                                  );
+                                  _fetchCards();
+                                },
+                                child: _buildServiceCard(item),
                               );
-                              _fetchCards();
                             },
-                            child: _buildServiceCard(item),
-                          );
-                        },
+                          ),
+                          if (_isLoadingMore)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              child: Center(
+                                child: CircularProgressIndicator(color: primaryDark),
+                              ),
+                            ),
+                        ],
                       ),
                   ],
                 ),
@@ -812,19 +815,19 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                 child: image != null && image.isNotEmpty
                     ? Image.network(
                         image,
-                        height: 105,
+                        height: 90,
                         width: double.infinity,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
-                          height: 105,
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.work_outline, color: Colors.grey),
+                          height: 90,
+                          color: AppTheme.subtleBackground(context),
+                          child: Icon(Icons.work_outline, color: AppTheme.textSecondary(context)),
                         ),
                       )
                     : Container(
-                        height: 105,
-                        color: Colors.grey[200],
-                        child: const Icon(Icons.work_outline, color: Colors.grey),
+                        height: 90,
+                        color: AppTheme.subtleBackground(context),
+                        child: Icon(Icons.work_outline, color: AppTheme.textSecondary(context)),
                       ),
               ),
 
@@ -872,7 +875,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: AppTheme.surface(context).withValues(alpha: 0.9),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -884,7 +887,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                     child: Icon(
                       item.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                       size: 16,
-                      color: item.isFavorite ? Colors.red : const Color(0xFF1E293B),
+                      color: item.isFavorite ? Colors.red : AppTheme.textPrimary(context),
                     ),
                   ),
                 ),
@@ -895,13 +898,14 @@ class DiscoverScreenState extends State<DiscoverScreen> {
           // Body Content
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       // Worker Name + Verified Badge
                       Row(
@@ -913,7 +917,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                fontSize: 12,
+                                fontSize: 11.5,
                                 color: AppTheme.textPrimary(context),
                                 letterSpacing: 0.3,
                               ),
@@ -921,7 +925,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                           ),
                           if (item.user?.isVerified == true) ...[
                             const SizedBox(width: 4),
-                            const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 14),
+                            const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 13),
                           ],
                         ],
                       ),
@@ -930,7 +934,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                       // Rating & Reviews directly under User Name + Category Subtitle
                       Row(
                         children: [
-                          const Icon(Icons.star_rounded, size: 13, color: Color(0xFFFFB800)),
+                          const Icon(Icons.star_rounded, size: 12, color: Color(0xFFFFB800)),
                           const SizedBox(width: 2),
                           Text(
                             '${item.rating}',
@@ -953,7 +957,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                             child: Text(
                               '• ${item.category?.name ?? context.tr('driving')}',
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 9.5,
                                 color: AppTheme.textSecondary(context),
                               ),
                               maxLines: 1,
@@ -962,11 +966,11 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 5),
 
                       // Task Title Pill Box
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                         decoration: BoxDecoration(
                           color: AppTheme.isDark(context) ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
                           borderRadius: BorderRadius.circular(10),
@@ -978,7 +982,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                           children: [
                             Icon(
                               Icons.bolt_rounded,
-                              size: 12,
+                              size: 11,
                               color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
                             ),
                             const SizedBox(width: 4),
@@ -988,7 +992,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 9.5,
                                   fontWeight: FontWeight.bold,
                                   color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
                                 ),
@@ -997,7 +1001,7 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
 
                       // Card Updated Time Subtitle
                       Row(
@@ -1014,14 +1018,14 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
 
                       // Location & Calculated Distance
                       Row(
                         children: [
                           Icon(
                             Icons.location_on_outlined,
-                            size: 12,
+                            size: 11,
                             color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : const Color(0xFF094943),
                           ),
                           const SizedBox(width: 3),
@@ -1039,53 +1043,52 @@ class DiscoverScreenState extends State<DiscoverScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                    ],
+                  ),
 
-                      // Price Tag Pill Badge under Location
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
+                  // Price Tag Pill Badge under Location
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: (item.price == null || item.price == 0)
+                          ? (AppTheme.isDark(context) ? const Color(0xFF78350F) : const Color(0xFFFEF3C7))
+                          : (AppTheme.isDark(context) ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7)),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: (item.price == null || item.price == 0)
+                            ? (AppTheme.isDark(context) ? const Color(0xFF92400E) : const Color(0xFFFDE68A))
+                            : (AppTheme.isDark(context) ? const Color(0xFF047857) : const Color(0xFFBBF7D0)),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          (item.price == null || item.price == 0)
+                              ? Icons.handshake_outlined
+                              : Icons.payments_outlined,
+                          size: 11,
                           color: (item.price == null || item.price == 0)
-                              ? (AppTheme.isDark(context) ? const Color(0xFF78350F) : const Color(0xFFFEF3C7))
-                              : (AppTheme.isDark(context) ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7)),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: (item.price == null || item.price == 0)
-                                ? (AppTheme.isDark(context) ? const Color(0xFF92400E) : const Color(0xFFFDE68A))
-                                : (AppTheme.isDark(context) ? const Color(0xFF047857) : const Color(0xFFBBF7D0)),
-                          ),
+                              ? (AppTheme.isDark(context) ? const Color(0xFFFDE68A) : const Color(0xFF92400E))
+                              : (AppTheme.isDark(context) ? const Color(0xFF86EFAC) : const Color(0xFF166534)),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              (item.price == null || item.price == 0)
-                                  ? Icons.handshake_outlined
-                                  : Icons.payments_outlined,
-                              size: 11,
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            item.getTrFormattedPrice(context),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 9.5,
                               color: (item.price == null || item.price == 0)
                                   ? (AppTheme.isDark(context) ? const Color(0xFFFDE68A) : const Color(0xFF92400E))
                                   : (AppTheme.isDark(context) ? const Color(0xFF86EFAC) : const Color(0xFF166534)),
                             ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                item.getTrFormattedPrice(context),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 10,
-                                  color: (item.price == null || item.price == 0)
-                                      ? (AppTheme.isDark(context) ? const Color(0xFFFDE68A) : const Color(0xFF92400E))
-                                      : (AppTheme.isDark(context) ? const Color(0xFF86EFAC) : const Color(0xFF166534)),
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),

@@ -8,12 +8,14 @@ class ApiResponse {
   final bool success;
   final String message;
   final dynamic data;
+  final Map<String, dynamic>? meta;
   final int statusCode;
 
   ApiResponse({
     required this.success,
     required this.message,
     this.data,
+    this.meta,
     required this.statusCode,
   });
 
@@ -42,6 +44,7 @@ class ApiResponse {
               ? AppLanguage.trCode('success')
               : AppLanguage.trCode('request_failed_code', params: {'code': '$statusCode'})),
       data: json['data'],
+      meta: json['meta'] is Map<String, dynamic> ? json['meta'] as Map<String, dynamic> : null,
       statusCode: statusCode,
     );
   }

@@ -3,18 +3,36 @@ import '../core/api_service.dart';
 import '../models/category_model.dart';
 import '../models/live_work_card_model.dart';
 
+class PaginatedLiveWorkCards {
+  final List<LiveWorkCardModel> cards;
+  final int currentPage;
+  final int lastPage;
+  final int total;
+  final bool hasMore;
+
+  PaginatedLiveWorkCards({
+    required this.cards,
+    required this.currentPage,
+    required this.lastPage,
+    required this.total,
+    required this.hasMore,
+  });
+}
+
 class LiveWorkService {
-  /// Fetch paginated Live Work cards with optional search, category, coordinate distance, and sorting.
-  static Future<List<LiveWorkCardModel>> fetchLiveWorkCards({
+  /// Fetch paginated Live Work cards with metadata (page, lastPage, hasMore).
+  static Future<PaginatedLiveWorkCards> fetchLiveWorkCardsPaginated({
     String? search,
     int? categoryId,
     String? sort,
     double? lat,
     double? lng,
     int page = 1,
+    int perPage = 15,
   }) async {
     final queryParams = <String, String>{
       'page': page.toString(),
+      'per_page': perPage.toString(),
     };
 
     if (search != null && search.trim().isNotEmpty) {
@@ -38,9 +56,52 @@ class LiveWorkService {
 
     if (response.success && response.data != null) {
       final List list = response.data is List ? response.data : (response.data['data'] ?? []);
-      return list.map((item) => LiveWorkCardModel.fromJson(item as Map<String, dynamic>)).toList();
+      final cards = list.map((item) => LiveWorkCardModel.fromJson(item as Map<String, dynamic>)).toList();
+
+      final meta = response.meta ?? (response.data is Map ? response.data['meta'] : null);
+      final currentPage = meta?['current_page'] is int ? meta['current_page'] as int : page;
+      final lastPage = meta?['last_page'] is int ? meta['last_page'] as int : 1;
+      final total = meta?['total'] is int ? meta['total'] as int : cards.length;
+      final bool hasMore = meta?['has_more'] is bool
+          ? meta['has_more'] as bool
+          : (currentPage < lastPage);
+
+      return PaginatedLiveWorkCards(
+        cards: cards,
+        currentPage: currentPage,
+        lastPage: lastPage,
+        total: total,
+        hasMore: hasMore,
+      );
     }
-    return [];
+
+    return PaginatedLiveWorkCards(
+      cards: [],
+      currentPage: page,
+      lastPage: 1,
+      total: 0,
+      hasMore: false,
+    );
+  }
+
+  /// Fetch paginated Live Work cards with optional search, category, coordinate distance, and sorting.
+  static Future<List<LiveWorkCardModel>> fetchLiveWorkCards({
+    String? search,
+    int? categoryId,
+    String? sort,
+    double? lat,
+    double? lng,
+    int page = 1,
+  }) async {
+    final paginated = await fetchLiveWorkCardsPaginated(
+      search: search,
+      categoryId: categoryId,
+      sort: sort,
+      lat: lat,
+      lng: lng,
+      page: page,
+    );
+    return paginated.cards;
   }
 
   /// Fetch full details of a specific card by type and ID.

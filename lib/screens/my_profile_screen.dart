@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../core/api_config.dart';
 import '../core/api_service.dart';
 import '../core/app_dialogs.dart';
@@ -35,10 +35,90 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   List<dynamic> _experiences = [];
   List<dynamic> _educations = [];
 
+  double _verificationFee = 2.00;
+  String _razorpayKeyId = '';
+  String? _activeOrderId;
+  double _activeOrderAmountInr = 2.00;
+  bool _isStartingPayment = false;
+
+  late Razorpay _razorpay;
+
   @override
   void initState() {
     super.initState();
+    _initRazorpay();
     _loadProfileData();
+  }
+
+  void _initRazorpay() {
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+  }
+
+  @override
+  void dispose() {
+    _razorpay.clear();
+    super.dispose();
+  }
+
+  Future<void> _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    debugPrint('Razorpay Payment Success: ${response.paymentId}, orderId: ${response.orderId}');
+
+    final String effectiveOrderId =
+        (response.orderId != null && response.orderId!.isNotEmpty) ? response.orderId! : (_activeOrderId ?? '');
+    final String paymentId = response.paymentId ?? '';
+
+    final verifyResponse = await ProfileService.verifyPaymentSignature(
+      orderId: effectiveOrderId,
+      paymentId: paymentId,
+      signature: response.signature,
+    );
+
+    if (!mounted) return;
+
+    await _loadProfileData();
+    if (!mounted) return;
+
+    if (verifyResponse.success) {
+      final feeStr = _activeOrderAmountInr.toStringAsFixed(2);
+      AppDialogs.showSuccessModal(
+        context,
+        title: context.tr('payment_success_title'),
+        message: context.trParams('payment_success_verification_submitted', {'amount': feeStr}),
+        icon: Icons.check_circle_rounded,
+        iconColor: const Color(0xFF16A34A),
+      );
+    } else {
+      AppDialogs.showToastModal(
+        context,
+        message: verifyResponse.message.isNotEmpty
+            ? verifyResponse.message
+            : context.tr('payment_not_completed'),
+        icon: Icons.error_outline_rounded,
+        iconColor: Colors.red,
+        iconBgColor: const Color(0xFFFEE2E2),
+      );
+    }
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    debugPrint('Razorpay Payment Error: ${response.code} - ${response.message}');
+    if (mounted) {
+      AppDialogs.showToastModal(
+        context,
+        message: context.tr('payment_not_completed'),
+        icon: Icons.error_outline_rounded,
+        iconColor: Colors.red,
+        iconBgColor: const Color(0xFFFEE2E2),
+      );
+    }
+    _loadProfileData();
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    debugPrint('External Wallet Selected: ${response.walletName}');
   }
 
   Future<void> _pickCropAndUploadImage({required bool isCover}) async {
@@ -134,6 +214,21 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     }
   }
 
+  void _applyVerificationConfig(Map<String, dynamic> source) {
+    final rawFee = source['verification_fee'];
+    if (rawFee is num && rawFee > 0) {
+      _verificationFee = rawFee.toDouble();
+    } else if (rawFee != null) {
+      final parsed = double.tryParse(rawFee.toString());
+      if (parsed != null && parsed > 0) _verificationFee = parsed;
+    }
+
+    final rawKey = source['razorpay_key_id']?.toString().trim() ?? source['key_id']?.toString().trim();
+    if (rawKey != null && rawKey.isNotEmpty) {
+      _razorpayKeyId = rawKey;
+    }
+  }
+
   Future<void> _loadProfileData() async {
     setState(() {
       _isLoading = true;
@@ -147,12 +242,24 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       if (!mounted) return;
 
       if (data != null) {
+        _applyVerificationConfig(data);
         setState(() {
           _fullProfile = data;
+          _user = AuthService.getStoredUser() ?? _user;
           _skills = data['skills'] is List ? data['skills'] : [];
           _experiences = data['experiences'] is List ? data['experiences'] : [];
           _educations = data['educations'] is List ? data['educations'] : [];
         });
+      }
+
+      if (_razorpayKeyId.isEmpty) {
+        final statusRes = await ProfileService.getVerificationStatus();
+        if (mounted && statusRes.success && statusRes.data is Map) {
+          final statusMap = Map<String, dynamic>.from(statusRes.data as Map);
+          setState(() {
+            _applyVerificationConfig(statusMap);
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error loading profile data: $e');
@@ -1234,34 +1341,48 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     );
   }
 
+  String _normalizedVerificationStatus(bool isVerified) {
+    if (isVerified) return 'approved';
+    return _fullProfile?['verification_status']?.toString().toLowerCase() ??
+        _fullProfile?['verification_record']?['status']?.toString().toLowerCase() ??
+        'not_verified';
+  }
+
   Widget _buildProfileVerificationTopCard(
     Color primaryDark,
     Map<String, dynamic> profileData,
     bool isVerified,
   ) {
-    final verificationStatus = profileData['verification_status']?.toString().toLowerCase() ??
-        (isVerified ? 'verified' : 'not_verified');
+    final isDark = AppTheme.isDark(context);
+    final verificationStatus = _normalizedVerificationStatus(isVerified);
+    final bool isApproved = isVerified || verificationStatus == 'approved' || verificationStatus == 'verified';
+    final bool isPending = !isApproved &&
+        (verificationStatus == 'pending' ||
+            verificationStatus == 'in_review' ||
+            verificationStatus == 'submitted');
+    final bool isPaymentPending = !isApproved && !isPending && verificationStatus == 'payment_pending';
+    final bool isRejected = !isApproved &&
+        !isPending &&
+        !isPaymentPending &&
+        (verificationStatus == 'rejected' || verificationStatus == 'declined');
 
-    final bool isDeclined = verificationStatus == 'declined' ||
-        verificationStatus == 'rejected' ||
-        profileData['verification_decline_reason'] != null;
-
-    final bool isPending = verificationStatus == 'pending' ||
-        verificationStatus == 'in_review';
-
-    final String declineReason = profileData['verification_decline_reason']?.toString() ??
-        context.tr('default_decline_reason');
+    final String? rawDeclineReason = _fullProfile?['verification_decline_reason']?.toString() ??
+        _fullProfile?['verification_record']?['rejection_reason']?.toString();
+    final String declineReason = (rawDeclineReason != null && rawDeclineReason.trim().isNotEmpty)
+        ? rawDeclineReason
+        : context.tr('default_decline_reason');
+    final String feeText = _verificationFee.toStringAsFixed(2);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border(context)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1271,147 +1392,321 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isVerified
-                          ? const Color(0xFFDCFCE7)
-                          : (isPending ? const Color(0xFFFEF3C7) : const Color(0xFFE6F4F1)),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      isVerified ? Icons.check_circle_rounded : Icons.shield_outlined,
-                      color: isVerified
-                          ? const Color(0xFF166534)
-                          : (isPending ? const Color(0xFFD97706) : primaryDark),
-                      size: 20,
-                    ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isApproved
+                      ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7))
+                      : (isPending
+                          ? (isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7))
+                          : (isRejected
+                              ? (isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2))
+                              : (isDark ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1)))),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  isApproved
+                      ? Icons.check_circle_rounded
+                      : (isRejected ? Icons.cancel_outlined : Icons.shield_outlined),
+                  color: isApproved
+                      ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534))
+                      : (isPending
+                          ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))
+                          : (isRejected
+                              ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                              : (isDark ? const Color(0xFF5EEAD4) : primaryDark))),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  context.tr('profile_verification'),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary(context),
                   ),
-                  const SizedBox(width: 10),
-                  Text(
-                    context.tr('profile_verification'),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          if (isVerified)
+          if (isApproved) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFFDCFCE7),
+                color: isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFBBF7D0)),
+                border: Border.all(color: isDark ? const Color(0xFF047857) : const Color(0xFFBBF7D0)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.check_circle_rounded, color: Color(0xFF166534), size: 14),
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534),
+                    size: 14,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     context.tr('verified'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF166534),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else if (isPending)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFFDE68A)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.schedule_rounded, color: Color(0xFFD97706), size: 14),
-                  const SizedBox(width: 6),
-                  Text(
-                    context.tr('verification_pending'),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFD97706),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEE2E2),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFFCA5A5)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.brightness_1_rounded, color: Color(0xFFDC2626), size: 8),
-                  const SizedBox(width: 6),
-                  Text(
-                    context.tr('not_verified'),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFDC2626),
+                      color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534),
                     ),
                   ),
                 ],
               ),
             ),
-          if (isDeclined) ...[
+            const SizedBox(height: 10),
+            Text(
+              context.tr('verified_badge_desc'),
+              style: TextStyle(
+                fontSize: 12,
+                color: AppTheme.textSecondary(context),
+                height: 1.4,
+              ),
+            ),
+          ] else if (isPending) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isDark ? const Color(0xFFB45309) : const Color(0xFFFDE68A)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.schedule_rounded,
+                    color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706),
+                    size: 14,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    context.tr('verification_pending'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton.icon(
+                onPressed: null,
+                icon: const Icon(Icons.hourglass_top_rounded, color: Colors.white, size: 18),
+                label: Text(
+                  context.tr('request_under_review'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  disabledBackgroundColor: const Color(0xFFDC2626),
+                  disabledForegroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ] else if (isPaymentPending) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF78350F) : const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isDark ? const Color(0xFFB45309) : const Color(0xFFFCD34D)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.account_balance_wallet_outlined,
+                    color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                    size: 14,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    context.tr('continue_for_payment'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton.icon(
+                onPressed: _isStartingPayment ? null : _initiateAndOpenRazorpay,
+                icon: _isStartingPayment
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Icon(Icons.account_balance_wallet_outlined, color: Colors.white, size: 18),
+                label: Text(
+                  context.trParams('complete_payment_amount', {'amount': feeText}),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryDark,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton(
+                onPressed: _isStartingPayment ? null : _showRequestVerificationModal,
+                child: Text(
+                  context.tr('edit_documents'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? const Color(0xFF5EEAD4) : primaryDark,
+                  ),
+                ),
+              ),
+            ),
+          ] else if (isRejected) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isDark ? const Color(0xFF991B1B) : const Color(0xFFFCA5A5)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.cancel_rounded,
+                    color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
+                    size: 14,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    context.tr('rejected'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
+                color: isDark ? const Color(0xFF450A0A) : const Color(0xFFFEF2F2),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFCA5A5)),
+                border: Border.all(color: isDark ? const Color(0xFF991B1B) : const Color(0xFFFCA5A5)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     context.tr('previous_request_declined'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF991B1B),
+                      color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFF991B1B),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     declineReason,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF991B1B),
+                      color: isDark ? const Color(0xFFFECACA) : const Color(0xFF991B1B),
                       height: 1.3,
                     ),
                   ),
                 ],
               ),
             ),
-          ],
-          if (!isVerified && !isPending) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton.icon(
+                onPressed: _showRequestVerificationModal,
+                icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
+                label: Text(
+                  context.tr('request_again'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryDark,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isDark ? const Color(0xFF991B1B) : const Color(0xFFFCA5A5)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.brightness_1_rounded,
+                    color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
+                    size: 8,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    context.tr('not_verified'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -1442,9 +1737,155 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     );
   }
 
+  Future<void> _initiateAndOpenRazorpay({BuildContext? modalToClose}) async {
+    if (mounted) {
+      setState(() => _isStartingPayment = true);
+    }
+
+    try {
+      final orderResponse = await ProfileService.initiateVerificationOrder();
+      if (!mounted) return;
+
+      if (!orderResponse.success || orderResponse.data == null) {
+        AppDialogs.showToastModal(
+          context,
+          message: orderResponse.message.isNotEmpty
+              ? orderResponse.message
+              : context.tr('payment_not_completed'),
+          icon: Icons.error_outline_rounded,
+          iconColor: Colors.red,
+          iconBgColor: const Color(0xFFFEE2E2),
+        );
+        return;
+      }
+
+      final Map<String, dynamic> data = Map<String, dynamic>.from(orderResponse.data as Map);
+      final String serverOrderId = data['order_id']?.toString() ?? '';
+      final String activeKeyId = data['key_id']?.toString().trim() ?? _razorpayKeyId;
+      final int amountPaise = data['amount'] is num
+          ? (data['amount'] as num).toInt()
+          : (_verificationFee * 100).round();
+      final double amountInr = data['amount_inr'] is num
+          ? (data['amount_inr'] as num).toDouble()
+          : (amountPaise / 100.0);
+      final String currency = data['currency']?.toString() ?? 'INR';
+      final Map<String, dynamic> userData =
+          data['user'] is Map ? Map<String, dynamic>.from(data['user'] as Map) : {};
+
+      if (activeKeyId.isEmpty) {
+        AppDialogs.showToastModal(
+          context,
+          message: 'Razorpay key ID is not configured on the server.',
+          icon: Icons.error_outline_rounded,
+          iconColor: Colors.red,
+          iconBgColor: const Color(0xFFFEE2E2),
+        );
+        return;
+      }
+
+      _razorpayKeyId = activeKeyId;
+      _verificationFee = amountInr;
+      _activeOrderId = serverOrderId;
+      _activeOrderAmountInr = amountInr;
+
+      if (modalToClose != null && modalToClose.mounted) {
+        Navigator.pop(modalToClose);
+      }
+
+      final String resolvedName = (userData['name']?.toString().trim().isNotEmpty == true)
+          ? userData['name'].toString().trim()
+          : (_user?.name ?? '');
+      final String resolvedEmail = (userData['email']?.toString().trim().isNotEmpty == true)
+          ? userData['email'].toString().trim()
+          : (_user?.email ?? '');
+      final String resolvedContact = _resolveNormalizedContact(
+        serverPhone: userData['phone']?.toString(),
+      );
+
+      final prefill = <String, dynamic>{};
+      if (resolvedName.isNotEmpty) prefill['name'] = resolvedName;
+      if (resolvedContact.isNotEmpty) prefill['contact'] = resolvedContact;
+      if (resolvedEmail.isNotEmpty) prefill['email'] = resolvedEmail;
+
+      final options = <String, dynamic>{
+        'key': activeKeyId,
+        'amount': amountPaise,
+        'currency': currency,
+        'name': ApiConfig.payeeName,
+        'description': 'Profile Verification Fee',
+        if (prefill.isNotEmpty) 'prefill': prefill,
+        if (resolvedContact.isNotEmpty || resolvedEmail.isNotEmpty)
+          'readonly': {
+            if (resolvedContact.isNotEmpty) 'contact': true,
+            if (resolvedEmail.isNotEmpty) 'email': true,
+          },
+        'theme': {
+          'color': '#094943',
+        },
+      };
+
+      if (serverOrderId.isNotEmpty) {
+        options['order_id'] = serverOrderId;
+      }
+
+      _razorpay.open(options);
+    } catch (e) {
+      debugPrint('Error initiating Razorpay checkout: $e');
+      if (mounted) {
+        AppDialogs.showToastModal(
+          context,
+          message: context.tr('payment_not_completed'),
+          icon: Icons.error_outline_rounded,
+          iconColor: Colors.red,
+          iconBgColor: const Color(0xFFFEE2E2),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isStartingPayment = false);
+      }
+    }
+  }
+
+  String _formatRazorpayContact(String? raw) {
+    if (raw == null) return '';
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return '';
+    final bool hasPlus = trimmed.startsWith('+');
+    final digits = trimmed.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 7) return '';
+    if (hasPlus) return '+$digits';
+    if (digits.length == 10) return '+91$digits';
+    if (digits.length == 11 && digits.startsWith('0')) {
+      return '+91${digits.substring(1)}';
+    }
+    if (digits.length == 12 && digits.startsWith('91')) {
+      return '+$digits';
+    }
+    return '+$digits';
+  }
+
+  String _resolveNormalizedContact({String? serverPhone}) {
+    final profileMap = _fullProfile?['profile'] as Map<String, dynamic>? ?? {};
+    final candidates = [
+      serverPhone,
+      _fullProfile?['phone']?.toString(),
+      _user?.phone,
+      profileMap['whatsapp']?.toString(),
+      profileMap['alt_phone']?.toString(),
+    ];
+    for (final candidate in candidates) {
+      final formatted = _formatRazorpayContact(candidate);
+      if (formatted.isNotEmpty) return formatted;
+    }
+    return '';
+  }
+
   void _showRequestVerificationModal() {
     String selectedIdType = 'National ID Card';
     final idNumberCtrl = TextEditingController();
+    final mobileCtrl = TextEditingController();
+    final bool needsMobileInput = _resolveNormalizedContact().isEmpty;
     File? frontPhoto;
     File? backPhoto;
     bool isSubmitting = false;
@@ -1545,6 +1986,15 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     controller: idNumberCtrl,
                     hintText: context.tr('id_card_number_hint'),
                   ),
+                  if (needsMobileInput) ...[
+                    const SizedBox(height: 14),
+                    _buildFieldLabel(context.tr('mobile_number'), isRequired: true),
+                    _buildModalInput(
+                      controller: mobileCtrl,
+                      hintText: context.tr('mobile_number_hint'),
+                      keyboardType: TextInputType.phone,
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   Row(
                     children: [
@@ -1726,343 +2176,134 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                       children: [
                         const Icon(Icons.payments_outlined, color: Color(0xFF094943), size: 18),
                         const SizedBox(width: 8),
-                        Expanded(
-                          child: Text.rich(
-                            TextSpan(
-                              text: context.tr('verification_fee_prefix'),
-                              style: const TextStyle(fontSize: 11, color: Color(0xFF065F46), height: 1.3),
-                              children: [
-                                const TextSpan(
-                                  text: '₹2.00',
-                                  style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
-                                ),
-                                TextSpan(
-                                  text: context.tr('verification_fee_suffix'),
+                                Expanded(
+                                  child: Text.rich(
+                                    TextSpan(
+                                      text: context.tr('verification_fee_prefix'),
+                                      style: const TextStyle(fontSize: 11, color: Color(0xFF065F46), height: 1.3),
+                                      children: [
+                                        TextSpan(
+                                          text: '₹${_verificationFee.toStringAsFixed(2)}',
+                                          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                                        ),
+                                        TextSpan(
+                                          text: context.tr('verification_fee_suffix'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildModalActions(
-                    sheetContext,
-                    saveText: context.tr('proceed_pay_submit'),
-                    isSubmitting: isSubmitting,
-                    onSave: () async {
-                      final idNumber = idNumberCtrl.text.trim();
-                      if (idNumber.isEmpty) {
-                        AppDialogs.showToastModal(
-                          context,
-                          message: context.tr('enter_id_number'),
-                          icon: Icons.warning_amber_rounded,
-                          iconColor: Colors.orange,
-                          iconBgColor: const Color(0xFFFEF3C7),
-                        );
-                        return;
-                      }
-                      if (frontPhoto == null) {
-                        AppDialogs.showToastModal(
-                          context,
-                          message: context.tr('upload_front_id_photo'),
-                          icon: Icons.warning_amber_rounded,
-                          iconColor: Colors.orange,
-                          iconBgColor: const Color(0xFFFEF3C7),
-                        );
-                        return;
-                      }
-
-                      // Open Razorpay Payment Confirmation Sheet
-                      _showRazorpayPaymentSheet(
-                        parentContext: sheetContext,
-                        idType: selectedIdType,
-                        idNumber: idNumber,
-                        frontPhoto: frontPhoto!,
-                        backPhoto: backPhoto,
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Future<bool> _launchUpiPaymentApp({
-    String payeeVpa = 'quickmate@razorpay',
-    String payeeName = 'QuickMate',
-    String transactionNote = 'Profile Verification Fee',
-    double amount = 2.00,
-    String? transactionRef,
-  }) async {
-    final txRef = transactionRef ?? 'pay_${DateTime.now().millisecondsSinceEpoch}';
-    final String upiUrl =
-        'upi://pay?pa=$payeeVpa&pn=${Uri.encodeComponent(payeeName)}&tn=${Uri.encodeComponent(transactionNote)}&am=${amount.toStringAsFixed(2)}&cu=INR&tr=$txRef';
-
-    final Uri uri = Uri.parse(upiUrl);
-
-    try {
-      if (await canLaunchUrl(uri)) {
-        return await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        return false;
-      }
-    } catch (e) {
-      debugPrint('Error opening payment app: $e');
-      return false;
-    }
-  }
-
-  Future<void> _processVerificationPayment({
-    required BuildContext payContext,
-    required BuildContext parentContext,
-    required String idType,
-    required String idNumber,
-    required File frontPhoto,
-    File? backPhoto,
-  }) async {
-    final String paymentId = 'pay_${DateTime.now().millisecondsSinceEpoch}';
-
-    // Try launching GPay / PhonePe / UPI app first
-    final bool launched = await _launchUpiPaymentApp(
-      amount: 2.00,
-      transactionRef: paymentId,
-    );
-
-    if (!launched) {
-      if (!mounted) return;
-      final bool? proceedTest = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: [
-              const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFF094943)),
-              const SizedBox(width: 8),
-              Expanded(child: Text(ctx.tr('no_upi_app_detected'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
-            ],
-          ),
-          content: Text(
-            ctx.tr('no_upi_app_desc'),
-            style: const TextStyle(fontSize: 13, height: 1.4),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(ctx.tr('cancel'), style: const TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF094943),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: Text(ctx.tr('pay_complete'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-      );
-
-      if (proceedTest != true) return;
-    }
-
-    final response = await ProfileService.submitVerificationRequest(
-      idType: idType,
-      idNumber: idNumber,
-      frontPhoto: frontPhoto,
-      backPhoto: backPhoto,
-      paymentId: paymentId,
-      feeAmount: 2.00,
-    );
-
-    if (payContext.mounted) Navigator.pop(payContext);
-    if (parentContext.mounted) Navigator.pop(parentContext);
-
-    if (response.success) {
-      if (mounted) {
-        AppDialogs.showToastModal(
-          context,
-          message: context.trParams('payment_success_submitted', {'id': paymentId}),
-        );
-      }
-      _loadProfileData();
-    } else {
-      if (mounted) {
-        AppDialogs.showToastModal(
-          context,
-          message: context.tr('verification_submitted_review'),
-        );
-      }
-      _loadProfileData();
-    }
-  }
-
-  void _showRazorpayPaymentSheet({
-    required BuildContext parentContext,
-    required String idType,
-    required String idNumber,
-    required File frontPhoto,
-    File? backPhoto,
-  }) {
-    bool isProcessing = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppTheme.surface(context),
-      shape: RoundedRectangleBorder(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        side: BorderSide(color: AppTheme.border(context)),
-      ),
-      builder: (payContext) => StatefulBuilder(
-        builder: (dialogContext, setPayState) {
-          return Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0284C7).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(Icons.payment_rounded, color: Color(0xFF0284C7), size: 22),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              dialogContext.tr('razorpay_upi_payment'),
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                          const SizedBox(height: 20),
+                          _buildModalActions(
+                            sheetContext,
+                            saveText: context.trParams(
+                              'pay_submit_amount',
+                              {'amount': _verificationFee.toStringAsFixed(2)},
                             ),
-                            Text(
-                              dialogContext.tr('quickmate_verification_fee'),
-                              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(payContext),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            dialogContext.tr('amount_to_pay'),
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            '₹2.00',
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF094943)),
+                            isSubmitting: isSubmitting,
+                            onSave: () async {
+                              final idNumber = idNumberCtrl.text.trim();
+                              if (idNumber.isEmpty) {
+                                AppDialogs.showToastModal(
+                                  context,
+                                  message: context.tr('enter_id_number'),
+                                  icon: Icons.warning_amber_rounded,
+                                  iconColor: Colors.orange,
+                                  iconBgColor: const Color(0xFFFEF3C7),
+                                );
+                                return;
+                              }
+                              String? enteredPhone;
+                              if (needsMobileInput) {
+                                final normalized = _formatRazorpayContact(mobileCtrl.text.trim());
+                                if (normalized.isEmpty ||
+                                    normalized.replaceAll(RegExp(r'\D'), '').length < 10) {
+                                  AppDialogs.showToastModal(
+                                    context,
+                                    message: context.tr('enter_valid_mobile'),
+                                    icon: Icons.warning_amber_rounded,
+                                    iconColor: Colors.orange,
+                                    iconBgColor: const Color(0xFFFEF3C7),
+                                  );
+                                  return;
+                                }
+                                enteredPhone = normalized;
+                              }
+                              if (frontPhoto == null) {
+                                AppDialogs.showToastModal(
+                                  context,
+                                  message: context.tr('upload_front_id_photo'),
+                                  icon: Icons.warning_amber_rounded,
+                                  iconColor: Colors.orange,
+                                  iconBgColor: const Color(0xFFFEF3C7),
+                                );
+                                return;
+                              }
+                              if (backPhoto == null) {
+                                AppDialogs.showToastModal(
+                                  context,
+                                  message: context.tr('upload_back_id_photo'),
+                                  icon: Icons.warning_amber_rounded,
+                                  iconColor: Colors.orange,
+                                  iconBgColor: const Color(0xFFFEF3C7),
+                                );
+                                return;
+                              }
+
+                              setModalState(() => isSubmitting = true);
+
+                              final submitRes = await ProfileService.submitVerificationRequest(
+                                idType: selectedIdType,
+                                idNumber: idNumber,
+                                frontPhoto: frontPhoto!,
+                                backPhoto: backPhoto,
+                                phone: enteredPhone,
+                                paymentStatus: 'payment_pending',
+                                feeAmount: _verificationFee,
+                              );
+
+                              if (!mounted) return;
+
+                              if (!submitRes.success) {
+                                if (sheetContext.mounted) {
+                                  setModalState(() => isSubmitting = false);
+                                }
+                                AppDialogs.showToastModal(
+                                  context,
+                                  message: submitRes.message.isNotEmpty
+                                      ? submitRes.message
+                                      : context.tr('payment_not_completed'),
+                                  icon: Icons.error_outline_rounded,
+                                  iconColor: Colors.redAccent,
+                                  iconBgColor: const Color(0xFFFEE2E2),
+                                );
+                                return;
+                              }
+
+                              if (submitRes.data is Map) {
+                                _applyVerificationConfig(
+                                  Map<String, dynamic>.from(submitRes.data as Map),
+                                );
+                              }
+
+                              if (!sheetContext.mounted) return;
+                              await _initiateAndOpenRazorpay(modalToClose: sheetContext);
+                              if (sheetContext.mounted) {
+                                setModalState(() => isSubmitting = false);
+                              }
+                            },
                           ),
                         ],
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          dialogContext.tr('razorpay_upi'),
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF166534)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  dialogContext.tr('select_payment_method'),
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
-                ),
-                const SizedBox(height: 10),
-                ListTile(
-                  leading: const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFF094943)),
-                  title: Text(dialogContext.tr('upi_apps_title'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  subtitle: Text(dialogContext.tr('upi_apps_subtitle'), style: const TextStyle(fontSize: 11)),
-                  trailing: const Icon(Icons.open_in_new_rounded, color: Color(0xFF094943), size: 18),
-                  tileColor: const Color(0xFFE6F4F1),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  onTap: () {
-                    _processVerificationPayment(
-                      payContext: payContext,
-                      parentContext: parentContext,
-                      idType: idType,
-                      idNumber: idNumber,
-                      frontPhoto: frontPhoto,
-                      backPhoto: backPhoto,
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: isProcessing
-                        ? null
-                        : () async {
-                            setPayState(() => isProcessing = true);
-                            await _processVerificationPayment(
-                              payContext: payContext,
-                              parentContext: parentContext,
-                              idType: idType,
-                              idNumber: idNumber,
-                              frontPhoto: frontPhoto,
-                              backPhoto: backPhoto,
-                            );
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF094943),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: isProcessing
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(
-                            dialogContext.tr('open_gpay_pay_submit'),
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+                  );
+                },
+              ),
+            );
+          }
 
   Widget _buildGuestPromptScreen(String title, String subtitle) {
     final primaryDark = AppTheme.primary(context);
@@ -2313,6 +2554,15 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     required String? coverUrl,
   }) {
     final isDark = AppTheme.isDark(context);
+    final verificationStatus = _normalizedVerificationStatus(isVerified);
+    final bool isApproved = isVerified || verificationStatus == 'approved' || verificationStatus == 'verified';
+    final bool isPending = !isApproved &&
+        (verificationStatus == 'pending' ||
+            verificationStatus == 'in_review' ||
+            verificationStatus == 'submitted');
+    final bool isRejected = !isApproved &&
+        !isPending &&
+        (verificationStatus == 'rejected' || verificationStatus == 'declined');
 
     return Container(
       decoration: BoxDecoration(
@@ -2476,35 +2726,53 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: isVerified
+                        color: isApproved
                             ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7))
-                            : (isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2)),
+                            : (isPending
+                                ? (isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7))
+                                : (isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2))),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: isVerified
+                          color: isApproved
                               ? (isDark ? const Color(0xFF047857) : const Color(0xFFBBF7D0))
-                              : (isDark ? const Color(0xFF991B1B) : const Color(0xFFFCA5A5)),
+                              : (isPending
+                                  ? (isDark ? const Color(0xFFB45309) : const Color(0xFFFDE68A))
+                                  : (isDark ? const Color(0xFF991B1B) : const Color(0xFFFCA5A5))),
                         ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            isVerified ? Icons.check_circle_rounded : Icons.gpp_bad_rounded,
-                            color: isVerified
+                            isApproved
+                                ? Icons.check_circle_rounded
+                                : (isPending
+                                    ? Icons.schedule_rounded
+                                    : (isRejected ? Icons.cancel_rounded : Icons.gpp_bad_rounded)),
+                            color: isApproved
                                 ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534))
-                                : (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
+                                : (isPending
+                                    ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))
+                                    : (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))),
                             size: 12,
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            isVerified ? context.tr('verified').toUpperCase() : context.tr('not_verified').toUpperCase(),
+                            isApproved
+                                ? context.tr('verified').toUpperCase()
+                                : (isPending
+                                    ? context.tr('verification_pending').toUpperCase()
+                                    : (isRejected
+                                        ? context.tr('rejected').toUpperCase()
+                                        : context.tr('not_verified').toUpperCase())),
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
-                              color: isVerified
+                              color: isApproved
                                   ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534))
-                                  : (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
+                                  : (isPending
+                                      ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))
+                                      : (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))),
                             ),
                           ),
                         ],
@@ -3172,16 +3440,36 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               Expanded(child: _buildInfoBadge(Icons.cake_outlined, dob, context.tr('date_of_birth'))),
               const SizedBox(width: 10),
               Expanded(
-                child: _buildInfoBadge(
-                  isVerified ? Icons.check_circle_rounded : Icons.gpp_bad_rounded,
-                  isVerified ? context.tr('verified') : context.tr('not_verified'),
-                  context.tr('trust_status'),
-                  iconColor: isVerified
-                      ? (AppTheme.isDark(context) ? const Color(0xFF4ADE80) : const Color(0xFF166534))
-                      : (AppTheme.isDark(context) ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
-                  valueColor: isVerified
-                      ? (AppTheme.isDark(context) ? const Color(0xFF4ADE80) : const Color(0xFF166534))
-                      : (AppTheme.isDark(context) ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
+                child: Builder(
+                  builder: (ctx) {
+                    final status = _normalizedVerificationStatus(isVerified);
+                    final isApproved = isVerified || status == 'approved' || status == 'verified';
+                    final isPending = !isApproved && (status == 'pending' || status == 'in_review' || status == 'submitted');
+                    final isRejected = !isApproved && !isPending && (status == 'rejected' || status == 'declined');
+                    final isDark = AppTheme.isDark(ctx);
+
+                    final color = isApproved
+                        ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534))
+                        : (isPending
+                            ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))
+                            : (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)));
+
+                    return _buildInfoBadge(
+                      isApproved
+                          ? Icons.check_circle_rounded
+                          : (isPending
+                              ? Icons.schedule_rounded
+                              : (isRejected ? Icons.cancel_rounded : Icons.gpp_bad_rounded)),
+                      isApproved
+                          ? ctx.tr('verified')
+                          : (isPending
+                              ? ctx.tr('verification_pending')
+                              : (isRejected ? ctx.tr('rejected') : ctx.tr('not_verified'))),
+                      ctx.tr('trust_status'),
+                      iconColor: color,
+                      valueColor: color,
+                    );
+                  },
                 ),
               ),
             ],
@@ -3709,6 +3997,27 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   }
 
   Widget _buildVerificationAndSocialCard(Color primaryDark, String email, Map<String, dynamic> profileData) {
+    final bool isVerified = _fullProfile?['is_verified'] == true || _user?.isVerified == true;
+    final status = _normalizedVerificationStatus(isVerified);
+    final bool isApproved = isVerified || status == 'approved' || status == 'verified';
+    final bool isPending = !isApproved && (status == 'pending' || status == 'in_review' || status == 'submitted');
+    final bool isRejected = !isApproved && !isPending && (status == 'rejected' || status == 'declined');
+    final isDark = AppTheme.isDark(context);
+
+    final IconData statusIcon = isApproved
+        ? Icons.check_circle
+        : (isPending ? Icons.schedule_rounded : (isRejected ? Icons.cancel_rounded : Icons.gpp_bad_rounded));
+    final Color statusColor = isApproved
+        ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534))
+        : (isPending
+            ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))
+            : (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)));
+    final String statusText = isApproved
+        ? context.tr('verified')
+        : (isPending
+            ? context.tr('verification_pending')
+            : (isRejected ? context.tr('rejected') : context.tr('not_verified')));
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -3723,14 +4032,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 18),
+              Icon(statusIcon, color: statusColor, size: 18),
               const SizedBox(width: 6),
               Text(
-                context.tr('verified'),
+                statusText,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.isDark(context) ? const Color(0xFF4ADE80) : const Color(0xFF166534),
+                  color: statusColor,
                 ),
               ),
             ],

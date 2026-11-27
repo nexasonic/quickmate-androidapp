@@ -666,7 +666,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemCount: _displayedLiveWorks.length,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.62,
+                    childAspectRatio: 0.72,
                     crossAxisSpacing: 14,
                     mainAxisSpacing: 14,
                   ),
@@ -724,17 +724,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: image != null && image.isNotEmpty
                     ? Image.network(
                         image,
-                        height: 88,
+                        height: 90,
                         width: double.infinity,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
-                          height: 88,
+                          height: 90,
                           color: AppTheme.subtleBackground(context),
                           child: Icon(Icons.work_outline, color: AppTheme.textSecondary(context)),
                         ),
                       )
                     : Container(
-                        height: 88,
+                        height: 90,
                         color: AppTheme.subtleBackground(context),
                         child: Icon(Icons.work_outline, color: AppTheme.textSecondary(context)),
                       ),
@@ -807,13 +807,14 @@ class _HomeScreenState extends State<HomeScreen> {
           // Body Content
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       // Worker Name + Verified Badge
                       Row(
@@ -825,7 +826,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                fontSize: 12,
+                                fontSize: 11.5,
                                 color: AppTheme.textPrimary(context),
                                 letterSpacing: 0.3,
                               ),
@@ -833,7 +834,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           if (item.user?.isVerified == true) ...[
                             const SizedBox(width: 4),
-                            const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 14),
+                            const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 13),
                           ],
                         ],
                       ),
@@ -842,7 +843,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       // Rating & Reviews directly under User Name + Category Subtitle
                       Row(
                         children: [
-                          const Icon(Icons.star_rounded, size: 13, color: Color(0xFFFFB800)),
+                          const Icon(Icons.star_rounded, size: 12, color: Color(0xFFFFB800)),
                           const SizedBox(width: 2),
                           Text(
                             '${item.rating}',
@@ -865,7 +866,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Text(
                               '• ${item.category?.name ?? context.tr('driving')}',
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 9.5,
                                 color: AppTheme.textSecondary(context),
                               ),
                               maxLines: 1,
@@ -874,11 +875,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 5),
 
                       // Task Title Pill Box
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                         decoration: BoxDecoration(
                           color: AppTheme.isDark(context) ? const Color(0xFF134E4A) : const Color(0xFFE6F4F1),
                           borderRadius: BorderRadius.circular(10),
@@ -890,7 +891,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Icon(
                               Icons.bolt_rounded,
-                              size: 12,
+                              size: 11,
                               color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
                             ),
                             const SizedBox(width: 4),
@@ -900,7 +901,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 9.5,
                                   fontWeight: FontWeight.bold,
                                   color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : primaryDark,
                                 ),
@@ -909,7 +910,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
 
                       // Card Updated Time Subtitle
                       Row(
@@ -926,14 +927,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
 
                       // Location & Calculated Distance
                       Row(
                         children: [
                           Icon(
                             Icons.location_on_outlined,
-                            size: 12,
+                            size: 11,
                             color: AppTheme.isDark(context) ? const Color(0xFF2DD4BF) : const Color(0xFF094943),
                           ),
                           const SizedBox(width: 3),
@@ -951,53 +952,52 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                    ],
+                  ),
 
-                      // Price Tag Pill Badge under Location
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
+                  // Price Tag Pill Badge under Location
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: (item.price == null || item.price == 0)
+                          ? (AppTheme.isDark(context) ? const Color(0xFF78350F) : const Color(0xFFFEF3C7))
+                          : (AppTheme.isDark(context) ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7)),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: (item.price == null || item.price == 0)
+                            ? (AppTheme.isDark(context) ? const Color(0xFF92400E) : const Color(0xFFFDE68A))
+                            : (AppTheme.isDark(context) ? const Color(0xFF047857) : const Color(0xFFBBF7D0)),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          (item.price == null || item.price == 0)
+                              ? Icons.handshake_outlined
+                              : Icons.payments_outlined,
+                          size: 11,
                           color: (item.price == null || item.price == 0)
-                              ? (AppTheme.isDark(context) ? const Color(0xFF78350F) : const Color(0xFFFEF3C7))
-                              : (AppTheme.isDark(context) ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7)),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: (item.price == null || item.price == 0)
-                                ? (AppTheme.isDark(context) ? const Color(0xFF92400E) : const Color(0xFFFDE68A))
-                                : (AppTheme.isDark(context) ? const Color(0xFF047857) : const Color(0xFFBBF7D0)),
-                          ),
+                              ? (AppTheme.isDark(context) ? const Color(0xFFFDE68A) : const Color(0xFF92400E))
+                              : (AppTheme.isDark(context) ? const Color(0xFF86EFAC) : const Color(0xFF166534)),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              (item.price == null || item.price == 0)
-                                  ? Icons.handshake_outlined
-                                  : Icons.payments_outlined,
-                              size: 11,
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            item.getTrFormattedPrice(context),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 9.5,
                               color: (item.price == null || item.price == 0)
                                   ? (AppTheme.isDark(context) ? const Color(0xFFFDE68A) : const Color(0xFF92400E))
                                   : (AppTheme.isDark(context) ? const Color(0xFF86EFAC) : const Color(0xFF166534)),
                             ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                item.getTrFormattedPrice(context),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 10,
-                                  color: (item.price == null || item.price == 0)
-                                      ? (AppTheme.isDark(context) ? const Color(0xFFFDE68A) : const Color(0xFF92400E))
-                                      : (AppTheme.isDark(context) ? const Color(0xFF86EFAC) : const Color(0xFF166534)),
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),

@@ -1,6 +1,6 @@
 class ApiConfig {
   // Toggle between Local Server (10.0.2.2:8000) and Production (quickmate.nexasonic.com)
-  static const bool useLocalServer = true;
+  static const bool useLocalServer = false;
 
   // Local Server Endpoints (10.0.2.2 loopback for Android Emulator)
   static const String localBaseUrl = 'http://10.0.2.2:8000/api/v1';
@@ -49,6 +49,9 @@ class ApiConfig {
   // Saved Cards / Bookmarks
   static const String savedCards = '$baseUrl/saved-cards';
   static const String toggleSavedCard = '$baseUrl/saved-cards/toggle';
+
+  // Razorpay Payee Display Config (Key ID and verification fee come from Laravel .env)
+  static const String payeeName = 'NexaSonic QuickMate';
 
   // Chat Endpoints
   static const String conversations = '$baseUrl/chat/conversations';

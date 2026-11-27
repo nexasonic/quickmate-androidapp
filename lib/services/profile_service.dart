@@ -58,7 +58,10 @@ class ProfileService {
     final response = await ApiService.get(ApiConfig.profile);
     if (response.success && response.data != null) {
       if (response.data is Map<String, dynamic>) {
-        return response.data as Map<String, dynamic>;
+        final dataMap = response.data as Map<String, dynamic>;
+        final userModel = UserModel.fromJson(dataMap);
+        await StorageService.saveUser(userModel.toJson());
+        return dataMap;
       }
     }
     return null;
@@ -380,22 +383,60 @@ class ProfileService {
     return response;
   }
 
-  /// Submit profile verification request with ID card documents and Razorpay payment details.
+  /// Get current user verification status from backend API.
+  static Future<ApiResponse> getVerificationStatus() async {
+    return await ApiService.get('${ApiConfig.baseUrl}/verification/status');
+  }
+
+  /// Initiate Razorpay payment order from backend API.
+  static Future<ApiResponse> initiateVerificationOrder() async {
+    return await ApiService.post('${ApiConfig.baseUrl}/verification/initiate');
+  }
+
+  /// Verify Razorpay payment signature via backend API.
+  static Future<ApiResponse> verifyPaymentSignature({
+    String? orderId,
+    required String paymentId,
+    String? signature,
+  }) async {
+    final body = <String, dynamic>{
+      'razorpay_payment_id': paymentId,
+    };
+    if (orderId != null && orderId.isNotEmpty) {
+      body['razorpay_order_id'] = orderId;
+    }
+    if (signature != null && signature.isNotEmpty) {
+      body['razorpay_signature'] = signature;
+    }
+    return await ApiService.post(
+      '${ApiConfig.baseUrl}/verification/verify',
+      body: body,
+    );
+  }
+
+  /// Submit profile verification request with ID card documents before/with Razorpay payment.
   static Future<ApiResponse> submitVerificationRequest({
     required String idType,
     required String idNumber,
     required File frontPhoto,
     File? backPhoto,
+    String? phone,
     String? paymentId,
-    double feeAmount = 2.00,
+    String paymentStatus = 'payment_pending',
+    double? feeAmount,
   }) async {
     final fields = <String, String>{
       'id_type': idType,
       'id_number': idNumber,
-      'fee_amount': feeAmount.toStringAsFixed(2),
-      'payment_status': 'paid',
+      'payment_status': paymentStatus,
     };
-    if (paymentId != null) {
+    if (phone != null && phone.trim().isNotEmpty) {
+      fields['phone'] = phone.trim();
+    }
+    if (feeAmount != null) {
+      fields['fee_amount'] = feeAmount.toStringAsFixed(2);
+    }
+    if (paymentId != null && paymentId.isNotEmpty) {
       fields['payment_id'] = paymentId;
     }
 
@@ -409,9 +450,9 @@ class ProfileService {
       fileParamName: 'documents[]',
     );
 
-    if (!response.success) {
+    if (!response.success && response.statusCode == 404) {
       return await ApiService.multipartPost(
-        '${ApiConfig.baseUrl}/user/verify',
+        '${ApiConfig.baseUrl}/verification/submit',
         fields: fields,
         files: files,
         fileParamName: 'documents[]',

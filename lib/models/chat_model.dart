@@ -57,6 +57,7 @@ class ChatMessageModel {
   final String? attachmentUrl;
   final Map<String, dynamic>? meta;
   final String? readAt;
+  final String? createdAt;
   final String? createdAtHuman;
 
   ChatMessageModel({
@@ -69,14 +70,49 @@ class ChatMessageModel {
     this.attachmentUrl,
     this.meta,
     this.readAt,
+    this.createdAt,
     this.createdAtHuman,
   });
 
   bool get isRead => readAt != null && readAt!.isNotEmpty;
 
+  static String? formatCreatedAtHuman(String? rawHuman, String? rawCreatedAt, {DateTime? now}) {
+    final human = rawHuman?.trim();
+    if (human != null && human.isNotEmpty && DateTime.tryParse(human) == null) {
+      return human;
+    }
+
+    final timestamp = (rawCreatedAt != null && rawCreatedAt.trim().isNotEmpty) ? rawCreatedAt.trim() : human;
+    if (timestamp == null || timestamp.isEmpty) {
+      return null;
+    }
+
+    final parsed = DateTime.tryParse(timestamp);
+    if (parsed == null) {
+      return null;
+    }
+
+    final localDt = parsed.toLocal();
+    final diff = (now ?? DateTime.now()).difference(localDt);
+
+    if (diff.isNegative || diff.inSeconds < 60) {
+      return AppLanguage.trCode('just_now');
+    } else if (diff.inMinutes < 60) {
+      return '${diff.inMinutes} ${AppLanguage.trCode('mins_ago')}';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours} ${AppLanguage.trCode('hours_ago')}';
+    } else if (diff.inDays < 30) {
+      return '${diff.inDays} ${AppLanguage.trCode('days_ago')}';
+    } else {
+      return '${(diff.inDays / 30).floor()} ${AppLanguage.trCode('months_ago')}';
+    }
+  }
+
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
     final rawAttachment = json['attachment_url']?.toString();
     final rawMeta = json['meta'] is Map<String, dynamic> ? json['meta'] as Map<String, dynamic> : null;
+    final rawCreatedAt = json['created_at']?.toString();
+    final rawCreatedAtHuman = json['created_at_human']?.toString();
 
     return ChatMessageModel(
       id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
@@ -88,7 +124,8 @@ class ChatMessageModel {
       attachmentUrl: rawAttachment != null ? ApiConfig.fixImageUrl(rawAttachment) : null,
       meta: rawMeta,
       readAt: json['read_at']?.toString(),
-      createdAtHuman: json['created_at_human'] ?? json['created_at'],
+      createdAt: rawCreatedAt,
+      createdAtHuman: formatCreatedAtHuman(rawCreatedAtHuman, rawCreatedAt),
     );
   }
 }

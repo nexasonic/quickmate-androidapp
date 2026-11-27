@@ -1278,25 +1278,41 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
   }
 
   Widget _buildStatCard(String label, String value) {
+    final bool isLongText = value.length > 7;
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         decoration: BoxDecoration(
           color: AppTheme.surface(context),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppTheme.border(context)),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
               value,
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primary(context)),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: isLongText ? 11 : 15,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primary(context),
+                height: 1.15,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 2),
             Text(
               label,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10, color: AppTheme.textSecondary(context)),
+              style: TextStyle(
+                fontSize: 10,
+                color: AppTheme.textSecondary(context),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -1404,11 +1420,12 @@ class _UserPublicProfileScreenState extends State<UserPublicProfileScreen> {
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: value.length > 12 ? 10 : 11,
                     fontWeight: FontWeight.bold,
                     color: valueColor ?? AppTheme.textPrimary(context),
+                    height: 1.15,
                   ),
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(

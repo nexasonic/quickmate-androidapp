@@ -89,11 +89,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     if (!mounted) return;
 
     if (newMessages.isNotEmpty) {
+      final existingIds = _messages.map((m) => m.id).toSet();
+      final bool hasNewIncomingMessage = newMessages.any((m) => !existingIds.contains(m.id));
       bool hasChanges = newMessages.length != _messages.length;
       if (!hasChanges) {
         for (int i = 0; i < newMessages.length; i++) {
           if (newMessages[i].id != _messages[i].id ||
-              newMessages[i].readAt != _messages[i].readAt) {
+              newMessages[i].readAt != _messages[i].readAt ||
+              newMessages[i].createdAtHuman != _messages[i].createdAtHuman) {
             hasChanges = true;
             break;
           }
@@ -104,7 +107,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         setState(() {
           _messages = newMessages;
         });
-        _scrollToBottom();
+        if (hasNewIncomingMessage) {
+          _scrollToBottom();
+        }
       }
     }
   }
@@ -201,7 +206,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     setState(() {
       _isSending = false;
-      if (newMsg != null) {
+      if (newMsg != null && !_messages.any((m) => m.id == newMsg.id)) {
         _messages.add(newMsg);
       }
     });
@@ -737,7 +742,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 const Spacer(),
-                if (msg.createdAtHuman != null)
+                if (msg.createdAtHuman != null && msg.createdAtHuman!.isNotEmpty)
                   Text(
                     msg.createdAtHuman!,
                     style: TextStyle(
